@@ -8,8 +8,9 @@ namespace ColourBricks.Domain.Settings;
 /// shown on report headers/exports/printed documents, and the notification
 /// thresholds previously hardcoded in <c>NotificationEvaluator</c> and the loans
 /// EMI-alert lookahead window. Always exactly one row; <c>ISystemSettingsService</c>
-/// creates it with these defaults on first read (whatever id the DB assigns —
-/// nothing else ever looks it up by id, since there's only ever the one row).
+/// creates it with these defaults on first read — its own <c>Id</c> is exposed on
+/// the DTO precisely so the frontend can attach a logo upload to it via
+/// <c>ownerType=SystemSettings</c>, the only place anything else looks it up by id.
 /// </summary>
 [Auditable("admin_configuration")]
 public sealed class SystemSettings : BaseEntity
@@ -22,8 +23,16 @@ public sealed class SystemSettings : BaseEntity
 
     public string? CompanyGstin { get; set; }
 
-    /// <summary>A hosted image URL, not an upload — kept simple until a real need for file storage shows up.</summary>
+    /// <summary>A pasted, externally hosted logo URL — the alternative to <see cref="CompanyLogoAttachmentId"/>.</summary>
     public string? CompanyLogoUrl { get; set; }
+
+    /// <summary>
+    /// A logo uploaded through the Attachment system (client-added, 2026-09-05) —
+    /// the alternative to <see cref="CompanyLogoUrl"/>. Mutually exclusive with it
+    /// at the UI level; if somehow both are set, the attachment wins (it is the
+    /// higher-fidelity source — an actual file, not a link that can rot).
+    /// </summary>
+    public long? CompanyLogoAttachmentId { get; set; }
 
     // ── Notification defaults (BRD §66) ──────────────────────────────────────
 

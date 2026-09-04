@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { logout } from "@/lib/auth";
+import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
 import { useCurrentUser } from "./user-context";
 
@@ -48,6 +49,7 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       </span>
 
       <div className="ml-auto flex items-center gap-3">
+        {user.permissions.includes("dashboard.view") && <NotificationBell />}
         <ThemeToggle />
         <span className="bg-border hidden h-5 w-px sm:block" aria-hidden="true" />
         <span className="text-muted-foreground hidden text-sm sm:inline">{user.email}</span>

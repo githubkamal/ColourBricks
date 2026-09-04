@@ -1,10 +1,12 @@
 namespace ColourBricks.Application.Settings;
 
 public sealed record SystemSettingsDto(
+    long Id,
     string CompanyName,
     string? CompanyAddress,
     string? CompanyGstin,
     string? CompanyLogoUrl,
+    long? CompanyLogoAttachmentId,
     decimal VendorOutstandingAlertLimit,
     int OverdueAlertDays,
     decimal ProfitFloorAlertPercent,
@@ -16,6 +18,7 @@ public sealed record UpdateSystemSettingsRequest(
     string? CompanyAddress,
     string? CompanyGstin,
     string? CompanyLogoUrl,
+    long? CompanyLogoAttachmentId,
     decimal VendorOutstandingAlertLimit,
     int OverdueAlertDays,
     decimal ProfitFloorAlertPercent,

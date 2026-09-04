@@ -21,6 +21,7 @@ export const navigation: NavSection[] = [
     items: [
       { label: "Company Dashboard", href: "/dashboard/company", permission: "dashboard.view" },
       { label: "Project Dashboard", href: "/dashboard/project", permission: "dashboard.view" },
+      { label: "Notifications", href: "/notifications", permission: "dashboard.view" },
     ],
   },
   {
@@ -150,7 +151,11 @@ export const navigation: NavSection[] = [
       { label: "Cash Accounts", href: "/accounts/cash", permission: "accounts.view" },
       { label: "Bank Accounts", href: "/accounts/bank", permission: "accounts.view" },
       { label: "Payment Modes", href: "/accounts/payment-modes", permission: "accounts.view" },
-      { label: "Transactions", href: "/accounts/transactions", permission: "accounts.view" },
+      {
+        label: "Transactions",
+        href: "/reports/explorer?report=bank-wise-report",
+        permission: "reports.view",
+      },
       {
         label: "Bank Statement Upload",
         href: "/reconciliation/upload",
@@ -249,6 +254,11 @@ export const navigation: NavSection[] = [
         permission: "admin_configuration.view",
       },
       { label: "System Settings", href: "/admin/settings", permission: "admin_configuration.view" },
+      {
+        label: "Notification Channels",
+        href: "/admin/notification-channels",
+        permission: "admin_configuration.edit",
+      },
     ],
   },
 ];

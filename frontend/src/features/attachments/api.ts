@@ -52,3 +52,12 @@ export async function uploadAttachment(
 export function attachmentUrl(id: number): string {
   return `${apiBaseUrl}/attachments/${id}`;
 }
+
+/**
+ * A same-origin URL for inline preview (an `<img src>`, say) — proxied through
+ * `app/api/attachments/[id]`, since the API's `SameSite=Lax` auth cookie would
+ * not reach a direct cross-origin `<img src={attachmentUrl(id)}>` request.
+ */
+export function attachmentPreviewUrl(id: number): string {
+  return `/api/attachments/${id}`;
+}

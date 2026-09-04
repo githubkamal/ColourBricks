@@ -1,10 +1,12 @@
 import { apiClient } from "@/lib/api";
 
 export interface SystemSettings {
+  id: number;
   companyName: string;
   companyAddress: string | null;
   companyGstin: string | null;
   companyLogoUrl: string | null;
+  companyLogoAttachmentId: number | null;
   vendorOutstandingAlertLimit: number;
   overdueAlertDays: number;
   profitFloorAlertPercent: number;

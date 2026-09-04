@@ -20,6 +20,7 @@ public sealed class SystemSettingsService(AppDbContext db) : ISystemSettingsServ
         settings.CompanyAddress = request.CompanyAddress?.Trim();
         settings.CompanyGstin = request.CompanyGstin?.Trim();
         settings.CompanyLogoUrl = request.CompanyLogoUrl?.Trim();
+        settings.CompanyLogoAttachmentId = request.CompanyLogoAttachmentId;
         settings.VendorOutstandingAlertLimit = request.VendorOutstandingAlertLimit;
         settings.OverdueAlertDays = request.OverdueAlertDays;
         settings.ProfitFloorAlertPercent = request.ProfitFloorAlertPercent;
@@ -45,7 +46,7 @@ public sealed class SystemSettingsService(AppDbContext db) : ISystemSettingsServ
     }
 
     private static SystemSettingsDto ToDto(Domain.Settings.SystemSettings s) => new(
-        s.CompanyName, s.CompanyAddress, s.CompanyGstin, s.CompanyLogoUrl,
+        s.Id, s.CompanyName, s.CompanyAddress, s.CompanyGstin, s.CompanyLogoUrl, s.CompanyLogoAttachmentId,
         s.VendorOutstandingAlertLimit, s.OverdueAlertDays, s.ProfitFloorAlertPercent,
         s.LoanEmiReminderDaysAhead, s.ConcurrencyStamp);
 }

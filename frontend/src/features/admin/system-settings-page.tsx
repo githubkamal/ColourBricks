@@ -1,8 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { attachmentPreviewUrl, uploadAttachment } from "@/features/attachments/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
@@ -28,6 +29,20 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<SystemSettings>(initial);
   const [touched, setTouched] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadLogo = useMutation({
+    mutationFn: (file: File) => uploadAttachment("SystemSettings", form.id, file),
+    onSuccess: (attachment) => {
+      // Staged like every other field here — only takes effect once "Save
+      // settings" is submitted, even though the file itself is already stored.
+      setForm((f) => ({ ...f, companyLogoAttachmentId: attachment.id, companyLogoUrl: null }));
+      toast.message("Logo uploaded — click Save settings to apply it");
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not upload the logo"),
+  });
 
   const save = useMutation({
     mutationFn: (input: SystemSettings) => updateSystemSettings(input),
@@ -83,24 +98,75 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
               onChange={(e) => setForm({ ...form, companyAddress: e.target.value })}
             />
           </label>
-          <div className="grid grid-cols-2 gap-3">
-            <label className="space-y-1">
-              <span className="text-sm font-medium">GSTIN</span>
-              <Input
-                value={form.companyGstin ?? ""}
-                aria-label="GSTIN"
-                onChange={(e) => setForm({ ...form, companyGstin: e.target.value })}
-              />
-            </label>
-            <label className="space-y-1">
-              <span className="text-sm font-medium">Logo URL</span>
-              <Input
-                value={form.companyLogoUrl ?? ""}
-                aria-label="Logo URL"
-                placeholder="https://…"
-                onChange={(e) => setForm({ ...form, companyLogoUrl: e.target.value })}
-              />
-            </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium">GSTIN</span>
+            <Input
+              value={form.companyGstin ?? ""}
+              aria-label="GSTIN"
+              onChange={(e) => setForm({ ...form, companyGstin: e.target.value })}
+            />
+          </label>
+
+          <div className="space-y-2">
+            <span className="text-sm font-medium">Logo</span>
+            {form.companyLogoAttachmentId ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element -- a settings-page preview, not a next/image candidate */}
+                <img
+                  src={attachmentPreviewUrl(form.companyLogoAttachmentId)}
+                  alt="Company logo"
+                  className="h-12 w-auto rounded border object-contain"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setForm({ ...form, companyLogoAttachmentId: null })}
+                >
+                  Remove
+                </Button>
+              </div>
+            ) : form.companyLogoUrl ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element -- an externally hosted URL, next/image can't optimise an arbitrary host anyway */}
+                <img
+                  src={form.companyLogoUrl}
+                  alt="Company logo"
+                  className="h-12 w-auto rounded border object-contain"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  onClick={() => setForm({ ...form, companyLogoUrl: null })}
+                >
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  aria-label="Upload a logo"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  className="text-xs"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadLogo.mutate(file);
+                  }}
+                />
+                <span className="text-muted-foreground text-xs">or</span>
+                <Input
+                  className="max-w-xs"
+                  aria-label="Logo URL"
+                  placeholder="paste a hosted image URL"
+                  onBlur={(e) => {
+                    if (e.target.value.trim()) setForm({ ...form, companyLogoUrl: e.target.value.trim() });
+                  }}
+                />
+              </div>
+            )}
           </div>
         </section>
 

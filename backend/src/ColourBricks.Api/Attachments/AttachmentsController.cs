@@ -23,6 +23,13 @@ public sealed class AttachmentsController(IAttachmentService attachments) : Cont
             ["TempleDonation"] = ("temple_donations.view", "temple_donations.edit"),
             ["CustomWork"] = ("customized_work.view", "customized_work.add"),
             ["Loan"] = ("loans.view", "loans.add"),
+            // The company logo (the only SystemSettings attachment today) is meant to
+            // show up wherever the company profile does — report headers, print views
+            // — for any signed-in user, not just admins; "dashboard.view" is this
+            // codebase's already-established stand-in for "any authenticated staff
+            // user" (see the notification bell's gate). Uploading/replacing it stays
+            // admin-only.
+            ["SystemSettings"] = ("dashboard.view", "admin_configuration.edit"),
         };
 
     private const long MaxRequestBytes = 25 * 1024 * 1024;

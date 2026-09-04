@@ -3,6 +3,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getSystemSettings } from "@/features/admin/system-settings-api";
+import { attachmentPreviewUrl } from "@/features/attachments/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatINR } from "@/lib/format";
@@ -162,10 +163,24 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
   return (
     <div className="space-y-4">
       {company && (
-        <div className="hidden print:block">
-          <p className="text-base font-semibold">{company.companyName}</p>
-          {company.companyAddress && <p className="text-xs">{company.companyAddress}</p>}
-          {company.companyGstin && <p className="text-xs">GSTIN: {company.companyGstin}</p>}
+        <div className="hidden items-start gap-3 print:flex">
+          {(company.companyLogoAttachmentId || company.companyLogoUrl) && (
+            // eslint-disable-next-line @next/next/no-img-element -- print-only, no need for next/image's optimisation pipeline
+            <img
+              src={
+                company.companyLogoAttachmentId
+                  ? attachmentPreviewUrl(company.companyLogoAttachmentId)
+                  : (company.companyLogoUrl ?? undefined)
+              }
+              alt=""
+              className="h-12 w-auto object-contain"
+            />
+          )}
+          <div>
+            <p className="text-base font-semibold">{company.companyName}</p>
+            {company.companyAddress && <p className="text-xs">{company.companyAddress}</p>}
+            {company.companyGstin && <p className="text-xs">GSTIN: {company.companyGstin}</p>}
+          </div>
         </div>
       )}
       <h1 className="text-lg font-semibold">{entry.title}</h1>
@@ -290,11 +305,21 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
           </select>
         </label>
 
-        <button type="button" className="rounded border px-3 py-1.5" onClick={exportCsv}>
-          Export CSV
+        <button
+          type="button"
+          className="rounded border px-3 py-1.5"
+          title="Downloads a .csv file — opens directly in Excel, Google Sheets, etc."
+          onClick={exportCsv}
+        >
+          Export to Excel
         </button>
-        <button type="button" className="rounded border px-3 py-1.5" onClick={() => window.print()}>
-          Print
+        <button
+          type="button"
+          className="rounded border px-3 py-1.5"
+          title="Opens the print dialog — choose “Save as PDF” as the destination to export a PDF"
+          onClick={() => window.print()}
+        >
+          Print / Export to PDF
         </button>
         <button type="button" className="rounded border px-3 py-1.5" onClick={saveView}>
           Save view
