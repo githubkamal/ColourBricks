@@ -1,0 +1,330 @@
+"use client";
+
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { toast } from "sonner";
+import { listAccounts } from "@/features/accounts/api";
+import { PartyPicker } from "@/features/parties/party-picker";
+import type { PartySearchItem } from "@/features/parties/types";
+import { listProjects } from "@/features/projects/api";
+import { AmountInput } from "@/components/ui/amount-input";
+import { Button } from "@/components/ui/button";
+import { FieldLabel } from "@/components/ui/field-label";
+import { Input } from "@/components/ui/input";
+import { ApiError } from "@/lib/api";
+import { formatINR } from "@/lib/format";
+import { listLoans, recordLoan, reverseLoan, type Loan } from "./api";
+
+/** Loan Master (BRD §48): record a loan and see every loan on file. */
+export function LoanMasterPage() {
+  const queryClient = useQueryClient();
+  const { data: accounts } = useQuery({ queryKey: ["accounts"], queryFn: () => listAccounts() });
+  const { data: projects } = useQuery({
+    queryKey: ["projects", { forLoans: true }],
+    queryFn: () => listProjects({ pageSize: 100 }),
+  });
+  const { data: loans = [], isPending } = useQuery({
+    queryKey: ["loans"],
+    queryFn: () => listLoans(),
+  });
+
+  const [lender, setLender] = useState<PartySearchItem | null>(null);
+  const [projectId, setProjectId] = useState<number | "">("");
+  const [principal, setPrincipal] = useState("");
+  const [rate, setRate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [tenureMonths, setTenureMonths] = useState("");
+  const [emiAmount, setEmiAmount] = useState("");
+  const [emiStartDate, setEmiStartDate] = useState("");
+  const [disbursementAccountId, setDisbursementAccountId] = useState<number | "">("");
+  const [disbursementDate, setDisbursementDate] = useState("");
+  const [reference, setReference] = useState("");
+  const [notes, setNotes] = useState("");
+  const [touched, setTouched] = useState(false);
+
+  const record = useMutation({
+    mutationFn: () =>
+      recordLoan({
+        lenderId: lender!.id,
+        principalAmount: Number(principal),
+        annualInterestRatePercent: Number(rate),
+        startDate,
+        tenureMonths: Number(tenureMonths),
+        emiStartDate,
+        disbursementAccountId: Number(disbursementAccountId),
+        disbursementDate,
+        projectId: projectId === "" ? null : projectId,
+        emiAmount: emiAmount ? Number(emiAmount) : null,
+        reference: reference.trim() || null,
+        notes: notes.trim() || null,
+      }),
+    onSuccess: (loan) => {
+      toast.success(`Loan recorded: ${formatINR(loan.principalAmount)} from ${loan.lenderName}`);
+      setLender(null);
+      setProjectId("");
+      setPrincipal("");
+      setRate("");
+      setStartDate("");
+      setTenureMonths("");
+      setEmiAmount("");
+      setEmiStartDate("");
+      setDisbursementAccountId("");
+      setDisbursementDate("");
+      setReference("");
+      setNotes("");
+      setTouched(false);
+      void queryClient.invalidateQueries({ queryKey: ["loans"] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not record the loan"),
+  });
+
+  const reverse = useMutation({
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => reverseLoan(id, reason),
+    onSuccess: () => {
+      toast.success("Loan reversed");
+      void queryClient.invalidateQueries({ queryKey: ["loans"] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not reverse the loan"),
+  });
+
+  const ready =
+    lender !== null &&
+    Number(principal) > 0 &&
+    Number(rate) > 0 &&
+    startDate !== "" &&
+    Number(tenureMonths) > 0 &&
+    emiStartDate !== "" &&
+    disbursementAccountId !== "" &&
+    disbursementDate !== "";
+
+  return (
+    <div className="max-w-4xl space-y-6">
+      <h1 className="text-lg font-semibold">Loan Master</h1>
+
+      <form
+        className="space-y-3 rounded border p-4"
+        onSubmit={(e) => {
+          e.preventDefault();
+          setTouched(true);
+          if (ready) record.mutate();
+        }}
+      >
+        <PartyPicker type="Lender" label="Lender" selected={lender} onSelect={setLender} />
+
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Project (optional)</span>
+          <select
+            className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+            value={projectId}
+            aria-label="Project"
+            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+          >
+            <option value="">Company-wide (no project)</option>
+            {projects?.items.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <FieldLabel
+              required
+              error={touched && !(Number(principal) > 0) ? "Required" : undefined}
+            >
+              Principal amount
+            </FieldLabel>
+            <AmountInput value={principal} aria-label="Principal amount" onChange={setPrincipal} />
+          </label>
+          <label className="space-y-1">
+            <FieldLabel required error={touched && !(Number(rate) > 0) ? "Required" : undefined}>
+              Annual interest rate %
+            </FieldLabel>
+            <AmountInput value={rate} aria-label="Annual interest rate %" onChange={setRate} />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <FieldLabel required error={touched && startDate === "" ? "Required" : undefined}>
+              Start date
+            </FieldLabel>
+            <Input
+              type="date"
+              value={startDate}
+              aria-label="Start date"
+              onChange={(e) => setStartDate(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1">
+            <FieldLabel
+              required
+              error={touched && !(Number(tenureMonths) > 0) ? "Required" : undefined}
+            >
+              Tenure (months)
+            </FieldLabel>
+            <Input
+              inputMode="numeric"
+              value={tenureMonths}
+              aria-label="Tenure (months)"
+              onChange={(e) => setTenureMonths(e.target.value.replace(/\D/g, ""))}
+            />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-sm font-medium">
+              EMI amount (optional — auto-calculated if blank)
+            </span>
+            <AmountInput value={emiAmount} aria-label="EMI amount" onChange={setEmiAmount} />
+          </label>
+          <label className="space-y-1">
+            <FieldLabel required error={touched && emiStartDate === "" ? "Required" : undefined}>
+              EMI start date
+            </FieldLabel>
+            <Input
+              type="date"
+              value={emiStartDate}
+              aria-label="EMI start date"
+              onChange={(e) => setEmiStartDate(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <FieldLabel
+              required
+              error={touched && disbursementAccountId === "" ? "Required" : undefined}
+            >
+              Disbursement account
+            </FieldLabel>
+            <select
+              className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+              value={disbursementAccountId}
+              aria-label="Disbursement account"
+              onChange={(e) =>
+                setDisbursementAccountId(e.target.value ? Number(e.target.value) : "")
+              }
+            >
+              <option value="">Select…</option>
+              {accounts?.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name} ({a.type})
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1">
+            <FieldLabel
+              required
+              error={touched && disbursementDate === "" ? "Required" : undefined}
+            >
+              Disbursement date
+            </FieldLabel>
+            <Input
+              type="date"
+              value={disbursementDate}
+              aria-label="Disbursement date"
+              onChange={(e) => setDisbursementDate(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="space-y-1">
+            <span className="text-sm font-medium">Reference</span>
+            <Input
+              value={reference}
+              aria-label="Reference"
+              onChange={(e) => setReference(e.target.value)}
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-sm font-medium">Notes</span>
+            <Input value={notes} aria-label="Notes" onChange={(e) => setNotes(e.target.value)} />
+          </label>
+        </div>
+
+        <Button type="submit" disabled={record.isPending}>
+          Record loan
+        </Button>
+      </form>
+
+      <div className="rounded border">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/60 text-muted-foreground">
+            <tr className="border-b text-left">
+              <th className="p-2 font-medium">Lender</th>
+              <th className="p-2 font-medium">Project</th>
+              <th className="p-2 font-medium">Principal</th>
+              <th className="p-2 font-medium">Rate</th>
+              <th className="p-2 font-medium">Outstanding</th>
+              <th className="p-2 font-medium">Status</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {isPending && (
+              <tr>
+                <td colSpan={7} className="text-muted-foreground p-3 text-center">
+                  Loading…
+                </td>
+              </tr>
+            )}
+            {!isPending && loans.length === 0 && (
+              <tr>
+                <td colSpan={7} className="text-muted-foreground p-3 text-center">
+                  No loans recorded yet.
+                </td>
+              </tr>
+            )}
+            {loans.map((loan) => (
+              <LoanRow
+                key={loan.id}
+                loan={loan}
+                onReverse={(reason) => reverse.mutate({ id: loan.id, reason })}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function LoanRow({ loan, onReverse }: { loan: Loan; onReverse: (reason: string) => void }) {
+  return (
+    <tr className="border-b last:border-0">
+      <td className="p-2">
+        {loan.lenderName}
+        {loan.reference && <span className="text-muted-foreground"> · {loan.reference}</span>}
+      </td>
+      <td className="p-2">{loan.projectId ? `#${loan.projectId}` : "Company-wide"}</td>
+      <td className="p-2 tabular-nums">{formatINR(loan.principalAmount)}</td>
+      <td className="p-2 tabular-nums">{loan.annualInterestRatePercent}%</td>
+      <td className="p-2 tabular-nums">{formatINR(loan.outstandingPrincipal)}</td>
+      <td className="p-2">{loan.status}</td>
+      <td className="p-2">
+        {loan.status !== "Reversed" && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            onClick={() => {
+              const reason = window.prompt("Reason for reversing this loan?");
+              if (reason?.trim()) onReverse(reason.trim());
+            }}
+          >
+            Reverse
+          </Button>
+        )}
+      </td>
+    </tr>
+  );
+}

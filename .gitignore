@@ -1,0 +1,47 @@
+# ---------- .NET ----------
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+.vs/
+project.lock.json
+artifacts/
+TestResults/
+*.trx
+*.coverage
+coverage/
+BenchmarkDotNet.Artifacts/
+
+# ---------- Node / Next.js ----------
+node_modules/
+.next/
+out/
+.turbo/
+next-env.d.ts
+*.tsbuildinfo
+
+# ---------- Logs ----------
+logs/
+*.log
+
+# ---------- Test artifacts ----------
+playwright-report/
+playwright/.cache/
+test-results/
+
+# ---------- Secrets / local config ----------
+.env
+.env.local
+.env.*.local
+appsettings.*.local.json
+secrets.json
+
+# ---------- Editor / OS ----------
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db

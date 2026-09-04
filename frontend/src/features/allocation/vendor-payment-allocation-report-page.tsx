@@ -1,0 +1,148 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { PartyPicker } from "@/features/parties/party-picker";
+import type { PartySearchItem } from "@/features/parties/types";
+import { Input } from "@/components/ui/input";
+import { formatDate, formatINR } from "@/lib/format";
+import {
+  settlementAllocationHistory,
+  vendorPaymentAllocationReport,
+  type VendorPaymentAllocationReportRow,
+} from "./api";
+
+export function VendorPaymentAllocationReportPage() {
+  const [vendor, setVendor] = useState<PartySearchItem | null>(null);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [openSettlement, setOpenSettlement] = useState<number | null>(null);
+
+  const { data: rows = [] } = useQuery({
+    queryKey: ["allocation-report", vendor?.id ?? null, dateFrom, dateTo],
+    queryFn: () =>
+      vendorPaymentAllocationReport({
+        vendorId: vendor?.id ?? null,
+        dateFrom: dateFrom || null,
+        dateTo: dateTo || null,
+      }),
+  });
+
+  const detail = useQuery({
+    queryKey: ["allocation-history", openSettlement],
+    queryFn: () => settlementAllocationHistory(openSettlement!),
+    enabled: openSettlement !== null,
+  });
+
+  return (
+    <div className="max-w-4xl space-y-6">
+      <h1 className="text-lg font-semibold">Vendor Payment Allocation Report</h1>
+
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-64">
+          <PartyPicker type="Vendor" label="Vendor" selected={vendor} onSelect={setVendor} />
+        </div>
+        <label className="space-y-1">
+          <span className="text-sm font-medium">From</span>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            aria-label="From"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-sm font-medium">To</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            aria-label="To"
+          />
+        </label>
+      </div>
+
+      <div className="overflow-x-auto rounded border">
+        <table className="w-full text-sm">
+          <thead className="bg-secondary/60 text-muted-foreground">
+            <tr className="border-b text-left">
+              <th className="p-2 font-medium">Date</th>
+              <th className="p-2 font-medium">Vendor</th>
+              <th className="p-2 font-medium">Total payment</th>
+              <th className="p-2 font-medium">Project</th>
+              <th className="p-2 font-medium">Allocated</th>
+              <th className="p-2 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="text-muted-foreground p-3 text-center">
+                  No allocations match the filters.
+                </td>
+              </tr>
+            )}
+            {rows.map((r: VendorPaymentAllocationReportRow, i) => {
+              const firstOfGroup = i === 0 || rows[i - 1].settlementId !== r.settlementId;
+              return (
+                <tr
+                  key={`${r.settlementId}-${r.projectId ?? "adv"}-${i}`}
+                  className={firstOfGroup ? "border-t" : "border-b-0"}
+                >
+                  <td className="p-2">{firstOfGroup ? formatDate(r.date) : ""}</td>
+                  <td className="p-2">{firstOfGroup ? r.vendorName : ""}</td>
+                  <td className="p-2">
+                    {firstOfGroup ? (
+                      <button
+                        type="button"
+                        className="underline underline-offset-2"
+                        onClick={() =>
+                          setOpenSettlement((cur) =>
+                            cur === r.settlementId ? null : r.settlementId,
+                          )
+                        }
+                      >
+                        {formatINR(r.totalPayment)}
+                      </button>
+                    ) : (
+                      ""
+                    )}
+                  </td>
+                  <td className="p-2">{r.projectName}</td>
+                  <td className="p-2 font-medium">{formatINR(r.allocated)}</td>
+                  <td className="p-2">
+                    {r.status === "Reversed" ? (
+                      <span className="text-negative">Reversed</span>
+                    ) : (
+                      r.status
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {openSettlement !== null && detail.data && (
+        <div className="rounded border p-3 text-sm" data-testid="allocation-detail">
+          <p className="mb-2 font-medium">
+            Settlement #{detail.data.settlementId} — {detail.data.vendorName} —{" "}
+            {formatINR(detail.data.totalPayment)} ({detail.data.status})
+          </p>
+          <ul className="space-y-1">
+            {detail.data.lines.map((l, i) => (
+              <li key={i} className="flex justify-between">
+                <span>
+                  {l.projectName}
+                  {l.obligationReference ? ` · ${l.obligationReference}` : ""} · {l.method}
+                </span>
+                <span className="font-medium">{formatINR(l.amount)}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}

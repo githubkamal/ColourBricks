@@ -1,0 +1,259 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-sans);
+
+  /* The three semantic colours (plan.md §8.2) — each means one thing, never decorative. */
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-attention: var(--attention);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+
+  --shadow-xs: var(--shadow-sm);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+}
+
+/*
+ * A back-office accounting tool: neutral paper base, one type family, and exactly
+ * three semantic colours (plan.md §8.2) that never change with the accent — they
+ * mean credit/debit/needs-attention, not decoration. `--primary`/`--ring`/the
+ * sidebar's primary+ring are the only tokens an accent theme touches (client
+ * request, 2026-09-04); "Slate" is the original neutral look, unchanged.
+ */
+:root {
+  --background: #fcfcfa; /* paper white */
+  --foreground: #1a1d21; /* ink */
+  --card: #ffffff;
+  --card-foreground: #1a1d21;
+  --popover: #ffffff;
+  --popover-foreground: #1a1d21;
+  --primary: #1a1d21;
+  --primary-foreground: #fcfcfa;
+  --secondary: #f2f1ec;
+  --secondary-foreground: #1a1d21;
+  --muted: #f2f1ec;
+  --muted-foreground: #6b6b66;
+  --accent: #f0efe9;
+  --accent-foreground: #1a1d21;
+  --destructive: #b03a2e;
+  --border: #e2e1dc; /* rule */
+  --input: #d8d7d1;
+  --ring: #b8b7b0;
+  --radius: 0.5rem;
+  --shadow-color: 220 15% 25%;
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.06);
+  --shadow-md:
+    0 4px 12px -2px hsl(var(--shadow-color) / 0.1), 0 2px 4px -2px hsl(var(--shadow-color) / 0.06);
+  --shadow-lg:
+    0 12px 32px -8px hsl(var(--shadow-color) / 0.16), 0 4px 8px -4px hsl(var(--shadow-color) / 0.08);
+
+  --positive: #1f7a4d; /* credit / money in */
+  --negative: #b03a2e; /* debit / money out */
+  --attention: #b8860b; /* unreconciled / needs attention */
+
+  --sidebar: #f6f5f1;
+  --sidebar-foreground: #1a1d21;
+  --sidebar-primary: #1a1d21;
+  --sidebar-primary-foreground: #fcfcfa;
+  --sidebar-accent: #eceae3;
+  --sidebar-accent-foreground: #1a1d21;
+  --sidebar-border: #e2e1dc;
+  --sidebar-ring: #b8b7b0;
+}
+
+.dark {
+  --background: #17191c;
+  --foreground: #f2f1ec;
+  --card: #1f2226;
+  --card-foreground: #f2f1ec;
+  --popover: #1f2226;
+  --popover-foreground: #f2f1ec;
+  --primary: #f2f1ec;
+  --primary-foreground: #1a1d21;
+  --secondary: #272a2e;
+  --secondary-foreground: #f2f1ec;
+  --muted: #272a2e;
+  --muted-foreground: #a3a29b;
+  --accent: #272a2e;
+  --accent-foreground: #f2f1ec;
+  --destructive: #d1584a;
+  --border: #ffffff1a;
+  --input: #ffffff26;
+  --ring: #6b6b66;
+  --shadow-color: 0 0% 0%;
+  --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.3);
+  --shadow-md:
+    0 4px 12px -2px hsl(var(--shadow-color) / 0.4), 0 2px 4px -2px hsl(var(--shadow-color) / 0.3);
+  --shadow-lg:
+    0 12px 32px -8px hsl(var(--shadow-color) / 0.5), 0 4px 8px -4px hsl(var(--shadow-color) / 0.35);
+
+  --positive: #3ba876;
+  --negative: #d1584a;
+  --attention: #d0a13a;
+
+  --sidebar: #1b1e21;
+  --sidebar-foreground: #f2f1ec;
+  --sidebar-primary: #f2f1ec;
+  --sidebar-primary-foreground: #1a1d21;
+  --sidebar-accent: #272a2e;
+  --sidebar-accent-foreground: #f2f1ec;
+  --sidebar-border: #ffffff1a;
+  --sidebar-ring: #6b6b66;
+}
+
+/* Accent themes (client request, 2026-09-04) — a curated palette layered on top of
+   the neutral base above. Only the "acting" colour and its focus ring change; every
+   other token (surfaces, text, borders, the three semantic colours) stays identical
+   across accents, light or dark. "Slate" is the default and needs no rule here. */
+:root[data-accent="blue"] {
+  --primary: #2563eb;
+  --primary-foreground: #ffffff;
+  --ring: #93b4f8;
+  --sidebar-primary: #2563eb;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #93b4f8;
+}
+:root.dark[data-accent="blue"] {
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --ring: #60a5fa;
+  --sidebar-primary: #3b82f6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #60a5fa;
+}
+
+:root[data-accent="emerald"] {
+  --primary: #059669;
+  --primary-foreground: #ffffff;
+  --ring: #6ee7b7;
+  --sidebar-primary: #059669;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #6ee7b7;
+}
+:root.dark[data-accent="emerald"] {
+  --primary: #10b981;
+  --primary-foreground: #ffffff;
+  --ring: #34d399;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #34d399;
+}
+
+:root[data-accent="amber"] {
+  --primary: #c9820a;
+  --primary-foreground: #ffffff;
+  --ring: #f3c169;
+  --sidebar-primary: #c9820a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #f3c169;
+}
+:root.dark[data-accent="amber"] {
+  --primary: #f0a020;
+  --primary-foreground: #1a1200;
+  --ring: #fbbf24;
+  --sidebar-primary: #f0a020;
+  --sidebar-primary-foreground: #1a1200;
+  --sidebar-ring: #fbbf24;
+}
+
+:root[data-accent="violet"] {
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --ring: #c4b5fd;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #c4b5fd;
+}
+:root.dark[data-accent="violet"] {
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --ring: #a78bfa;
+  --sidebar-primary: #8b5cf6;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #a78bfa;
+}
+
+/* Amount cells: tabular figures, right-aligned (plan.md §8.2). */
+@utility num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* P8-T07 — print stylesheet for on-screen reports. Hide the app chrome and report
+   controls; print only the grid with its totals. */
+@media print {
+  aside,
+  nav,
+  [data-report-controls],
+  [data-report-pagination] {
+    display: none !important;
+  }
+
+  [data-report-grid] {
+    overflow: visible !important;
+    border: none !important;
+  }
+
+  [data-report-grid] table {
+    width: 100%;
+    font-size: 11px;
+  }
+
+  [data-report-grid] thead {
+    position: static !important;
+  }
+
+  main {
+    padding: 0 !important;
+  }
+}

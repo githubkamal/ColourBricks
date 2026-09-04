@@ -1,0 +1,130 @@
+{
+  "$comment": "Checked-in source of truth for P0-T05. The seeder and PermissionSeed_MatchesBrdMatrix both read this file. Modules = BRD §3; actions crossed per plan.md §9. Administrator and Accounts Team are transcribed from BRD §61/§62/§63; the three 'derived' roles are conservative defaults pending client confirmation (review.md Q12, gap 6) and are fully editable by an Administrator later (BRD §62).",
+  "actions": ["view", "add", "edit", "delete", "approve", "reconcile", "export", "print"],
+  "modules": [
+    { "key": "dashboard", "name": "Dashboard" },
+    { "key": "projects", "name": "Project Management" },
+    { "key": "project_income", "name": "Project Income" },
+    { "key": "project_expenses", "name": "Project Expense Management" },
+    { "key": "labour", "name": "Labour & Subcontractor Management" },
+    { "key": "vendors", "name": "Vendor Management" },
+    { "key": "materials", "name": "Material / Item Management" },
+    { "key": "temple_donations", "name": "Temple Donation Management" },
+    { "key": "customized_work", "name": "Customized Work Management" },
+    { "key": "payments", "name": "Payment Management" },
+    { "key": "accounts", "name": "Cash & Bank Account Management" },
+    { "key": "bank_reconciliation", "name": "Bank Statement Import & Reconciliation" },
+    { "key": "budget", "name": "Budget & Cost Control" },
+    { "key": "profit_loss", "name": "Project Profit / Loss" },
+    { "key": "personal_expenses", "name": "Personal Expenses" },
+    { "key": "office_expenses", "name": "Office Expenses" },
+    { "key": "savings", "name": "Savings Management" },
+    { "key": "common_expenses", "name": "Common Expense Allocation" },
+    { "key": "loans", "name": "Loan Management" },
+    { "key": "emi", "name": "EMI Management" },
+    { "key": "vendor_payment_allocation", "name": "Vendor Payment Allocation" },
+    { "key": "reports", "name": "Reports & Analytics" },
+    { "key": "users", "name": "User Management" },
+    { "key": "roles", "name": "Role Management" },
+    { "key": "permissions", "name": "Permission Management" },
+    { "key": "admin_configuration", "name": "Admin Configuration" },
+    { "key": "audit_trail", "name": "Audit Trail" }
+  ],
+  "roles": [
+    {
+      "name": "Administrator",
+      "description": "Full access to every module and action (BRD §60).",
+      "isSystem": true,
+      "derived": false,
+      "permissions": "*"
+    },
+    {
+      "name": "Accounts Team",
+      "description": "Financial data entry and update (BRD §60, §61, §63).",
+      "isSystem": false,
+      "derived": false,
+      "permissions": [
+        { "module": "dashboard", "actions": ["view"] },
+        { "module": "projects", "actions": ["view", "add", "edit", "approve", "export", "print"] },
+        { "module": "project_income", "actions": ["view", "add", "edit", "approve", "export", "print"] },
+        { "module": "project_expenses", "actions": ["view", "add", "edit", "approve", "export", "print"] },
+        { "module": "labour", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "vendors", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "materials", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "temple_donations", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "customized_work", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "payments", "actions": ["view", "add", "edit", "approve", "export", "print"] },
+        { "module": "accounts", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "bank_reconciliation", "actions": ["view", "add", "edit", "approve", "reconcile", "export", "print"] },
+        { "module": "budget", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "profit_loss", "actions": ["view", "export", "print"] },
+        { "module": "personal_expenses", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "office_expenses", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "savings", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "common_expenses", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "loans", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "emi", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "vendor_payment_allocation", "actions": ["view", "add", "edit", "approve", "export", "print"] },
+        { "module": "reports", "actions": ["view", "export", "print"] }
+      ]
+    },
+    {
+      "name": "Project Manager",
+      "description": "Project-related access, usually restricted to assigned projects (BRD §60, §64). Derived default.",
+      "isSystem": false,
+      "derived": true,
+      "permissions": [
+        { "module": "dashboard", "actions": ["view"] },
+        { "module": "projects", "actions": ["view", "add", "edit", "approve", "export", "print"] },
+        { "module": "project_income", "actions": ["view", "export", "print"] },
+        { "module": "project_expenses", "actions": ["view", "add", "edit", "approve", "export", "print"] },
+        { "module": "labour", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "vendors", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "materials", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "temple_donations", "actions": ["view", "export", "print"] },
+        { "module": "customized_work", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "payments", "actions": ["view", "export", "print"] },
+        { "module": "budget", "actions": ["view", "add", "edit", "export", "print"] },
+        { "module": "profit_loss", "actions": ["view", "export", "print"] },
+        { "module": "vendor_payment_allocation", "actions": ["view", "export", "print"] },
+        { "module": "reports", "actions": ["view", "export", "print"] }
+      ]
+    },
+    {
+      "name": "Management",
+      "description": "Dashboards and reporting, read-only (BRD §60). Derived default.",
+      "isSystem": false,
+      "derived": true,
+      "permissions": [
+        { "module": "dashboard", "actions": ["view"] },
+        { "module": "projects", "actions": ["view", "export", "print"] },
+        { "module": "project_income", "actions": ["view", "export", "print"] },
+        { "module": "project_expenses", "actions": ["view", "export", "print"] },
+        { "module": "vendors", "actions": ["view", "export", "print"] },
+        { "module": "budget", "actions": ["view", "export", "print"] },
+        { "module": "profit_loss", "actions": ["view", "export", "print"] },
+        { "module": "loans", "actions": ["view", "export", "print"] },
+        { "module": "common_expenses", "actions": ["view", "export", "print"] },
+        { "module": "vendor_payment_allocation", "actions": ["view", "export", "print"] },
+        { "module": "reports", "actions": ["view", "export", "print"] },
+        { "module": "audit_trail", "actions": ["view"] }
+      ]
+    },
+    {
+      "name": "Data Entry User",
+      "description": "Limited data entry (BRD §60). Derived default.",
+      "isSystem": false,
+      "derived": true,
+      "permissions": [
+        { "module": "dashboard", "actions": ["view"] },
+        { "module": "projects", "actions": ["view"] },
+        { "module": "project_income", "actions": ["view", "add"] },
+        { "module": "project_expenses", "actions": ["view", "add"] },
+        { "module": "vendors", "actions": ["view", "add"] },
+        { "module": "materials", "actions": ["view", "add"] },
+        { "module": "labour", "actions": ["view", "add"] },
+        { "module": "customized_work", "actions": ["view", "add"] }
+      ]
+    }
+  ]
+}

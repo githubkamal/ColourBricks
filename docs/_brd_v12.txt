@@ -1,0 +1,1467 @@
+Colour Bricks
+Construction Project Financial Management System — Business
+Requirement Document
+Contents
+1. Introduction 4
+2. Business Objectives 4
+3. Application Modules 5
+4. Project Management 5
+5. Project Dashboard 6
+6. Project Income / Credits 6
+7. Project Expenses / Debits 7
+8. Labour & Subcontractor Management 7
+9. Subcontractor / Team Master 8
+10. Labour / Subcontractor Work 8
+11. Vendor Management 8
+12. Vendor Master 9
+13. Automatic Vendor Creation 9
+14. Material / Item Master 9
+15. Automatic Item Creation 10
+16. Material Purchase Management 10
+17. Vendor Purchase & Outstanding 11
+18. Vendor Payments 11
+19. Multi-Project Vendor Payment Allocation 11
+20. Vendor Payment Allocation Example 11
+21. Vendor Outstanding & Project Outstanding 12
+22. No Duplicate Expense Rule 12
+23. Vendor Payment Allocation History 12
+1
+24. Manual Vendor Allocation Override 13
+25. Vendor Payment Greater Than Outstanding 13
+26. Temple Donation Management 13
+27. Customized / Ad-Hoc Work 13
+28. Payment Mode Management 14
+29. Cash & Bank Account Management 14
+30. Transaction Entry Sources (New) 15
+31. Bank Statement Import (New) 15
+32. Bank Reconciliation Flow (New) 15
+33. Reconciliation Status (New) 16
+34. Credit / Receipt Allocation Rule (New) 17
+35. Debit / Payment Allocation Rule (New) 17
+36. Internal Bank Transfer (New) 18
+37. Data Integrity / No Double Counting (New) 18
+38. Reconciliation Control Reports (New) 18
+39. Reconciliation Main Screen (New) 19
+40. Project Budget & Cost Control 19
+41. Budget Monitoring 19
+42. Project Financial Ledger 20
+43. Project Profit & Loss 20
+44. Personal, Office & Savings Expenses 20
+45. Common Expense Allocation Across Ongoing Projects 21
+46. Common Expense Allocation Methods 21
+47. Common Expense Allocation History 21
+48. Loans & EMI 22
+49. Project Reports 22
+50. Vendor Reports 23
+51. Vendor Payment Allocation Report 23
+52. Subcontractor / Labour Reports 23
+53. Temple Donation Reports 24
+54. Loan Reports 24
+55. Cash & Bank Reports 24
+2
+56. Company-Level Reports 24
+57. Report Filters & Sorting 25
+58. Role-Based Access Control 25
+59. User Management 26
+60. Role Management 26
+61. Admin Configuration – Module Permissions 26
+62. Granular Permissions 27
+63. Accounts Team 27
+64. Project-Level Access 28
+65. Audit Trail 28
+66. Notifications & Alerts 28
+67. Document Attachments 29
+68. Recommended Navigation 29
+69. Phase-Wise Implementation 30
+70. Key Business Rules 32
+71. Overall Business Flow 33
+Prepared For: Colour Bricks
+Prepared By: Livewires Digital Solutions
+Version: 1.2
+Date: 02 September 2026
+Status: Updated Requirement — For Client Review
+Change Summary: Adds Bank Statement Import & Bank
+Reconciliation, and related reporting, audit,
+permission and business-rule updates.
+Sections carried over unchanged from v1.1
+keep their original content.
+3
+1. Introduction
+Livewires Digital Solutions proposes to develop a Construction Project Financial Manage-
+ment System for Colour Bricks.
+Theapplicationwillprovideacentralizedplatformtomanagemultipleconstructionprojects
+and track:
+• Project income and credits
+• Project expenses and debits
+• Labour and subcontractor expenses
+• Material purchases
+• Vendors and vendor payments
+• Temple donations
+• Customized work
+• Personal expenses
+• Office expenses
+• Savings
+• Loans and EMIs
+• Project-wise outstanding
+• Vendor-wise outstanding
+• Project profitability
+• Budget versus actual cost
+• Cash and bank transactions
+• Multi-project vendor payment allocation
+• Bank statement import and bank reconciliation
+• Role-based access
+• Management reports and dashboards
+2. Business Objectives
+The primary objectives are to:
+1. Manage all construction projects from a single application.
+2. Track project-wise income and expenses.
+3. Monitor project profitability.
+4. Compare project budget against actual expenses.
+5. Identify cost overruns.
+6. Manage labour and subcontractor teams.
+7. Maintain centralized vendor and item masters.
+8. Avoid repeatedly entering the same vendors and materials.
+9. Track vendor purchases and outstanding balances.
+10. Track payments to vendors and subcontractors.
+11. Support daily, weekly, monthly and ad-hoc payments.
+12. Track temple donations for each project.
+13. Support multiple temples for a project.
+14. Track customized work.
+15. Support different payment modes.
+16. Maintain cash and bank balances.
+17. Track personal, office and savings expenses.
+18. Allocate common expenses across ongoing projects.
+19. Track project loans and EMI payments.
+20. Automatically distribute consolidated vendor payments across projects.
+21. Maintain accurate vendor and project outstanding balances.
+22. Provide comprehensive reports with filtering and date ranges.
+23. Provide configurable role-based permissions.
+24. Maintain an audit trail for important financial activities.
+4
+25. Import bank statements (CSV/Excel) and reconcile them against recorded
+transactions.
+26. Ensure manual entries and bank transactions are never double-counted.
+3. Application Modules
+The application will contain the following major modules:
+1. Dashboard
+2. Project Management
+3. Project Income
+4. Project Expense Management
+5. Labour & Subcontractor Management
+6. Vendor Management
+7. Material/Item Management
+8. Temple Donation Management
+9. Customized Work Management
+10. Payment Management
+11. Cash & Bank Account Management
+12. Bank Statement Import & Reconciliation
+13. Budget & Cost Control
+14. Project Profit/Loss
+15. Personal Expenses
+16. Office Expenses
+17. Savings Management
+18. Common Expense Allocation
+19. Loan Management
+20. EMI Management
+21. Vendor Payment Allocation
+22. Reports & Analytics
+23. User Management
+24. Role Management
+25. Permission Management
+26. Admin Configuration
+27. Audit Trail
+4. Project Management
+A centralized Project Master will be maintained.
+Project Details
+• Project ID
+• Project Name
+• Client Name
+• Site Address
+• Contact Details
+• Project Start Date
+• Expected Completion Date
+• Actual Completion Date
+• Project/Contract Value
+• Estimated Project Cost
+• Expected Profit
+• Project Status
+• Project Manager
+• Notes
+• Attachments
+5
+Project Status
+• Ongoing
+• Completed
+• On Hold
+• Cancelled
+Users will be able to view projects based on status.
+5. Project Dashboard
+When a user selects a project, the system should display a complete financial overview.
+Summary
+• Project Value
+• Estimated Cost
+• Actual Cost
+• Total Income
+• Total Expenses
+• Total Paid
+• Total Outstanding
+• Current Balance
+• Expected Profit
+• Actual Profit
+• Profit %
+• Budget Utilisation %
+Expense Breakdown
+• Building Construction / Mesthri
+• Interior
+• Plumbing
+• Electrical
+• Materials
+• Vendors
+• Customized Work
+• Temple Donations
+• Personal/Common Expenses
+• Office/Common Expenses
+• Savings Allocation
+• Loan/EMI
+• Other Expenses
+Users should be able to click summary figures and drill down into the underlying transac-
+tions.
+6. Project Income / Credits
+The system will allow users to record all income received against a project.
+Examples:
+• Client Advance
+• Stage Payment
+• Milestone Payment
+• Additional Payment
+• Final Payment
+• Other Project Income
+Transaction Details
+6
+• Project
+• Transaction Date
+• Transaction Type
+• Amount
+• Payment Mode
+• Cash/Bank Account
+• Reference Number
+• Description
+• Attachment
+• Created By
+• Created Date
+Allocationrule: everyprojectincome/credittransactionisrecordedagainstex-
+actly one project. See Section 34 (Credit / Receipt Allocation Rule) for the rule
+as it applies to bank-sourced credits.
+7. Project Expenses / Debits
+The system will track all expenses associated with a project.
+Expense categories include:
+• Labour
+• Building Construction
+• Interior
+• Plumbing
+• Electrical
+• Materials
+• Vendor Purchases
+• Customized Work
+• Temple Donation
+• Common Expense Allocation
+• Loan/EMI
+• Other Expenses
+8. Labour & Subcontractor Management
+Multiple departments and multiple teams should be supported.
+Initial Departments
+• Mesthri / Building Construction
+• Interior
+• Plumbing
+• Electrical
+Additional departments can be created through administration.
+Example
+Electrical
+• Electrical Team A
+• Electrical Team B
+• Electrical Team C
+Plumbing
+• Plumbing Team A
+• Plumbing Team B
+7
+9. Subcontractor / Team Master
+Each subcontractor/team can contain:
+• Team/Subcontractor ID
+• Name
+• Department
+• Contact Person
+• Phone
+• Email
+• Address
+• Payment Terms
+• Bank Details
+• Active/Inactive
+A subcontractor/team can work on multiple projects.
+10. Labour / Subcontractor Work
+The system should record:
+• Project
+• Department
+• Team/Subcontractor
+• Work Type
+• Work Description
+• Work Date
+• Agreed Work Value
+• Amount Paid
+• Outstanding Amount
+• Payment Date
+• Payment Mode
+• Cash/Bank Account
+• Reference
+• Remarks
+Payment Frequency
+• Daily
+• Weekly
+• Monthly
+• Milestone-based
+• Ad-hoc
+Outstanding
+Outstanding = Agreed Work Value – Total Paid
+11. Vendor Management
+A centralized Vendor Master will be maintained.
+Examples:
+• Hardware Shops
+• Cement Agencies
+• Brick Agencies
+• Sand Suppliers
+• Steel Suppliers
+• Plumbing Suppliers
+8
+• Electrical Suppliers
+• Paint Suppliers
+• Tile Suppliers
+• Interior Suppliers
+• Machinery Suppliers
+A vendor should only need to be created once.
+12. Vendor Master
+Vendor information:
+• Vendor ID
+• Vendor Name
+• Vendor Category
+• Contact Person
+• Phone
+• Email
+• Address
+• GST Number
+• Bank Details
+• Payment Terms
+• Active/Inactive
+13. Automatic Vendor Creation
+During the first transaction:
++ Add New Vendor
+The vendor will automatically be added to the Vendor Master.
+For subsequent transactions:
+Search Vendor → Select Vendor
+The system should provide:
+• Search box
+• Autocomplete
+• Existing vendor list
+• Add New Vendor option
+Duplicate vendors should be prevented wherever possible.
+14. Material / Item Master
+A centralized Item Master will be maintained.
+Examples:
+• Cement
+• Bricks
+• Sand
+• Steel
+• Pipes
+• Electrical Cables
+• Switches
+• Tiles
+• Paint
+9
+• Doors
+• Windows
+• Hardware Items
+• Plumbing Items
+• Interior Materials
+Item Details
+• Item ID
+• Item Name
+• Category
+• Unit
+• Default Rate
+• Tax/GST
+• Active/Inactive
+15. Automatic Item Creation
+When entering a purchase:
+Search Item or + Add New Item
+Thefirst-timeitemwillautomaticallybeaddedtotheItemMaster. Futureuserscansimply
+search and select it.
+16. Material Purchase Management
+Material purchases should be recorded against projects.
+Example
+Project A — Vendor: ABC Cement Agency
+Item Quantity Rate Amount
+Cement 100 Bags ₹400 ₹40,000
+Sand 2 Loads ₹15,000 ₹30,000
+Total ₹70,000
+Purchase information
+• Project
+• Vendor
+• Purchase Date
+• Invoice Number
+• Items
+• Quantity
+• Unit
+• Rate
+• Tax
+• Total Amount
+• Amount Paid
+• Outstanding
+• Payment Mode
+• Account
+• Reference
+• Attachment
+10
+17. Vendor Purchase & Outstanding
+Example
+• Purchase: ₹2,00,000
+• Initial Payment: ₹50,000
+• Vendor Outstanding: ₹1,50,000
+The system will maintain the complete purchase and payment history.
+18. Vendor Payments
+Vendor payments can be:
+• Full
+• Partial
+• Daily
+• Weekly
+• Monthly
+• Ad-hoc
+• Multiple payments against a purchase
+Example
+• Purchase = ₹2,00,000
+• Payment 1 = ₹50,000 → Outstanding = ₹1,50,000
+• Payment 2 = ₹75,000 → Outstanding = ₹75,000
+19. Multi-Project Vendor Payment Allocation
+A vendor may have outstanding balances across several projects.
+TheAccountsTeamshouldbeabletomakeoneconsolidatedpaymenttoavendor,andthe
+system should automatically distribute the payment across the relevant projects.
+Default Method: FIFO – First In, First Out
+The oldest outstanding balance will be settled first.
+This same allocation mechanism is also used when a bank transaction is rec-
+onciled against a vendor and needs to be split across multiple projects — see
+Section 35 (Debit / Payment Allocation Rule).
+20. Vendor Payment Allocation Example
+Vendor: ABC Hardware
+Project Outstanding
+Project A ₹25,000
+Project B ₹10,000
+Project C ₹30,000
+Project D ₹50,000
+Total ₹1,15,000
+Vendor payment: ₹1,00,000
+System allocation
+11
+Project Before Allocated After
+Project A ₹25,000 ₹25,000 ₹0
+Project B ₹10,000 ₹10,000 ₹0
+Project C ₹30,000 ₹30,000 ₹0
+Project D ₹50,000 ₹35,000 ₹15,000
+Total ₹1,15,000 ₹1,00,000 ₹15,000
+21. Vendor Outstanding & Project Outstanding
+Before payment: Vendor Outstanding = ₹1,15,000
+Payment: ₹1,00,000
+After payment: Vendor Outstanding = ₹15,000
+At the same time:
+• Project A outstanding → ₹0
+• Project B outstanding → ₹0
+• Project C outstanding → ₹0
+• Project D outstanding → ₹15,000
+The vendor and project balances must remain synchronized.
+22. No Duplicate Expense Rule
+The system must distinguish between:
+Purchase / Expense and Payment / Settlement
+Example
+Purchase: ₹25,000
+System records:
+• Project Expense = ₹25,000
+• Vendor Outstanding = ₹25,000
+Later: Vendor Payment = ₹25,000
+System records:
+• Vendor Outstanding = ₹0
+• Cash/Bank reduces by ₹25,000
+• Project payable reduces by ₹25,000
+The payment must not create another ₹25,000 expense.
+Thesameprincipleapplieswhenthepaymentlatershowsupasabanktransac-
+tionduringreconciliation—seeSection37(DataIntegrity/NoDoubleCounting).
+23. Vendor Payment Allocation History
+Each consolidated payment should maintain allocation details.
+Example
+Payment: ₹1,00,000
+12
+Project Allocated
+Project A ₹25,000
+Project B ₹10,000
+Project C ₹30,000
+Project D ₹35,000
+Total ₹1,00,000
+Users should be able to view the complete allocation history.
+24. Manual Vendor Allocation Override
+Authorized users can manually override FIFO allocation where required.
+Any manual override should be recorded in the audit trail.
+25. Vendor Payment Greater Than Outstanding
+Example
+Vendor Outstanding: ₹80,000 Payment: ₹1,00,000 Excess: ₹20,000
+The excess should be recorded as Vendor Advance / Credit Balance, which can be ad-
+justed against future purchases.
+26. Temple Donation Management
+Each project may have a percentage or fixed amount reserved for temple donations.
+The system should support:
+• Temple Master
+• Multiple temples per project
+• Percentage-based donation
+• Fixed donation
+• Donation allocation
+• Donation payments
+• Donation outstanding
+• Payment Mode
+• Cash/Bank Account
+• Receipt/Reference
+Example
+• Project Value = ₹1 Crore
+• Donation = 2%
+• Donation Amount = ₹2 Lakhs
+The amount may be distributed across multiple temples.
+27. Customized / Ad-Hoc Work
+The system should support additional work not included in predefined work categories.
+Examples:
+• Additional construction
+• Additional electrical work
+13
+• Additional plumbing
+• Additional interior work
+• Emergency work
+• Client-requested changes
+• Additional materials
+• Additional labour
+Information captured:
+• Project
+• Department
+• Work Type
+• Description
+• Vendor/Subcontractor
+• Estimated Cost
+• Actual Cost
+• Paid Amount
+• Outstanding
+• Date
+• Payment Mode
+• Account
+• Reference
+28. Payment Mode Management
+Payment Mode will be maintained as a configurable master.
+Initial modes
+• Cash
+• Bank Transfer
+• UPI
+• Cheque
+• Credit Card
+• Debit Card
+• Online Transfer
+• Other
+Payment Mode will be available across:
+• Project Income
+• Vendor Payments
+• Labour Payments
+• Subcontractor Payments
+• Temple Donations
+• Personal Expenses
+• Office Expenses
+• Savings
+• Loan EMI
+• Other Transactions
+29. Cash & Bank Account Management
+The system should support multiple accounts.
+Cash
+• Office Cash
+• Site Cash
+14
+Bank
+• HDFC
+• SBI
+• ICICI
+• Other Bank Accounts
+Every applicable financial transaction should record: Payment Mode + Account
+30. Transaction Entry Sources (New)
+The system will support two primary transaction-entry methods, feeding the same
+underlying financial ledger described throughout this document.
+30.1 Manual Entry
+Accountsuserscandirectlyentertransactionsintothesystem,asalreadydescribedinSec-
+tions 6–29 above (project income, vendor purchases, labour expenses, vendor payments,
+client receipts, cash transactions, and so on).
+Manual entries become available immediately in the relevant project, vendor, client and
+financial reports. The system does not require the user to wait for a bank statement.
+30.2 Bank Statement Entry
+Users can upload bank statements (see Section 31). Imported transactions initially remain
+in Pending status until matched or reconciled (see Sections 32–33).
+31. Bank Statement Import (New)
+Users can upload bank statements in:
+• CSV
+• Excel
+The system will extract available information such as:
+• Transaction date
+• Narration
+• Debit
+• Credit
+• Amount
+• Bank reference/UTR
+• Transaction description
+Imported transactions initially remain in Pending status.
+Thesystemshouldcheckforduplicatetransactionsbeforecreating/importingthem,sothe
+same statement line cannot be imported twice.
+32. Bank Reconciliation Flow (New)
+Bank reconciliation matches bank statement transactions with transactions already
+recorded in the system (manual or previously imported).
+15
+Bank Statement
+↓
+CSV / Excel Upload
+↓
+Bank Transactions
+↓
+Pending
+↓
+Auto Match / Suggested Match
+↓
+Accountant Review
+↓
+Confirm / Modify
+↓
+Reconciled
+↓
+Financial Ledger
+The system should use available information such as:
+• Narration
+• Vendor name
+• Client name
+• Amount
+• Date
+• Bank reference/UTR
+• Existing manual transactions
+• Historical matching information
+to suggest the appropriate match. The accountant must be able to accept or change the
+suggested match.
+Example — matching an existing manual entry
+Accounts manually records: ABC Hardware Payment – ₹1,00,000
+Later the bank statement contains: ABC Hardware – Debit ₹1,00,000
+Manual Payment ₹1,00,000
+↓
+Bank Transaction ₹1,00,000
+↓
+Match
+↓
+Reconciled
+The system must not create a second ₹1,00,000 payment (see Section 37).
+33. Reconciliation Status (New)
+Bank transactions should have statuses such as:
+• Pending
+• In Review
+• Reconciled
+• Excluded
+Remove / Exclude
+Ifatransactionisremovedfromthereconciliationqueue,itshouldbemarkedasExcluded
+rather than permanently deleted. This maintains auditability and prevents the same trans-
+action from being imported repeatedly.
+16
+Unreconcile / Reverse
+For a wrongly reconciled transaction, authorized users should be able to Unrecon-
+cile/Reverse it with appropriate audit tracking (see Section 65, Audit Trail).
+34. Credit / Receipt Allocation Rule (New)
+Abankcredit/clientreceiptmustbelongtoone project only—consistentwiththeProject
+Income rule already stated in Section 6.
+Example
+Bank Credit ₹5,00,000
+↓
+Client: ABC Builders
+↓
+Project A
+↓
+Project Credit ₹5,00,000
+Thecreditallocationscreenmustnotallowasingleclientreceipttobesplitacrossmultiple
+projects.
+Reconciling a credit will update:
+• Bank balance
+• Client received amount
+• Project credit
+• Client outstanding
+• Project ledger
+35. Debit / Payment Allocation Rule (New)
+A bank debit/payment can belong to:
+• One project, or
+• Multiple projects
+This extends the Multi-Project Vendor Payment Allocation described in Sections 19–20 to
+bank-sourcedtransactions,andisparticularlyrelevantforvendorswhosupplymaterialsor
+services to multiple projects.
+Example
+Bank payment: ABC Hardware – ₹1,00,000
+Project Allocation
+Project A ₹25,000
+Project B ₹10,000
+Project C ₹30,000
+Project D ₹35,000
+Total ₹1,00,000
+Validation
+Bank Debit = Total Project Allocations
+₹1,00,000 = ₹1,00,000
+17
+If there is a difference, the system should not allow reconciliation until the difference is
+resolved.
+One Bank Transaction → One Vendor Payment → Multiple Project Allocations. The
+bank transaction itself always remains a single transaction; the reconciliation screen can
+displayasummarysuchasProject(s): 4 Projects,withaViewoptiontoseethedetailed
+allocation.
+Where sufficient outstanding information exists, the system should propose an allocation
+basedonprojectoutstandingamounts(usingthesameFIFOlogicasSection19),whichthe
+accountant can accept or manually modify.
+36. Internal Bank Transfer (New)
+Transfersbetweencompanybankaccountsshouldbetreatedseparatelyfromprojecttrans-
+actions.
+Example
+HDFC Debit ₹2,00,000
+↓
+Internal Transfer
+↓
+SBI Credit ₹2,00,000
+This must not be treated as:
+• Project expense
+• Project income
+• Vendor payment
+• Client receipt
+The overall company financial position remains unchanged.
+37. Data Integrity / No Double Counting (New)
+Building on the No Duplicate Expense Rule in Section 22, the system must ensure that the
+same financial event is never counted twice across manual entry and bank reconciliation.
+Manual Payment ₹1,00,000
++
+Bank Statement ₹1,00,000
+↓
+NOT ₹2,00,000
+↓
+One Payment ₹1,00,000
+linked to Bank Transaction
+Similarly, project allocations of a single multi-project vendor payment (Section 35) are
+linked allocations of the same payment, not additional bank payments:
+Vendor Payment ₹1,00,000
+↓
+Project A ₹25,000 · Project B ₹10,000 · Project C ₹30,000 · Project D ₹35,000
+↓
+Total ₹1,00,000
+38. Reconciliation Control Reports (New)
+Thesystemmustprovidefinancialcontrolreportstoensurethattransactionstallycorrectly.
+18
+Control Formula
+Bank Opening Bank Balance + Credits − Debits
+= Closing Bank Balance
+Vendor Purchases/Payables − Payments = Vendor
+Outstanding
+Project Project Payables − Project Payments =
+Project Outstanding
+Client Project Amount Due − Client Receipts =
+Client Outstanding
+Multi-Project Payment Bank Debit = Sum of Project Allocations
+These controls will help identify discrepancies before final reporting.
+39. Reconciliation Main Screen (New)
+The reconciliation screen should provide columns such as:
+Date Bank DescripTtyiopne Credit Debit Client/VPernodjeocrt(Asl)locatedDifferencSetatus Action
+For multi-project transactions, the Project column can display Multiple / 4 Projects; the
+user can select View to see the detailed project allocation.
+Actions can include:
+• View
+• Review
+• Match
+• Reconcile
+• Remove/Exclude
+• Unreconcile, where authorized
+40. Project Budget & Cost Control
+Each project should have an estimated/approved cost.
+The system will continuously compare: Estimated Cost vs Actual Cost
+Example
+• Estimated Cost = ₹80,00,000
+• Actual Cost = ₹82,00,000
+The system should show: Budget Exceeded by ₹2,00,000
+41. Budget Monitoring
+Expenses should be monitored by category.
+Category Budget Actual Variance
+Labour ₹20L ₹19L ₹1L
+Materials ₹35L ₹38L ₹3L Over
+Electrical ₹5L ₹6L ₹1L Over
+19
+Suggested status:
+• Within Budget
+• Approaching Budget
+• Budget Exceeded
+Thresholds should be configurable.
+42. Project Financial Ledger
+Each project should have a complete credit/debit ledger.
+Date Description Credit Debit Balance
+01-Aug Client Advance ₹10L - ₹10L
+03-Aug Cement Purchase - ₹1L ₹9L
+05-Aug Labour Payment - ₹50K ₹8.5L
+07-Aug Electrical Work - ₹40K ₹8.1L
+10-Aug Client Payment ₹5L - ₹13.1L
+Each transaction should be clickable for detailed information.
+43. Project Profit & Loss
+Basic calculation: Project Profit = Project Revenue – Project Costs
+The system will display:
+• Project Revenue
+• Estimated Cost
+• Actual Cost
+• Gross Profit
+• Profit %
+• Budget Variance
+44. Personal, Office & Savings Expenses
+The system should support:
+Personal Expenses
+• Personal withdrawals
+• Personal purchases
+• Other personal expenses
+Office Expenses
+• Office rent
+• Electricity
+• Internet
+• Salaries
+• Stationery
+• Travel
+• Software
+• Maintenance
+Savings
+• Savings allocation
+• Savings transactions
+20
+45. Common Expense Allocation Across Ongoing
+Projects
+PersonalExpenses,OfficeExpensesandSavingswillbetreatedascommon/company-level
+expenses.
+The system should allow the total amount to be distributed among ongoing projects.
+Default Allocation Method: Equal Distribution
+Formula: Project Allocation = Total Common Expense ÷ Number of Ongoing
+Projects
+Completed, cancelled and on-hold projects will be excluded.
+Example
+For a particular period:
+Expense Type Amount
+Personal Expenses ₹40,000
+Office Expenses ₹35,000
+Savings ₹25,000
+Total ₹1,00,000
+Suppose there are four ongoing projects:
+Project Allocation Amount
+Project A 25% ₹25,000
+Project B 25% ₹25,000
+Project C 25% ₹25,000
+Project D 25% ₹25,000
+Total 100% ₹1,00,000
+If there are five ongoing projects: ₹1,00,000 ÷ 5 = ₹20,000 per project
+46. Common Expense Allocation Methods
+The system should support:
+1. Equal Distribution — Total amount ÷ number of ongoing projects.
+2. Percentage Based — e.g. Project A 40%, Project B 30%, Project C 20%, Project D
+10%.
+3. Manual Distribution — Accounts/Admin can manually specify the amount for each
+project.
+Default: Equal Distribution
+47. Common Expense Allocation History
+Every allocation should maintain:
+• Original Expense
+• Expense Type
+• Total Amount
+• Allocation Method
+21
+• Projects
+• Allocated Amount
+• Allocation Date
+• Created By
+This allows management to trace how common expenses were distributed.
+48. Loans & EMI
+Projects may be financed through loans.
+Loan Master
+• Loan ID
+• Project
+• Bank/Lender
+• Loan Amount
+• Interest Rate
+• Start Date
+• Tenure
+• EMI Amount
+• EMI Start Date
+• EMI End Date
+• Outstanding Principal
+• Status
+EMI
+• Project
+• Loan
+• EMI Date
+• EMI Amount
+• Principal
+• Interest
+• Payment Mode
+• Account
+• Reference
+• Status
+Reports
+• Total Loan
+• Principal Paid
+• Interest Paid
+• Outstanding Principal
+• Upcoming EMI
+• Overdue EMI
+49. Project Reports
+Project Financial Summary
+• Project Value
+• Estimated Cost
+• Actual Cost
+• Income
+• Expenses
+• Profit/Loss
+• Profit %
+22
+ProjectExpenseReport—Filters: Project,Category,Department,Vendor,Subcontractor,
+Payment Mode, Account, Date Range
+Project Ledger — Complete credit/debit history.
+Budget vs Actual — Budget, Actual, Variance, Variance %
+Project Labour Report — Department/team-wise cost.
+Project Material Report — Item, Quantity, Rate, Amount, Vendor, Date
+Project Outstanding — Vendor Outstanding, Subcontractor Outstanding, Loan Outstand-
+ing, Other Outstanding
+50. Vendor Reports
+The system should provide:
+Vendor Statement — Purchases, Payments, Allocations, Advances, Outstanding
+Vendor Purchase Report — Vendor, Project, Item, Category, Date
+Vendor Payment Report — Complete payment history.
+Vendor Outstanding Report — Total Purchases, Total Paid, Outstanding
+Vendor Project-wise Statement
+Vendor Project Purchase Paid Outstanding
+ABC Project A ₹2L ₹1.5L ₹50K
+ABC Project B ₹1L ₹50K ₹50K
+51. Vendor Payment Allocation Report
+This report should show how one vendor payment was distributed.
+Date Vendor Total Payment Project Allocated
+26-Aug ABC Hardware ₹1L Project A ₹25K
+26-Aug ABC Hardware ₹1L Project B ₹10K
+26-Aug ABC Hardware ₹1L Project C ₹30K
+26-Aug ABC Hardware ₹1L Project D ₹35K
+52. Subcontractor / Labour Reports
+Reports should include:
+• Subcontractor Statement
+• Department-wise Expense
+• Team-wise Expense
+• Project-wise Team Expense
+• Payment History
+• Outstanding Report
+• Work Value vs Payment
+• Date-wise Payment Report
+23
+53. Temple Donation Reports
+• Project-wise Donation
+• Temple-wise Donation
+• Donation Percentage
+• Donation Allocated
+• Donation Paid
+• Donation Outstanding
+• Date-wise Donation
+54. Loan Reports
+• Project-wise Loans
+• Loan Outstanding
+• EMI Schedule
+• EMI Paid
+• EMI Pending
+• Principal vs Interest
+• Date-wise EMI Payments
+55. Cash & Bank Reports
+Account Statement — Opening Balance, Credits, Debits, Closing Balance
+Payment Mode Report
+Payment Mode Received Paid
+Cash ₹5L ₹3L
+Bank Transfer ₹20L ₹15L
+UPI ₹4L ₹2L
+Cheque ₹2L ₹1L
+Bank-wise Report — Transactions grouped by bank account.
+Bank Reconciliation Report (New) — Reconciled vs unreconciled bank transactions, by
+account and period.
+Pending Reconciliation Report (New) — All bank transactions currently in Pending or In
+Review status.
+ExcludedTransactionReport(New)—AlltransactionsmarkedExcluded,withthereason
+and user who excluded them.
+BankReconciliationExceptions(New)—Transactionswherethebankamountandtotal
+project allocation do not match, or where no suggested match was found.
+56. Company-Level Reports
+Management reports:
+• Overall Income
+• Overall Expenses
+• Overall Profit/Loss
+• Ongoing Projects
+• Completed Projects
+• Project-wise Profitability
+24
+• Vendor Outstanding
+• Subcontractor Outstanding
+• Loan Outstanding
+• Cash Position
+• Bank Position
+• Expense Category Analysis
+• Monthly Income vs Expense
+• Monthly Profit/Loss
+• Common Expense Allocation
+57. Report Filters & Sorting
+Reports should support:
+Filters
+• Project
+• Vendor
+• Subcontractor
+• Department
+• Item
+• Category
+• Payment Mode
+• Account
+• Payment Status
+• Transaction Type
+• Reconciliation Status (New)
+• Date From
+• Date To
+Date Filters
+• Today
+• Yesterday
+• This Week
+• Previous Week
+• This Month
+• Previous Month
+• Current Year
+• Previous Year
+• Custom Date Range
+Functions
+• Search
+• Sort
+• Pagination
+• Column selection
+• Grouping
+• Export to Excel
+• Export to PDF
+• Print
+• Reset Filters
+58. Role-Based Access Control
+The application will implement: User → Role → Module → Action
+Optional: User → Role → Project Access
+25
+59. User Management
+Administrator should be able to:
+• Add User
+• Edit User
+• Activate User
+• Deactivate User
+• Delete User where permitted
+• Assign Role
+• Assign Projects
+• Reset access
+User Details
+• Name
+• Username/Email
+• Mobile
+• Role
+• Department
+• Status
+• Assigned Projects
+60. Role Management
+Administrator should be able to:
+• Add Role
+• Edit Role
+• Activate/Deactivate Role
+• Delete Role where permitted
+• Configure Permissions
+• Assign Users
+Suggested Roles
+• Administrator — Full access.
+• Accounts Team — Financial data entry/update.
+• Project Manager — Project-related access.
+• Management — Dashboard and reporting.
+• Data Entry User — Limited data entry.
+Additional roles can be created.
+61. Admin Configuration – Module Permissions
+A dedicated Admin → Role & Permission Configuration page will allow administrators
+to enable/disable modules for each role.
+Example — Accounts Team
+Enabled:
+• Projects
+• Project Income
+• Project Expenses
+• Vendors
+• Materials
+• Labour/Subcontractors
+• Temple Donations
+• Payments
+26
+• Bank Statement Import & Reconciliation (New)
+• Loans
+• Reports
+Disabled:
+• User Management
+• Role Management
+• System Configuration
+If a module is disabled, it should not be visible in the user’s menu.
+62. Granular Permissions
+Each module should support:
+• View
+• Add
+• Edit
+• Delete
+• Approve
+• Reconcile (New)
+• Export
+• Print
+Example
+Module View Add Edit Delete Approve Reconcile Export
+Projects ✓ ✓ ✓ ✗ ✓ — ✓
+Vendors ✓ ✓ ✓ ✗ ✗ — ✓
+Materials ✓ ✓ ✓ ✗ ✗ — ✓
+Expenses ✓ ✓ ✓ ✗ ✓ — ✓
+Payments ✓ ✓ ✓ ✗ ✓ — ✓
+Bank Reconciliation ✓ ✓ ✓ ✗ ✓ ✓ ✓
+Reports ✓ ✗ ✗ ✗ ✗ — ✓
+Users ✓ ✓ ✓ ✓ ✗ — ✗
+Roles ✓ ✓ ✓ ✓ ✗ — ✗
+Actual permissions will be configurable by the Administrator.
+63. Accounts Team
+Accounts users may have access to:
+• Project Income
+• Project Expenses
+• Vendor Purchases
+• Vendor Payments
+• Vendor Payment Allocation
+• Subcontractor Payments
+• Temple Donations
+• Personal Expenses
+• Office Expenses
+• Savings
+• Loan Transactions
+• EMI Payments
+• Payment Modes
+27
+• Cash/Bank Transactions
+• Bank Statement Import (New)
+• Bank Reconciliation, where authorized (New)
+• Financial Reports
+The Administrator can change these permissions.
+64. Project-Level Access
+Users may optionally be restricted to selected projects.
+Example
+Project Manager A
+Can access: Project A, Project B
+Cannot access: Project C, Project D
+65. Audit Trail
+Important activities should be logged.
+Audit information
+• User
+• Date/Time
+• Module
+• Action
+• Record ID
+• Old Value
+• New Value
+• Reconciliation Status (New)
+• Reconciliation User (New)
+• Reconciliation Date (New)
+• Unreconciliation/Reversal history (New)
+Examples
+• User edited Vendor Payment VP1024.
+• Admin changed Accounts Team permissions.
+• Accountant reconciled Bank Transaction BT2045 against Vendor Payment
+VP1024. (New)
+• Accountant unreconciled Bank Transaction BT2045 — reason: wrong match.
+(New)
+Financial transactions should preferably use Cancel, Reverse or Void instead of perma-
+nent deletion. Excluded bank transactions follow the same principle (see Section 33).
+66. Notifications & Alerts
+The system may notify users when:
+• Project budget is exceeded
+• Project approaches budget
+• Vendor payment is overdue
+• Subcontractor payment is overdue
+• EMI is due
+• EMI is overdue
+• Project profitability falls below threshold
+28
+• Vendor outstanding reaches a configured limit
+• New bank transactions are imported and pending reconciliation (New)
+• A bank debit and its project allocations do not match (New)
+Notifications can be: Dashboard, Email, or Both.
+67. Document Attachments
+Users should be able to attach:
+• Vendor Invoice
+• Purchase Bill
+• Payment Receipt
+• Bank Transfer Proof
+• Cheque Copy
+• Donation Receipt
+• Loan Documents
+68. Recommended Navigation
+Dashboard
+• Company Dashboard
+• Project Dashboard
+Projects
+• Ongoing Projects
+• Completed Projects
+• Project Master
+• Project Ledger
+• Project Income
+• Project Expenses
+• Project Budget
+• Project Profit/Loss
+Vendors
+• Vendor Master
+• Purchases
+• Payments
+• Outstanding
+• Statements
+• Payment Allocation
+Labour / Subcontractors
+• Departments
+• Teams
+• Work Entries
+• Payments
+• Outstanding
+• Statements
+Materials
+• Item Master
+• Item Categories
+• Purchases
+Temple Donations
+29
+• Temple Master
+• Project Donations
+• Donation Payments
+• Reports
+Loans
+• Loan Master
+• EMI Schedule
+• EMI Payments
+• Outstanding
+Other Expenses
+• Personal Expenses
+• Office Expenses
+• Savings
+• Common Expense Allocation
+• Customized Expenses
+Accounts
+• Cash Accounts
+• Bank Accounts
+• Payment Modes
+• Transactions
+• Bank Statement Upload (New)
+• Reconciliation Queue (New)
+• Reconciled Transactions (New)
+• Excluded Transactions (New)
+Reports
+• Project Reports
+• Vendor Reports
+• Subcontractor Reports
+• Material Reports
+• Donation Reports
+• Loan Reports
+• Cash/Bank Reports
+• Bank Reconciliation Reports (New)
+• Profit/Loss
+• Outstanding
+• Budget vs Actual
+• Common Expense Allocation
+Administration
+• Users
+• Roles
+• Permissions
+• Module Configuration
+• Masters
+• Audit Logs
+• System Settings
+69. Phase-Wise Implementation
+Phase 1 – Core Project Financial Management
+• Project Management
+• Project Dashboard
+30
+• Project Income
+• Project Expenses
+• Budget vs Actual
+• Project Profit/Loss
+• Vendor Master
+• Material Master
+• Vendor Purchases
+• Vendor Outstanding
+• Labour/Subcontractor Management
+• Temple Donations
+• Customized Work
+• Payment Modes
+• Cash/Bank Accounts
+• Bank Statement Import (CSV/Excel) (New)
+• Bank Reconciliation (matching, statuses, control reports) (New)
+• Multi-project debit allocation via reconciliation (New)
+• User Management
+• Role Management
+• RBAC
+• Admin Configuration
+• Audit Trail
+• Basic Reports
+Phase 2 – Additional Expenses
+• Personal Expenses
+• Office Expenses
+• Savings
+• Common Expense Allocation
+– Equal distribution
+– Percentage-based distribution
+– Manual distribution
+– Allocation history
+• Additional reports
+Phase 3 – Loans & EMI
+• Loan Master
+• Project Loans
+• EMI Schedule
+• EMI Payments
+• Principal Tracking
+• Interest Tracking
+• Outstanding Loan
+• EMI Alerts
+• Loan Reports
+Phase 4 – Advanced Vendor Payment Allocation
+• Consolidated Vendor Payment
+• Multi-project allocation
+• FIFO allocation
+• Partial allocation
+• Full allocation
+• Vendor advance
+• Manual override
+• Allocation history
+• Project-wise outstanding update
+• Vendor outstanding update
+• Project ledger settlement
+• Cash/Bank update
+31
+• Audit trail
+• Allocation reports
+• Automatic outstanding-based allocation suggestions for reconciled bank
+debits (New)
+Phase 5 – Advanced Reporting & Analytics
+• Advanced Project Reports
+• Vendor Analytics
+• Subcontractor Analytics
+• Project Profitability
+• Cash Flow
+• Bank-wise Reports
+• Bank Reconciliation Analytics (pending, exceptions, ageing) (New)
+• Expense Trends
+• Monthly/Annual Comparison
+• Advanced Dashboards
+• Excel Export
+• PDF Export
+• Advanced Filtering
+• Additional Management Reports
+70. Key Business Rules
+1. Every project must have a unique Project ID.
+2. Every project should have an estimated/approved cost.
+3. Financial transactions should be associated with the appropriate project.
+4. One project can have multiple vendors.
+5. One vendor can work across multiple projects.
+6. One project can have multiple subcontractors.
+7. One subcontractor can work across multiple projects.
+8. One project can have multiple departments.
+9. One department can have multiple teams.
+10. Multiple temples can be associated with one project.
+11. Temple donations can be percentage-based or fixed.
+12. Partial payments must be supported.
+13. Multiple payments against one purchase must be supported.
+14. New vendors can be created during transaction entry.
+15. New items can be created during transaction entry.
+16. Existing vendors and items must be searchable.
+17. Duplicate vendors/items should be prevented wherever possible.
+18. Applicable payments must record Payment Mode.
+19. Applicable payments must record Cash/Bank Account.
+20. Project budget must be continuously compared against actual cost.
+21. Budget overruns must be highlighted.
+22. Vendor payments must support automatic multi-project allocation.
+23. FIFO should be the default allocation method.
+24. Authorized users may override automatic allocation.
+25. Vendor-level outstanding must be updated after allocation.
+26. Project-level outstanding must be updated after allocation.
+27. Project ledger must reflect settlement.
+28. Vendor payment must not create a duplicate expense.
+29. Vendor payment allocation history must be maintained.
+30. Vendor advances must be supported.
+31. Completed projects must remain available for historical reporting.
+32. Financial transactions should preferably be cancelled/reversed rather than perma-
+nently deleted.
+33. Reports must support date filtering.
+32
+34. Reports must support searching and sorting.
+35. User permissions must control module and action access.
+36. Administrators must be able to configure permissions.
+37. Project-level access should be supported.
+38. Personal,OfficeandSavingsexpensesshouldinitiallybetreatedascommonexpenses.
+39. Common expenses should be allocated only to ongoing projects.
+40. Equal distribution should be the default common expense allocation method.
+41. Percentage and manual allocation should also be supported.
+42. Common expense allocation history must be maintained.
+43. A transaction can be entered manually or imported from a bank statement.
+(New)
+44. Manual transactions must not be duplicated when the corresponding bank
+transaction is reconciled. (New)
+45. Bank statement transactions remain pending until reviewed/reconciled.
+(New)
+46. A credit/receipt can be allocated to only one project. (New)
+47. A debit/payment can be allocated to one or multiple projects. (New)
+48. Bank debit must equal the total project allocation before reconciliation.
+(New)
+49. One bank transaction remains one bank transaction even when allocated to
+multiple projects. (New)
+50. Internal bank transfers must not affect project income or expense. (New)
+51. Excluded bank transactions should remain available for audit/duplicate pro-
+tection. (New)
+52. Only authorized users can reconcile, unreconcile or reverse financial trans-
+actions. (New)
+53. Reports must derive totals from linked transaction records so that project,
+vendor, client and bank figures remain consistent. (New)
+54. Any mismatch between transaction amount and allocation must be clearly
+highlighted. (New)
+71. Overall Business Flow
+Project Creation
+↓
+Project Value & Budget
+↓
+Project Income / Credits ──────────► (from Manual Entry or reconciled Bank Credit —
+Sec. 30, 34)
+↓
+Project Work
+↓
+Material Purchases
+↓
+Vendor Outstanding
+↓
+Labour / Subcontractor Expenses
+↓
+Customized Work
+↓
+Temple Donations
+↓
+Personal / Office / Savings
+↓
+Common Expense Allocation
+↓
+Loans / EMI
+33
+↓
+Vendor / Subcontractor Payments
+↓
+Multi-Project Vendor Payment Allocation
+↑
+(fed by Bank Statement Import & Reconciliation — Sec. 30-39)
+↓
+Cash / Bank Update
+↓
+Project Outstanding Update
+↓
+Budget vs Actual
+↓
+Project Profit / Loss
+↓
+Reports & Analytics
+Prepared By: Livewires Digital Solutions Prepared For: Colour Bricks
+34

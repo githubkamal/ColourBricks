@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="FluentAssertions" Version="6.12.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- P4-T02: anonymised bank statement fixtures parsed by BankStatementParserTests. -->
+    <None Include="..\fixtures\statements\**\*" LinkBase="fixtures\statements">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- P7-T02: reference amortisation table for EmiAmortisationTests. -->
+    <None Include="..\fixtures\loans\**\*" LinkBase="fixtures\loans">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ColourBricks.Domain\ColourBricks.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ColourBricks.Application\ColourBricks.Application.csproj" />
+    <!-- P4-T02: the bank-statement parser is a pure function with no DB — unit-tested here. -->
+    <ProjectReference Include="..\..\src\ColourBricks.Infrastructure\ColourBricks.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
