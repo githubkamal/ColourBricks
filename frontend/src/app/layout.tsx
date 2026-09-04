@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Fraunces, Inter } from "next/font/google";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/providers";
@@ -12,6 +12,17 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+// A distinct display face for the brand wordmark/tagline (client request,
+// 2026-09-05) — everything else in the app stays on Inter; this only feeds
+// the `font-heading` utility, already scaffolded in globals.css but unused
+// until now.
+const fraunces = Fraunces({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  style: ["normal", "italic"],
+});
+
 export const metadata: Metadata = {
   title: "Colour Bricks",
   description: "Construction project financial management",
@@ -19,7 +30,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
       <head>
         {/* Applies the stored light/dark mode and accent before first paint, so
             there's no flash of the wrong theme (client request, 2026-09-04). */}

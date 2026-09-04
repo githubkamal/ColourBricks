@@ -9,7 +9,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-display);
 
   /* The three semantic colours (plan.md §8.2) — each means one thing, never decorative. */
   --color-positive: var(--positive);

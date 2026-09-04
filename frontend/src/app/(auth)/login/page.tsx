@@ -18,6 +18,40 @@ const schema = z.object({
 
 type LoginForm = z.infer<typeof schema>;
 
+function MailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+      <rect
+        x="3"
+        y="5"
+        width="18"
+        height="14"
+        rx="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="m4 7 8 6 8-6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+      <rect
+        x="5"
+        y="11"
+        width="14"
+        height="9"
+        rx="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -45,44 +79,61 @@ export default function LoginPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
-      <div className="space-y-1">
-        <h1 className="text-xl font-semibold">Sign in to Colour Bricks</h1>
-        <p className="text-muted-foreground text-sm">Construction project financial management</p>
+    <div>
+      <div className="mb-8 space-y-1">
+        <span className="font-heading text-muted-foreground text-sm font-medium lg:hidden">
+          Colour Bricks
+        </span>
+        <h1 className="text-xl font-semibold">Welcome</h1>
+        <p className="text-muted-foreground text-sm">Sign in to your account to continue</p>
       </div>
 
-      <div className="space-y-1">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <Input
-          id="email"
-          type="email"
-          autoComplete="username"
-          autoFocus
-          aria-invalid={errors.email ? true : undefined}
-          {...register("email")}
-        />
-        {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
-      </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+        <div className="space-y-1.5">
+          <label htmlFor="email" className="text-sm font-medium">
+            Email
+          </label>
+          <div className="relative">
+            <span className="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <MailIcon />
+            </span>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="username"
+              autoFocus
+              aria-invalid={errors.email ? true : undefined}
+              className="pl-9"
+              {...register("email")}
+            />
+          </div>
+          {errors.email && <p className="text-destructive text-xs">{errors.email.message}</p>}
+        </div>
 
-      <div className="space-y-1">
-        <label htmlFor="password" className="text-sm font-medium">
-          Password
-        </label>
-        <Input
-          id="password"
-          type="password"
-          autoComplete="current-password"
-          aria-invalid={errors.password ? true : undefined}
-          {...register("password")}
-        />
-        {errors.password && <p className="text-destructive text-xs">{errors.password.message}</p>}
-      </div>
+        <div className="space-y-1.5">
+          <label htmlFor="password" className="text-sm font-medium">
+            Password
+          </label>
+          <div className="relative">
+            <span className="text-muted-foreground pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+              <LockIcon />
+            </span>
+            <Input
+              id="password"
+              type="password"
+              autoComplete="current-password"
+              aria-invalid={errors.password ? true : undefined}
+              className="pl-9"
+              {...register("password")}
+            />
+          </div>
+          {errors.password && <p className="text-destructive text-xs">{errors.password.message}</p>}
+        </div>
 
-      <Button type="submit" className="w-full" disabled={isSubmitting}>
-        {isSubmitting ? "Signing in…" : "Sign in"}
-      </Button>
-    </form>
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
+    </div>
   );
 }
