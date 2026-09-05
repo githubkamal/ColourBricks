@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>ColourBricks.SeedAdmin</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ColourBricks.Infrastructure\ColourBricks.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Bundles the JSON-file + environment-variable configuration providers, so
+         config is read exactly the way the real API reads it. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- This tool has no config of its own — it reads the API's, so it always
+         resolves the same connection string the API would. In production,
+         deploy/copy this tool's published output next to (or point it at) the
+         API's actual appsettings.{Environment}.json instead of relying on this
+         linked copy of the checked-in files. -->
+    <None Include="..\..\src\ColourBricks.Api\appsettings.json" Link="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\ColourBricks.Api\appsettings.Development.json" Link="appsettings.Development.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

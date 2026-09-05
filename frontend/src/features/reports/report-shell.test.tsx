@@ -69,7 +69,9 @@ describe("ReportShell", () => {
     localStorage.clear();
     // Every render fetches the System Settings company profile for the print
     // header/CSV export (P10-T17) — not under test here, so just quiet it.
-    server.use(http.get(`${apiBaseUrl}/admin/settings`, () => HttpResponse.json(null, { status: 404 })));
+    server.use(
+      http.get(`${apiBaseUrl}/admin/settings`, () => HttpResponse.json(null, { status: 404 })),
+    );
   });
 
   it("ReportShell_RendersDeclaredColumnsFiltersAndFullSetTotal", async () => {

@@ -75,8 +75,103 @@ Secrets go in `dotnet user-secrets` and `.env.local`. Neither is committed.
 `appsettings.Development.json` holds only non-secret dev defaults — including a
 throwaway `Jwt:SigningKey` and the `Auth:Seed` administrator
 (`admin@colourbricks.local` / `Admin!23456`). **In any non-dev environment override
-`Jwt:SigningKey` (≥ 32 bytes) and `Auth:Seed:Password`** via environment variables or
-user-secrets; the app refuses to start without a valid signing key.
+`Jwt:SigningKey` (≥ 32 bytes)** via environment variables or user-secrets; the app
+refuses to start without a valid signing key. **`Auth:Seed` has no base/production
+config at all** (only `appsettings.Development.json` sets it) — a production deploy
+seeds *no* administrator account by default, on purpose.
+
+### Creating table schemas in production
+
+Local setup applies migrations with `dotnet ef database update` (step 3 above), which
+needs the .NET SDK, `dotnet-ef`, and this source tree on the machine running it, and
+applies changes live. For production, two other options avoid one or more of those:
+
+**Migrations bundle** — a self-contained executable that only needs a connection
+string, no SDK or source on the target machine:
+
+```bash
+cd backend
+dotnet ef migrations bundle -p src/ColourBricks.Infrastructure -s src/ColourBricks.Api -o efbundle
+# Copy efbundle to the target machine, then:
+./efbundle --connection "<production connection string>"
+```
+
+**Raw SQL** — [`backend/scripts/schema.sql`](backend/scripts/schema.sql) is an
+idempotent script (safe to re-run; each migration checks `__EFMigrationsHistory`
+before applying itself), committed to the repo, for a DBA to review and run with any
+MySQL client — no .NET tooling involved at all on the production side:
+
+```bash
+mysql -u <user> -p <production-db-name> < backend/scripts/schema.sql
+```
+
+**It's a checked-in file that must stay in sync with the migrations, not a
+generated-on-demand artifact — regenerate and commit it in the same change as any
+migration that adds or alters a table:**
+
+```powershell
+# Windows
+backend\scripts\generate-schema-sql.ps1
+```
+
+```bash
+# macOS/Linux
+backend/scripts/generate-schema-sql.sh
+```
+
+Both overwrite `backend/scripts/schema.sql` in place. Verified end-to-end: generating
+it, applying it to a fresh database, and confirming the resulting table count matches
+a database updated the normal way.
+
+### Creating the first production administrator
+
+Since production seeds no admin, use `tools/ColourBricks.SeedAdmin` once to create
+one (or to reset a locked-out admin's password later — it's idempotent, safe to
+re-run). It reads the same config the API does (`appsettings.{ASPNETCORE_ENVIRONMENT}.json`
++ environment variables), so point it at production the same way you'd point the API.
+
+Run it via the wrapper script — prompts for anything you don't pass:
+
+```powershell
+# Windows
+backend\scripts\seed-admin-production.ps1 -Email you@yourcompany.com -ConnectionString "<production connection string>"
+```
+
+```bash
+# macOS/Linux
+backend/scripts/seed-admin-production.sh you@yourcompany.com "<production connection string>"
+```
+
+Or invoke the tool directly:
+
+```bash
+cd backend
+ASPNETCORE_ENVIRONMENT=Production ConnectionStrings__Default="<production connection string>" \
+  dotnet run --project tools/ColourBricks.SeedAdmin -- --email you@yourcompany.com
+```
+
+Omit `--password` to get a strong one generated and printed once (copy it immediately —
+it's shown only in that terminal output, never stored anywhere in plaintext); pass
+`--password "..."` to set a specific one instead. Sign in and change the password
+right away either way. This can be run from any machine that can reach the
+production database — it doesn't have to run on the production server itself.
+
+**Prefer raw SQL instead of a live DB connection from this tool?** Add `--sql` and it
+prints a ready-to-run MySQL statement instead of writing to the database directly — no
+connection string needed to *generate* it. Hand the output to a DBA, or run it yourself
+with any MySQL client:
+
+```bash
+dotnet run --project tools/ColourBricks.SeedAdmin -- --email you@yourcompany.com --sql > seed-admin.sql
+mysql -u <user> -p <production-db-name> < seed-admin.sql
+```
+
+The password hash still comes from the real PBKDF2 hasher (MySQL itself can't compute
+one) — this mode only changes *how* the result reaches the database. The statement
+upserts by email and resolves the Administrator role by name at run time, so it needs
+the RBAC catalogue already seeded (true for any database the API has started against
+at least once). Omitting `--password` prints the generated password as a SQL comment
+at the end of the output — copy it before running the statement.
 
 ## Build, lint and test
 

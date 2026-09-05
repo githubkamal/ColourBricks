@@ -9,11 +9,18 @@ import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
-import { getSystemSettings, updateSystemSettings, type SystemSettings } from "./system-settings-api";
+import {
+  getSystemSettings,
+  updateSystemSettings,
+  type SystemSettings,
+} from "./system-settings-api";
 
 /** Admin > System Settings: company profile + notification-threshold defaults (client-confirmed scope, 2026-09-04). */
 export function SystemSettingsPage() {
-  const { data, isPending } = useQuery({ queryKey: ["system-settings"], queryFn: getSystemSettings });
+  const { data, isPending } = useQuery({
+    queryKey: ["system-settings"],
+    queryFn: getSystemSettings,
+  });
 
   if (isPending || !data) {
     return <p className="text-muted-foreground text-sm">Loading…</p>;
@@ -162,7 +169,8 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
                   aria-label="Logo URL"
                   placeholder="paste a hosted image URL"
                   onBlur={(e) => {
-                    if (e.target.value.trim()) setForm({ ...form, companyLogoUrl: e.target.value.trim() });
+                    if (e.target.value.trim())
+                      setForm({ ...form, companyLogoUrl: e.target.value.trim() });
                   }}
                 />
               </div>
@@ -192,7 +200,10 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
                 value={form.overdueAlertDays}
                 aria-label="Overdue alert days"
                 onChange={(e) =>
-                  setForm({ ...form, overdueAlertDays: Number(e.target.value.replace(/\D/g, "")) || 0 })
+                  setForm({
+                    ...form,
+                    overdueAlertDays: Number(e.target.value.replace(/\D/g, "")) || 0,
+                  })
                 }
               />
             </label>

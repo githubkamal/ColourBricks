@@ -19,7 +19,8 @@ function isTrackableNavClick(event: MouseEvent): HTMLAnchorElement | null {
 
   const url = new URL(anchor.href, window.location.href);
   if (url.origin !== window.location.origin) return null;
-  if (url.pathname === window.location.pathname && url.search === window.location.search) return null;
+  if (url.pathname === window.location.pathname && url.search === window.location.search)
+    return null;
 
   return anchor;
 }

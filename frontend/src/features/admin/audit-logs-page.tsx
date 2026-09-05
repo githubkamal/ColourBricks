@@ -119,7 +119,9 @@ export function AuditLogsPage() {
             {data?.items.map((row) => (
               <Fragment key={row.id}>
                 <tr className="border-b last:border-0">
-                  <td className="p-2 whitespace-nowrap">{new Date(row.timestampUtc).toLocaleString()}</td>
+                  <td className="p-2 whitespace-nowrap">
+                    {new Date(row.timestampUtc).toLocaleString()}
+                  </td>
                   <td className="p-2">{row.userId ?? "—"}</td>
                   <td className="p-2">{row.module}</td>
                   <td className="p-2">{row.action}</td>
