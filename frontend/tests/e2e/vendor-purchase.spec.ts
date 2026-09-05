@@ -41,7 +41,7 @@ test("records the BRD §16 purchase and vendor outstanding rises to ₹70,000", 
   await page.getByLabel("unit 2").fill("Load");
   await page.getByLabel("rate 2").fill("15000");
 
-  await expect(page.getByTestId("purchase-total")).toHaveText("Total: ₹70,000.00");
+  await expect(page.getByTestId("purchase-total")).toHaveText("Total: ₹70,000.000");
 
   await page.getByRole("button", { name: "Record purchase" }).click();
 

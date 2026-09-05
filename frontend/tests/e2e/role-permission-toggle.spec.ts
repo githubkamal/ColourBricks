@@ -22,7 +22,9 @@ test("toggles a permission on a role and saves the matrix", async ({ page }) => 
 
   await expect(page.getByText(`${roleName} permissions saved`)).toBeVisible();
 
-  // Re-selecting the role shows the grant persisted.
-  await page.getByRole("button", { name: /Toggle Role/ }).click();
+  // Re-selecting the role shows the grant persisted. Matched on the exact
+  // roleName, not a bare "Toggle Role" prefix — the dev DB persists across
+  // runs, so a loose match can hit a leftover role from an earlier run.
+  await page.getByRole("button", { name: roleName }).click();
   await expect(page.getByRole("checkbox", { name: "bank_reconciliation.reconcile" })).toBeChecked();
 });

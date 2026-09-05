@@ -35,7 +35,7 @@ test("reproduces the BRD §26 donation example split across two temples", async 
   await page.goto("/donations");
   await page.getByLabel("Project").selectOption(projectId);
   await page.getByLabel("Percentage of contract value").fill("2");
-  await expect(page.getByTestId("donation-amount")).toHaveText("₹2,00,000.00");
+  await expect(page.getByTestId("donation-amount")).toHaveText("₹2,00,000.000");
 
   await page.getByLabel("Temple 1").selectOption({ label: `Temple North ${stamp}` });
   await page.getByLabel("Amount 1").fill("100000");

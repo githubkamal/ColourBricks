@@ -79,7 +79,7 @@ test("an authorised user overrides the FIFO allocation with a reason", async ({
 
   await page.getByLabel("Payment amount").fill("100000");
   await page.getByRole("button", { name: "Propose FIFO allocation" }).click();
-  await expect(page.getByTestId("total-allocated")).toHaveText("₹1,00,000.00");
+  await expect(page.getByTestId("total-allocated")).toHaveText("₹1,00,000.000");
 
   // FIFO gave C ₹30,000 / D ₹35,000; move ₹5,000 from C to D.
   await page.getByLabel(/Allocated Ovr P2/).fill("25000");

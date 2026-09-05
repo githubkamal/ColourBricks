@@ -22,7 +22,7 @@ export function Sidebar({ permissions }: { permissions: string[] }) {
                 pathname === item.href.split("?")[0] ||
                 pathname.startsWith(`${item.href.split("?")[0]}/`);
               return (
-                <li key={item.href}>
+                <li key={`${item.href}:${item.label}`}>
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}

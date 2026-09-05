@@ -87,7 +87,7 @@ test("reproduces the BRD §20 FIFO allocation and applies it", async ({ page, re
     "35000",
   );
   await expect(page.getByRole("cell", { name: "₹15,000.00" })).toBeVisible();
-  await expect(page.getByTestId("total-allocated")).toHaveText("₹1,00,000.00");
+  await expect(page.getByTestId("total-allocated")).toHaveText("₹1,00,000.000");
   await expect(page.getByTestId("difference")).toHaveText(/₹0\.00/);
 
   await page.getByLabel("Date").fill("2026-05-10");

@@ -18,6 +18,10 @@ async function api<T>(
 }
 
 test("staged bank import: map rows to projects, remove junk, commit", async ({ page, request }) => {
+  // The Remove button asks for a reason via window.prompt() — without a handler
+  // Playwright auto-dismisses it (returns null), silently skipping the removal.
+  page.on("dialog", (dialog) => dialog.accept("test removal"));
+
   await page.goto("/login");
   await page.getByLabel("Email").fill("admin@colourbricks.local");
   await page.getByLabel("Password").fill("Admin!23456");

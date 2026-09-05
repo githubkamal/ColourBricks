@@ -79,7 +79,7 @@ export function MastersPage() {
             </h2>
             <ul className="space-y-1">
               {group.items.map((item) => (
-                <li key={item.href}>
+                <li key={`${item.href}:${item.label}`}>
                   <Link href={item.href} className="text-primary text-sm hover:underline">
                     {item.label}
                   </Link>
