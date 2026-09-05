@@ -6,7 +6,10 @@ After=network.target mariadb.service
 Wants=mariadb.service
 
 [Service]
-Type=notify
+# Type=simple, not notify: the app doesn't call sd_notify(READY=1) (no
+# Microsoft.Extensions.Hosting.Systemd / UseSystemd() wiring), so Type=notify
+# would just time out waiting for a readiness ping that never comes.
+Type=simple
 WorkingDirectory=/opt/colourbricks/api/current
 ExecStart=/usr/bin/dotnet /opt/colourbricks/api/current/ColourBricks.Api.dll
 Restart=on-failure

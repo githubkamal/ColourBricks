@@ -121,18 +121,19 @@ ASPNETCORE_URLS=http://127.0.0.1:5095
 ConnectionStrings__Default=Server=localhost;Port=3306;Database=colourbricks;User ID=colourbricks_app;Password=<strong-password>;TreatTinyAsBoolean=false;AllowUserVariables=true;UseAffectedRows=false
 Jwt__SigningKey=<random 48+ byte secret, e.g. `openssl rand -base64 48`>
 Auth__CookieSecure=true
-Auth__Seed__Email=admin@yourdomain.com
-Auth__Seed__Name=Administrator
-Auth__Seed__Password=<strong password, changed after first login>
 Cors__FrontendOrigins__0=https://app.yourdomain.com
 Storage__Root=/opt/colourbricks/shared/storage
 ```
 
-Create `/opt/colourbricks/shared/web.env` (same ownership/mode):
+**No `Auth__Seed__*` keys** — production intentionally seeds no administrator (see
+[`README.md`](../README.md#creating-the-first-production-administrator)). Create the
+first admin after the first deploy with the `SeedAdmin` tool instead (§2 below).
+
+Create `/opt/colourbricks/shared/web.env` (same ownership/mode). The port is set in
+the systemd unit's `ExecStart` (§1.4), not here — this file just needs:
 
 ```ini
 NODE_ENV=production
-PORT=3000
 ```
 
 > **Important — `NEXT_PUBLIC_API_BASE_URL` is a build-time value.** Next.js inlines
@@ -204,6 +205,9 @@ ssh deploy@yourserver "/opt/colourbricks/deploy.sh $REL"
 ssh deploy@yourserver "sudo systemctl enable colourbricks-api colourbricks-web"
 ```
 
+`deploy.sh` runs `efbundle` for you as part of that — see the note in §3 about
+`COLOURBRICKS_MIGRATIONS_CONNECTION` if you ever run it by hand instead.
+
 Then check:
 
 ```bash
@@ -211,8 +215,18 @@ curl -I https://api.yourdomain.com/health
 curl -I https://app.yourdomain.com/
 ```
 
-Log in with the `Auth__Seed__Email`/`Auth__Seed__Password` you set and change the
-password immediately.
+Production seeds no administrator — create the first one now with the `SeedAdmin`
+tool from your own machine (it just needs to reach the production database; tunnel
+over SSH if it's not publicly exposed, e.g. `ssh -L 13306:127.0.0.1:3306 deploy@yourserver`):
+
+```bash
+cd backend
+ASPNETCORE_ENVIRONMENT=Production \
+ConnectionStrings__Default="Server=127.0.0.1;Port=13306;Database=colourbricks;User ID=colourbricks_app;Password=<strong-password>;TreatTinyAsBoolean=false;AllowUserVariables=true;UseAffectedRows=false" \
+dotnet run --project tools/ColourBricks.SeedAdmin -- --email you@yourcompany.com
+```
+
+Copy the generated password from the output, sign in, and change it immediately.
 
 ---
 
@@ -241,6 +255,15 @@ step: it triggers via `workflow_run` on the `CI` workflow completing successfull
    to the previous release and restarts) if either health check fails.
 5. Prunes old releases, keeping the last 5, for easy manual rollback.
 
+> **`efbundle --connection` doesn't work the way it looks like it should.** It does
+> not override the app's `AppDbContextFactory` (used at design time to detect the
+> MySQL server version) — running it with `--connection "<real string>"` still
+> tried to connect as `root` with an empty password and failed. The factory reads
+> `COLOURBRICKS_MIGRATIONS_CONNECTION` from the environment, so `deploy.sh` exports
+> that instead of using the flag. Found by hitting it live on the first production
+> deploy — if you ever run `efbundle` by hand, export the env var, don't rely on
+> `--connection`.
+
 ### Required repository configuration
 
 **Secrets** (`Settings → Secrets and variables → Actions → Secrets`):
@@ -249,7 +272,7 @@ step: it triggers via `workflow_run` on the `CI` workflow completing successfull
 |-------------------|-----------------------------------------------------|
 | `DEPLOY_SSH_KEY`  | private half of the deploy keypair from step 1.5    |
 | `DEPLOY_HOST`     | VPS hostname or IP                                  |
-| `DEPLOY_USER`     | the sudo-capable SSH user for deploys               |
+| `DEPLOY_USER`     | the sudo-capable SSH user for deploys (`root` on this deployment — see §5) |
 | `DEPLOY_PORT`     | SSH port, if not 22 (optional)                      |
 
 **Variables** (`Settings → Secrets and variables → Actions → Variables`):
@@ -290,3 +313,44 @@ a symlink flip.
 - **Scaling beyond one box:** this guide assumes a single VPS. If you outgrow it,
   the release/symlink/systemd model still works per-host; you'd add a load balancer
   and point `deploy.sh` at each host in turn.
+
+---
+
+## 5. Deploying to a shared box (this deployment's actual setup)
+
+Colour Bricks currently runs on `62.72.58.99`, a box that already hosted other apps
+(other Nginx sites, a MySQL 8 server, Node services on other ports, a Frappe/ERPNext
+install, Docker containers for an unrelated project). The generic steps above assume
+a clean box; here's what actually differs there, in case you're adding another app
+to a shared box too or need to reason about this one:
+
+- **Ports 3000, 3001 and 3002 were already taken** by other Next.js apps, so this
+  app's web service runs on **3003** instead — see the comment in
+  [`deploy/systemd/colourbricks-web.service`](../deploy/systemd/colourbricks-web.service).
+  `ss -tlnp` first on any shared box to find a free port.
+- **MySQL 8.0 was already installed and running** (not MariaDB) — no new database
+  server was installed, just a new `colourbricks` database and `colourbricks_app`
+  user inside the existing instance. Pomelo/EF Core's `ServerVersion.AutoDetect`
+  makes this transparent; nothing in the app cares whether the backing server is
+  MariaDB or real MySQL 8.
+- **Node.js 22 (already installed for other apps) was reused** rather than
+  installing Node 24 — `next start` only needs a Node new enough for Next.js 16
+  (≥20), so there was no reason to touch the box's existing Node install and risk
+  the other apps on it.
+- **The web/API services bind to `127.0.0.1` only**, and Nginx does all the public
+  proxying, so no new firewall ports were opened.
+- **`Type=notify` in the API systemd unit doesn't work** — the app never calls
+  `sd_notify(READY=1)` (no `Microsoft.Extensions.Hosting.Systemd`/`UseSystemd()`
+  wiring in `Program.cs`), so systemd waited the full start timeout and killed it.
+  Fixed to `Type=simple` in [`colourbricks-api.service`](../deploy/systemd/colourbricks-api.service).
+- **CI deploys as `root`** on this box, matching how the other apps already deployed
+  there are set up (their deploy keys are also in root's `authorized_keys`) — there
+  was no separate low-privilege deploy account to fit into, so introducing one would
+  have been inconsistent with the box's existing operational model rather than safer.
+- Live values for this deployment: `app.colourbricks.livewiresdigitalsolutions.com`
+  and `api.colourbricks.livewiresdigitalsolutions.com`, both proxied by
+  [`deploy/nginx/colourbricks.conf`](../deploy/nginx/colourbricks.conf). TLS is
+  pending until those DNS records point at `62.72.58.99` — until then both sites are
+  HTTP-only; re-run `certbot --nginx -d app... -d api...` once DNS resolves, then
+  rebuild the frontend with `NEXT_PUBLIC_API_BASE_URL` switched to `https://` and
+  redeploy (that value is baked in at build time — see the callout in §1.3).

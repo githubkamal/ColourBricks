@@ -44,7 +44,11 @@ if [ -x "$API_REL/efbundle" ]; then
   log "applying EF Core migrations via efbundle"
   # shellcheck disable=SC1091
   source "$SHARED/api.env"
-  "$API_REL/efbundle" --connection "$ConnectionStrings__Default"
+  # efbundle's own --connection flag does NOT override the app's design-time
+  # DbContext factory (AppDbContextFactory) — confirmed the hard way. That
+  # factory reads COLOURBRICKS_MIGRATIONS_CONNECTION, so export it instead.
+  export COLOURBRICKS_MIGRATIONS_CONNECTION="$ConnectionStrings__Default"
+  "$API_REL/efbundle"
 else
   log "no efbundle found in release, skipping migrations"
 fi
@@ -68,7 +72,7 @@ done
 
 log "health check: Web"
 for i in 1 2 3 4 5; do
-  if curl -fsS http://127.0.0.1:3000/ >/dev/null; then break; fi
+  if curl -fsS http://127.0.0.1:3003/ >/dev/null; then break; fi
   [ "$i" -eq 5 ] && { echo "Web health check failed"; false; }
   sleep 3
 done
