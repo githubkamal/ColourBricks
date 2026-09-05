@@ -76,6 +76,49 @@ refuses to start without a valid signing key. **`Auth:Seed` has no base/producti
 config at all** (only `appsettings.Development.json` sets it) — a production deploy
 seeds *no* administrator account by default, on purpose.
 
+### Creating table schemas in production
+
+Local setup applies migrations with `dotnet ef database update` (step 3 above), which
+needs the .NET SDK, `dotnet-ef`, and this source tree on the machine running it, and
+applies changes live. For production, two other options avoid one or more of those:
+
+**Migrations bundle** — a self-contained executable that only needs a connection
+string, no SDK or source on the target machine:
+
+```bash
+cd backend
+dotnet ef migrations bundle -p src/ColourBricks.Infrastructure -s src/ColourBricks.Api -o efbundle
+# Copy efbundle to the target machine, then:
+./efbundle --connection "<production connection string>"
+```
+
+**Raw SQL** — [`backend/scripts/schema.sql`](backend/scripts/schema.sql) is an
+idempotent script (safe to re-run; each migration checks `__EFMigrationsHistory`
+before applying itself), committed to the repo, for a DBA to review and run with any
+MySQL client — no .NET tooling involved at all on the production side:
+
+```bash
+mysql -u <user> -p <production-db-name> < backend/scripts/schema.sql
+```
+
+**It's a checked-in file that must stay in sync with the migrations, not a
+generated-on-demand artifact — regenerate and commit it in the same change as any
+migration that adds or alters a table:**
+
+```powershell
+# Windows
+backend\scripts\generate-schema-sql.ps1
+```
+
+```bash
+# macOS/Linux
+backend/scripts/generate-schema-sql.sh
+```
+
+Both overwrite `backend/scripts/schema.sql` in place. Verified end-to-end: generating
+it, applying it to a fresh database, and confirming the resulting table count matches
+a database updated the normal way.
+
 ### Creating the first production administrator
 
 Since production seeds no admin, use `tools/ColourBricks.SeedAdmin` once to create
