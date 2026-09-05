@@ -22,8 +22,11 @@ export function NotificationChannelsPage() {
   });
 
   const update = useMutation({
-    mutationFn: (input: { roleId: number; trigger: string; channel: NotificationChannelConfig["channel"] }) =>
-      setChannelConfig(input.roleId, input.trigger, input.channel),
+    mutationFn: (input: {
+      roleId: number;
+      trigger: string;
+      channel: NotificationChannelConfig["channel"];
+    }) => setChannelConfig(input.roleId, input.trigger, input.channel),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["notification-config"] }),
     onError: (error) =>
       toast.error(error instanceof ApiError ? error.message : "Could not update the channel"),
@@ -51,11 +54,16 @@ export function NotificationChannelsPage() {
         <div>
           <h1 className="text-lg font-semibold">Notification Channels</h1>
           <p className="text-muted-foreground text-sm">
-            Which channel each role gets for each notification trigger (BRD §66). A disabled
-            module never reaches a role, regardless of this setting.
+            Which channel each role gets for each notification trigger (BRD §66). A disabled module
+            never reaches a role, regardless of this setting.
           </p>
         </div>
-        <Button type="button" variant="outline" onClick={() => evaluate.mutate()} disabled={evaluate.isPending}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => evaluate.mutate()}
+          disabled={evaluate.isPending}
+        >
           Run evaluation now
         </Button>
       </div>

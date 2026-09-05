@@ -66,8 +66,8 @@ export function MastersPage() {
       <div>
         <h1 className="text-lg font-semibold">Masters</h1>
         <p className="text-muted-foreground text-sm">
-          Every master list lives under its own section — this page is a shortcut to
-          all of them in one place.
+          Every master list lives under its own section — this page is a shortcut to all of them in
+          one place.
         </p>
       </div>
 

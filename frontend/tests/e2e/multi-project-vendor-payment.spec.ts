@@ -83,7 +83,9 @@ test("reproduces the BRD §20 FIFO allocation and applies it", async ({ page, re
 
   // Project D: ₹35,000 allocated, ₹15,000 left; A/B/C fully settled.
   // Admin can override, so the allocated column renders as editable inputs.
-  await expect(page.getByLabel(new RegExp(`Allocated §20 Project D ${stamp}`))).toHaveValue("35000");
+  await expect(page.getByLabel(new RegExp(`Allocated §20 Project D ${stamp}`))).toHaveValue(
+    "35000",
+  );
   await expect(page.getByRole("cell", { name: "₹15,000.00" })).toBeVisible();
   await expect(page.getByTestId("total-allocated")).toHaveText("₹1,00,000.00");
   await expect(page.getByTestId("difference")).toHaveText(/₹0\.00/);
