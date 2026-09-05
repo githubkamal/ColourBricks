@@ -1,0 +1,107 @@
+name: Deploy
+
+# Runs after CI succeeds on main. The frontend is built here (on the runner) and
+# only the build output + package.json/package-lock.json are shipped to the VPS,
+# which then runs `npm ci --omit=dev` to install production node_modules itself.
+# The backend is published (framework-dependent, linux-x64) here too, alongside an
+# EF Core migrations bundle so the server needs no .NET SDK to migrate the database.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  NODE_VERSION: "24"
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Release name
+        id: rel
+        run: echo "name=$(date +%Y%m%d%H%M%S)-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      # ---------- Frontend: build locally (on the runner), never on the VPS ----------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
+        run: npm run build
+
+      - name: Stage frontend artifact
+        run: |
+          mkdir -p stage/web
+          cp -r frontend/.next stage/web/.next
+          cp -r frontend/public stage/web/public
+          cp frontend/package.json frontend/package-lock.json stage/web/
+
+      # ---------- Backend: publish + migrations bundle ----------
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dotnet-ef
+        working-directory: backend
+        run: dotnet tool restore
+
+      - name: Publish API
+        working-directory: backend
+        run: >
+          dotnet publish src/ColourBricks.Api -c Release -r linux-x64
+          --self-contained false -o ../stage/api
+
+      - name: Build EF Core migrations bundle
+        working-directory: backend
+        run: >
+          dotnet ef migrations bundle -p src/ColourBricks.Infrastructure -s src/ColourBricks.Api
+          -r linux-x64 --self-contained --configuration Release -o ../stage/api/efbundle --force
+
+      # ---------- Ship to the VPS ----------
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "${{ secrets.DEPLOY_PORT || 22 }}" -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Create release directories on server
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "${{ secrets.DEPLOY_PORT || 22 }}" \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "mkdir -p /opt/colourbricks/api/releases/${{ steps.rel.outputs.name }} /opt/colourbricks/web/releases/${{ steps.rel.outputs.name }}"
+
+      - name: rsync API release
+        run: >
+          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          stage/api/ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/colourbricks/api/releases/${{ steps.rel.outputs.name }}/"
+
+      - name: rsync Web release
+        run: >
+          rsync -az --delete -e "ssh -i ~/.ssh/id_deploy -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          stage/web/ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/opt/colourbricks/web/releases/${{ steps.rel.outputs.name }}/"
+
+      - name: Run remote deploy script
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "${{ secrets.DEPLOY_PORT || 22 }}" \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "/opt/colourbricks/deploy.sh ${{ steps.rel.outputs.name }}"

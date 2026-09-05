@@ -1,0 +1,28 @@
+# Install: sudo cp deploy/systemd/colourbricks-api.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now colourbricks-api
+[Unit]
+Description=Colour Bricks API (.NET)
+After=network.target mariadb.service
+Wants=mariadb.service
+
+[Service]
+Type=notify
+WorkingDirectory=/opt/colourbricks/api/current
+ExecStart=/usr/bin/dotnet /opt/colourbricks/api/current/ColourBricks.Api.dll
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGINT
+User=colourbricks
+Group=colourbricks
+EnvironmentFile=/opt/colourbricks/shared/api.env
+SyslogIdentifier=colourbricks-api
+
+# Hardening (relax if it breaks something you need)
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/colourbricks/shared/storage /opt/colourbricks/api/current/logs
+
+[Install]
+WantedBy=multi-user.target

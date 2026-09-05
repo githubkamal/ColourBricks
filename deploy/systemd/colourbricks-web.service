@@ -1,0 +1,24 @@
+# Install: sudo cp deploy/systemd/colourbricks-web.service /etc/systemd/system/
+#          sudo systemctl daemon-reload && sudo systemctl enable --now colourbricks-web
+[Unit]
+Description=Colour Bricks Web (Next.js)
+After=network.target colourbricks-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/colourbricks/web/current
+ExecStart=/usr/bin/npm run start -- -p 3000
+Restart=on-failure
+RestartSec=5
+User=colourbricks
+Group=colourbricks
+EnvironmentFile=/opt/colourbricks/shared/web.env
+SyslogIdentifier=colourbricks-web
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/colourbricks/web/current/.next/cache
+
+[Install]
+WantedBy=multi-user.target

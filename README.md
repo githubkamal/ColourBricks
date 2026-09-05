@@ -4,6 +4,10 @@ Construction project financial management system for a single company running mu
 concurrent building projects. See [`docs/plan.md`](docs/plan.md) for the engineering plan
 and [`docs/tasks.md`](docs/tasks.md) for the work queue.
 
+For deploying to a production VPS (Ubuntu 24.04, no Docker) and the CI/CD pipeline
+that ships changes there automatically, see
+[`docs/deployment.md`](docs/deployment.md).
+
 ## Repository layout
 
 ```
