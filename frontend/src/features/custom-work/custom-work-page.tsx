@@ -10,6 +10,7 @@ import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select"
 import { listProjects } from "@/features/projects/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
@@ -37,7 +38,7 @@ export function CustomWorkPage() {
       <label className="block space-y-1">
         <span className="text-sm font-medium">Project</span>
         <select
-          className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+          className="w-full rounded border bg-background text-foreground px-3 py-1.5 text-sm"
           value={projectId}
           aria-label="Project"
           onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -211,35 +212,36 @@ function CustomWorkForm({ projectId }: { projectId: number }) {
 function CustomWorkRow({ work: w, projectId }: { work: CustomWork; projectId: number }) {
   const queryClient = useQueryClient();
   const [paying, setPaying] = useState(false);
+  const { confirm, dialog } = useConfirmDialog();
 
   const invalidate = () =>
     void queryClient.invalidateQueries({ queryKey: ["custom-work", projectId] });
 
   const reverse = useMutation({
-    mutationFn: () => {
-      const reason = window.prompt("Reason to reverse this custom work record?");
-      if (!reason) return Promise.reject(new Error("cancelled"));
-      return reverseCustomWork(w.id, reason);
-    },
+    mutationFn: (reason: string) => reverseCustomWork(w.id, reason),
     onSuccess: () => {
       toast.success("Reversed");
       invalidate();
     },
     onError: (error) => {
-      if (error instanceof Error && error.message === "cancelled") return;
       toast.error(error instanceof ApiError ? error.message : "Could not reverse");
     },
   });
 
   return (
     <>
+      {dialog}
       <tr className="border-b last:border-0">
         <td className="p-2">{formatDate(w.date)}</td>
         <td className="p-2">{w.workType ?? "—"}</td>
         <td className="p-2">{w.partyName ?? "—"}</td>
-        <td className="text-muted-foreground p-2">{formatINR(w.estimatedCost)}</td>
-        <td className="p-2">{formatINR(w.actualCost)}</td>
-        <td className={w.variance > 0 ? "text-attention p-2" : "text-muted-foreground p-2"}>
+        <td className="text-muted-foreground p-2 tabular-nums">{formatINR(w.estimatedCost)}</td>
+        <td className="p-2 tabular-nums">{formatINR(w.actualCost)}</td>
+        <td
+          className={
+            w.variance > 0 ? "text-attention p-2 tabular-nums" : "text-muted-foreground p-2 tabular-nums"
+          }
+        >
           {formatINR(w.variance)}
         </td>
         <td className="p-2">{w.status}</td>
@@ -258,7 +260,16 @@ function CustomWorkRow({ work: w, projectId }: { work: CustomWork; projectId: nu
               <button
                 type="button"
                 className="text-negative text-xs"
-                onClick={() => reverse.mutate()}
+                onClick={async () => {
+                  const { confirmed, value: reason } = await confirm({
+                    title: "Reverse this custom work record?",
+                    description: "This cannot be undone.",
+                    inputLabel: "Reason",
+                    destructive: true,
+                    confirmLabel: "Reverse",
+                  });
+                  if (confirmed && reason) reverse.mutate(reason);
+                }}
               >
                 Reverse
               </button>

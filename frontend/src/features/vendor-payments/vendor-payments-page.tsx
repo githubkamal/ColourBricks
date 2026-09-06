@@ -9,6 +9,7 @@ import type { PartySearchItem } from "@/features/parties/types";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
@@ -38,6 +39,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
   const [date, setDate] = useState("");
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | "">("");
+  const { confirm, dialog } = useConfirmDialog();
 
   const { data: summary } = useQuery({
     queryKey: ["vendor-outstanding-summary", vendorId],
@@ -97,6 +99,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
 
   return (
     <div className="space-y-6">
+      {dialog}
       <div className="rounded border p-3 text-sm">
         <p className="font-medium">
           {vendorName} — total outstanding {formatINR(summary?.total ?? 0)}
@@ -120,7 +123,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
         <label className="space-y-1">
           <span className="text-sm font-medium">Project</span>
           <select
-            className="block w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="block w-full rounded border bg-background text-foreground px-3 py-1.5 text-sm"
             value={projectId}
             aria-label="Project"
             onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -153,7 +156,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="block w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="block w-full rounded border bg-background text-foreground px-3 py-1.5 text-sm"
             value={accountId}
             aria-label="Account"
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -203,7 +206,16 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
                       variant="ghost"
                       size="xs"
                       disabled={reverse.isPending}
-                      onClick={() => reverse.mutate(p.id)}
+                      onClick={() => {
+                        void confirm({
+                          title: "Reverse this payment?",
+                          description: "This cannot be undone.",
+                          destructive: true,
+                          confirmLabel: "Reverse",
+                        }).then(({ confirmed }) => {
+                          if (confirmed) reverse.mutate(p.id);
+                        });
+                      }}
                     >
                       Reverse
                     </Button>

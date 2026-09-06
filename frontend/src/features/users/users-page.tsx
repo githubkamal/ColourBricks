@@ -5,6 +5,7 @@ import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { listProjects } from "@/features/projects/api";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import {
@@ -34,6 +35,7 @@ export function UsersPage() {
   const { data: users, isPending } = useQuery({ queryKey: ["users"], queryFn: () => listUsers() });
   const { data: roles = [] } = useQuery({ queryKey: ["user-roles"], queryFn: listRoles });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const { confirm, dialog } = useConfirmDialog();
 
   const toggleActive = useMutation({
     mutationFn: (user: UserListItem) =>
@@ -68,6 +70,7 @@ export function UsersPage() {
 
   return (
     <div className="max-w-4xl space-y-6">
+      {dialog}
       <h1 className="text-lg font-semibold">Users</h1>
 
       <AddUserForm roles={roles} onAdded={invalidate} />
@@ -129,17 +132,22 @@ export function UsersPage() {
                       variant="ghost"
                       size="xs"
                       onClick={() => {
-                        const password = window.prompt(
-                          `New password for ${user.name} (at least ${MIN_PASSWORD_LENGTH} characters)`,
-                        );
-                        if (!password) return;
-                        if (password.length < MIN_PASSWORD_LENGTH) {
-                          toast.error(
-                            `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
-                          );
-                          return;
-                        }
-                        reset.mutate({ id: user.id, password });
+                        void confirm({
+                          title: `New password for ${user.name}`,
+                          description: `At least ${MIN_PASSWORD_LENGTH} characters.`,
+                          inputLabel: "Temporary password",
+                          inputType: "password",
+                          confirmLabel: "Reset password",
+                        }).then(({ confirmed, value: password }) => {
+                          if (!confirmed || !password) return;
+                          if (password.length < MIN_PASSWORD_LENGTH) {
+                            toast.error(
+                              `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+                            );
+                            return;
+                          }
+                          reset.mutate({ id: user.id, password });
+                        });
                       }}
                     >
                       Reset password
@@ -243,12 +251,13 @@ function AddUserForm({ roles, onAdded }: { roles: RoleOption[]; onAdded: () => v
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           aria-label="Temporary password"
+          autoComplete="new-password"
         />
       </label>
       <label className="space-y-1">
         <span className="text-sm font-medium">Role</span>
         <select
-          className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+          className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
           value={roleId}
           aria-label="Role"
           onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}
@@ -327,11 +336,18 @@ function UserEditor({
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Email</span>
-          <Input value={email} onChange={(e) => setEmail(e.target.value)} aria-label="Edit email" />
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            aria-label="Edit email"
+          />
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Mobile</span>
           <Input
+            type="tel"
+            inputMode="tel"
             value={mobile}
             onChange={(e) => setMobile(e.target.value)}
             aria-label="Edit mobile"
@@ -340,7 +356,7 @@ function UserEditor({
         <label className="space-y-1">
           <span className="text-sm font-medium">Role</span>
           <select
-            className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
             value={roleId}
             aria-label="Edit role"
             onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}

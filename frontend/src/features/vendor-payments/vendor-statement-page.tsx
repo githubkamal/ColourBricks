@@ -120,7 +120,7 @@ export function VendorStatementPage({
             <label className="space-y-1">
               <span className="text-sm font-medium">Apply to purchase</span>
               <select
-                className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+                className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
                 value={purchaseId}
                 aria-label="Apply to purchase"
                 onChange={(e) => setPurchaseId(e.target.value ? Number(e.target.value) : "")}
@@ -179,11 +179,13 @@ export function VendorStatementPage({
                   <td className="text-muted-foreground p-2">
                     {r.kind} — {r.reference}
                   </td>
-                  <td className="p-2">
+                  <td className="p-2 tabular-nums">
                     {r.purchaseAmount > 0 ? formatINR(r.purchaseAmount) : "—"}
                   </td>
-                  <td className="p-2">{r.paid > 0 ? formatINR(r.paid) : "—"}</td>
-                  <td className="p-2 font-medium">{formatINR(r.runningOutstanding)}</td>
+                  <td className="p-2 tabular-nums">{r.paid > 0 ? formatINR(r.paid) : "—"}</td>
+                  <td className="p-2 font-medium tabular-nums">
+                    {formatINR(r.runningOutstanding)}
+                  </td>
                 </tr>
               ))}
             </tbody>

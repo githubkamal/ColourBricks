@@ -1,10 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiBaseUrl } from "@/lib/config";
 import { server } from "@/test/msw/server";
+import { resetNavigationMock } from "@/test/next-navigation-mock";
 import { ReportShell } from "./report-shell";
+
+vi.mock("next/navigation", () => import("@/test/next-navigation-mock"));
 
 function rc(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -65,6 +68,7 @@ const result = {
 
 describe("ReportShell", () => {
   beforeEach(() => {
+    resetNavigationMock();
     // The Columns chooser persists hidden columns per report key across tests.
     localStorage.clear();
     // Every render fetches the System Settings company profile for the print

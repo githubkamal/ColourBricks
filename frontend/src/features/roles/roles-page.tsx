@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import {
@@ -17,6 +18,7 @@ import {
 
 export function RolesPage() {
   const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [newName, setNewName] = useState("");
 
@@ -51,6 +53,7 @@ export function RolesPage() {
 
   return (
     <div className="flex max-w-5xl gap-6">
+      {dialog}
       <div className="w-64 shrink-0 space-y-3">
         <h1 className="text-lg font-semibold">Roles</h1>
         <ul className="rounded border text-sm">
@@ -73,9 +76,16 @@ export function RolesPage() {
                   variant="ghost"
                   size="xs"
                   className="mr-1"
-                  onClick={() => {
-                    const reason = window.prompt(`Delete ${role.name}? Reason?`);
-                    if (reason?.trim()) remove.mutate({ id: role.id, reason: reason.trim() });
+                  onClick={async () => {
+                    const { confirmed, value: reason } = await confirm({
+                      title: `Delete ${role.name}?`,
+                      description: "This cannot be undone.",
+                      inputLabel: "Reason",
+                      destructive: true,
+                      confirmLabel: "Delete",
+                    });
+                    if (!confirmed) return;
+                    remove.mutate({ id: role.id, reason: reason ?? "" });
                   }}
                 >
                   Delete
@@ -208,7 +218,7 @@ function MatrixEditor({
               <th className="p-2 text-left font-medium">Module</th>
               {catalogue.actions.map((a) => (
                 <th key={a} className="p-2 font-medium">
-                  <div className="flex flex-col items-center gap-1">
+                  <label className="flex flex-col items-center gap-1">
                     <span>{a}</span>
                     <input
                       type="checkbox"
@@ -216,7 +226,7 @@ function MatrixEditor({
                       checked={catalogue.modules.every((m) => has(m.key, a))}
                       onChange={(e) => toggleAction(a, e.target.checked)}
                     />
-                  </div>
+                  </label>
                 </th>
               ))}
             </tr>

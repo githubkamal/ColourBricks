@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,14 @@ import type { DonationBasis, ProjectDonation } from "./types";
 
 const round3 = (value: number) => Math.round((value + Number.EPSILON) * 1000) / 1000;
 
+function newRowId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `row-${Math.random().toString(36).slice(2)}`;
+}
+
 interface SplitRow {
+  id: string;
   templeId: number | "";
   amount: string;
 }
@@ -56,11 +63,26 @@ function DonationEditor({
   );
   const [rows, setRows] = useState<SplitRow[]>(
     existing && existing.temples.length > 0
-      ? existing.temples.map((t) => ({ templeId: t.templeId, amount: String(t.amount) }))
-      : [{ templeId: "", amount: "" }],
+      ? existing.temples.map((t) => ({ id: newRowId(), templeId: t.templeId, amount: String(t.amount) }))
+      : [{ id: newRowId(), templeId: "", amount: "" }],
   );
 
   const { data: temples = [] } = useQuery({ queryKey: ["temples"], queryFn: () => listTemples() });
+
+  const [initialSnapshot] = useState(() =>
+    JSON.stringify({ basis, percentage, fixedAmount, rows }),
+  );
+  const [submitted, setSubmitted] = useState(false);
+  const isDirty = JSON.stringify({ basis, percentage, fixedAmount, rows }) !== initialSnapshot;
+
+  useEffect(() => {
+    if (!isDirty || submitted) return;
+    function handler(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty, submitted]);
 
   const donationAmount = useMemo(() => {
     if (basis === "Percentage") {
@@ -85,6 +107,7 @@ function DonationEditor({
       }),
     onSuccess: (donation) => {
       toast.success(`Donation set: ${formatINR(donation.donationAmount)}`);
+      setSubmitted(true);
       void queryClient.invalidateQueries({ queryKey: ["project-donation", projectId] });
       void queryClient.invalidateQueries({ queryKey: ["donation-outstanding", projectId] });
     },
@@ -168,15 +191,15 @@ function DonationEditor({
       <div className="space-y-2">
         <p className="text-sm font-medium">Split across temples</p>
         {rows.map((row, index) => (
-          <div key={index} className="flex gap-2">
+          <div key={row.id} className="flex gap-2">
             <select
               className="flex-1 rounded border bg-transparent px-2 py-1.5 text-sm"
               value={row.templeId}
               aria-label={`Temple ${index + 1}`}
               onChange={(e) =>
                 setRows((rs) =>
-                  rs.map((r, i) =>
-                    i === index
+                  rs.map((r) =>
+                    r.id === row.id
                       ? { ...r, templeId: e.target.value ? Number(e.target.value) : "" }
                       : r,
                   ),
@@ -195,7 +218,7 @@ function DonationEditor({
               value={row.amount}
               aria-label={`Amount ${index + 1}`}
               onChange={(v) =>
-                setRows((rs) => rs.map((r, i) => (i === index ? { ...r, amount: v } : r)))
+                setRows((rs) => rs.map((r) => (r.id === row.id ? { ...r, amount: v } : r)))
               }
             />
             {rows.length > 1 && (
@@ -203,7 +226,7 @@ function DonationEditor({
                 type="button"
                 variant="ghost"
                 size="xs"
-                onClick={() => setRows((rs) => rs.filter((_, i) => i !== index))}
+                onClick={() => setRows((rs) => rs.filter((r) => r.id !== row.id))}
               >
                 Remove
               </Button>
@@ -214,7 +237,7 @@ function DonationEditor({
           type="button"
           variant="ghost"
           size="xs"
-          onClick={() => setRows((rs) => [...rs, { templeId: "", amount: "" }])}
+          onClick={() => setRows((rs) => [...rs, { id: newRowId(), templeId: "", amount: "" }])}
         >
           + Add temple
         </Button>

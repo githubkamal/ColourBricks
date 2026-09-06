@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AttachmentPanel } from "@/features/attachments/attachment-panel";
 import { PartyPicker } from "@/features/parties/party-picker";
@@ -51,7 +51,7 @@ export function VendorPurchasePage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Bought by</span>
           <select
-            className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
             aria-label="Bought by"
             value={partyType}
             onChange={(e) => setPartyType(e.target.value as PartyType)}
@@ -63,7 +63,7 @@ export function VendorPurchasePage() {
         <label className="block space-y-1">
           <span className="text-sm font-medium">Project</span>
           <select
-            className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="w-full rounded border bg-background text-foreground px-3 py-1.5 text-sm"
             value={projectId}
             aria-label="Project"
             onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -149,6 +149,22 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
     date !== "" &&
     total > 0 &&
     rows.every((r) => r.itemName.trim() && Number(r.quantity) > 0 && r.unit.trim());
+
+  const isDirty =
+    vendor !== null ||
+    date !== "" ||
+    invoiceNumber !== "" ||
+    rows.length > 1 ||
+    rows.some((r) => r.itemName || r.quantity || r.unit || r.rate || r.taxAmount);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    function handler(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
 
   return (
     <div className="space-y-6">
@@ -239,6 +255,7 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
                       type="button"
                       variant="ghost"
                       size="xs"
+                      aria-label={`Remove line ${i + 1}`}
                       onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
                     >
                       ✕

@@ -28,7 +28,7 @@ export function ProjectDetail({ id }: { id: number }) {
           <h1 className="text-lg font-semibold">{project.name}</h1>
         </div>
         <Link href="/projects" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          Back to projects
+          Back to Projects
         </Link>
       </div>
 

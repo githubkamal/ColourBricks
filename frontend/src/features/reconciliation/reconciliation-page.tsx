@@ -10,9 +10,11 @@ import type { PartySearchItem } from "@/features/parties/types";
 import { listProjects } from "@/features/projects/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { formatDate, formatINR } from "@/lib/format";
 import {
   bulkExclude,
@@ -47,6 +49,7 @@ const BRD_COLUMNS = [
 export function ReconciliationPage() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
+  const { confirm, dialog } = useConfirmDialog();
   const [accountId, setAccountId] = useState<number | "">("");
   // Deep-linkable via `?status=` (e.g. the Reconciled/Excluded Transactions nav
   // items) so a link can drop the user straight onto a filtered view of this
@@ -55,6 +58,7 @@ export function ReconciliationPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [mapRow, setMapRow] = useState<ReconciliationRow | null>(null);
 
@@ -63,14 +67,14 @@ export function ReconciliationPage() {
     queryFn: () => listAccounts(),
   });
   const { data: queue } = useQuery({
-    queryKey: ["reconciliation", accountId, status, dateFrom, dateTo, search],
+    queryKey: ["reconciliation", accountId, status, dateFrom, dateTo, debouncedSearch],
     queryFn: () =>
       reconciliationQueue({
         accountId: accountId || null,
         status: status || null,
         dateFrom: dateFrom || null,
         dateTo: dateTo || null,
-        search: search || null,
+        search: debouncedSearch || null,
       }),
   });
   const { data: transfers = [] } = useQuery({
@@ -143,6 +147,7 @@ export function ReconciliationPage() {
 
   return (
     <div className="max-w-6xl space-y-6">
+      {dialog}
       <h1 className="text-lg font-semibold">Bank reconciliation</h1>
 
       <div className="flex flex-wrap items-end gap-3">
@@ -268,9 +273,16 @@ export function ReconciliationPage() {
                   })
                 }
                 onMap={() => setMapRow(row)}
-                onDelete={() => {
-                  const r = window.prompt("Reason to delete this row?");
-                  if (r) deleteOneMut.mutate({ id: row.id, reason: r });
+                onDelete={async () => {
+                  const { confirmed, value: reason } = await confirm({
+                    title: "Delete this row?",
+                    description: "This cannot be undone.",
+                    inputLabel: "Reason",
+                    destructive: true,
+                    confirmLabel: "Delete",
+                  });
+                  if (!confirmed) return;
+                  deleteOneMut.mutate({ id: row.id, reason: reason ?? "" });
                 }}
                 onHold={() => holdMut.mutate(row.id)}
                 onUnhold={() => unholdMut.mutate(row.id)}
@@ -347,71 +359,85 @@ function QueueRow({
   onUnhold: () => void;
   onUnreconcile: (reason: string) => void;
 }) {
+  const { confirm, dialog } = useConfirmDialog();
   const mappable = row.status === "Pending" || row.status === "InReview";
   return (
-    <tr className="border-b last:border-0">
-      <td className="p-2">
-        {row.status !== "Reconciled" && (
-          <input
-            type="checkbox"
-            aria-label={`Select row ${row.id}`}
-            checked={selected}
-            onChange={onToggleSelect}
-          />
-        )}
-      </td>
-      <td className="p-2">{formatDate(row.date)}</td>
-      <td className="p-2">{row.bank}</td>
-      <td className="p-2">{row.description}</td>
-      <td className="p-2">{row.type}</td>
-      <td className="p-2">{row.credit > 0 ? formatINR(row.credit) : "—"}</td>
-      <td className="p-2">{row.debit > 0 ? formatINR(row.debit) : "—"}</td>
-      <td className="p-2">{row.counterparty ?? "—"}</td>
-      <td className="p-2">{row.projects || "—"}</td>
-      <td className="p-2">{formatINR(row.allocated)}</td>
-      <td
-        className={Math.abs(row.difference) < 0.0005 ? "p-2" : "text-attention p-2 font-medium"}
-        data-testid={`difference-${row.id}`}
-      >
-        {formatINR(row.difference)}
-      </td>
-      <td className="p-2">{row.status === "InReview" ? "On hold" : row.status}</td>
-      <td className="p-2">
-        <div className="flex flex-wrap gap-2">
-          {mappable && (
-            <>
-              <button type="button" className="text-xs underline" onClick={onMap}>
-                Map
-              </button>
-              <button type="button" className="text-negative text-xs" onClick={onDelete}>
-                Delete
-              </button>
-              {row.status === "InReview" ? (
-                <button type="button" className="text-xs underline" onClick={onUnhold}>
-                  Unhold
-                </button>
-              ) : (
-                <button type="button" className="text-xs underline" onClick={onHold}>
-                  Hold
-                </button>
-              )}
-            </>
+    <>
+      {dialog}
+      <tr className="border-b last:border-0">
+        <td className="p-2">
+          {row.status !== "Reconciled" && (
+            <input
+              type="checkbox"
+              aria-label={`Select row ${row.id}`}
+              checked={selected}
+              onChange={onToggleSelect}
+            />
           )}
-          {row.status === "Reconciled" && (
-            <button
-              type="button"
-              className="text-negative text-xs"
-              onClick={() => {
-                const r = window.prompt("Reason to unreconcile?");
-                if (r) onUnreconcile(r);
-              }}
-            >
-              Unreconcile
-            </button>
-          )}
-        </div>
-      </td>
-    </tr>
+        </td>
+        <td className="p-2">{formatDate(row.date)}</td>
+        <td className="p-2">{row.bank}</td>
+        <td className="p-2">{row.description}</td>
+        <td className="p-2">{row.type}</td>
+        <td className="p-2 tabular-nums">{row.credit > 0 ? formatINR(row.credit) : "—"}</td>
+        <td className="p-2 tabular-nums">{row.debit > 0 ? formatINR(row.debit) : "—"}</td>
+        <td className="p-2">{row.counterparty ?? "—"}</td>
+        <td className="p-2">{row.projects || "—"}</td>
+        <td className="p-2 tabular-nums">{formatINR(row.allocated)}</td>
+        <td
+          className={
+            Math.abs(row.difference) < 0.0005
+              ? "p-2 tabular-nums"
+              : "text-attention p-2 font-medium tabular-nums"
+          }
+          data-testid={`difference-${row.id}`}
+        >
+          {formatINR(row.difference)}
+        </td>
+        <td className="p-2">{row.status === "InReview" ? "On hold" : row.status}</td>
+        <td className="p-2">
+          <div className="flex flex-wrap gap-2">
+            {mappable && (
+              <>
+                <button type="button" className="text-xs underline" onClick={onMap}>
+                  Map
+                </button>
+                <button type="button" className="text-negative text-xs" onClick={onDelete}>
+                  Delete
+                </button>
+                {row.status === "InReview" ? (
+                  <button type="button" className="text-xs underline" onClick={onUnhold}>
+                    Unhold
+                  </button>
+                ) : (
+                  <button type="button" className="text-xs underline" onClick={onHold}>
+                    Hold
+                  </button>
+                )}
+              </>
+            )}
+            {row.status === "Reconciled" && (
+              <button
+                type="button"
+                className="text-negative text-xs"
+                onClick={async () => {
+                  const { confirmed, value: reason } = await confirm({
+                    title: "Unreconcile this transaction?",
+                    inputLabel: "Reason",
+                    destructive: true,
+                    confirmLabel: "Unreconcile",
+                  });
+                  if (!confirmed) return;
+                  onUnreconcile(reason ?? "");
+                }}
+              >
+                Unreconcile
+              </button>
+            )}
+          </div>
+        </td>
+      </tr>
+    </>
   );
 }
 

@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { useQueryParam } from "@/lib/use-query-param";
 import {
   listNotifications,
   markNotificationRead,
@@ -20,7 +21,8 @@ const SEVERITY_DOT: Record<string, string> = {
 /** The full BRD §66 notification feed — every trigger, mark-read, and per-type muting. */
 export function NotificationsPage() {
   const queryClient = useQueryClient();
-  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [unreadParam, setUnreadParam] = useQueryParam("unread", "");
+  const unreadOnly = unreadParam === "1";
   const [muted, setMuted] = useState<string[]>(getMutedTriggers);
 
   const { data: notifications = [], isPending } = useQuery({
@@ -57,7 +59,7 @@ export function NotificationsPage() {
           <input
             type="checkbox"
             checked={unreadOnly}
-            onChange={(e) => setUnreadOnly(e.target.checked)}
+            onChange={(e) => setUnreadParam(e.target.checked ? "1" : "")}
           />
           Unread only
         </label>

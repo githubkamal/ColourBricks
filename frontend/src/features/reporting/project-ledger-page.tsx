@@ -45,9 +45,9 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
               >
                 <td className="p-2">{formatDate(l.date)}</td>
                 <td className="p-2">{l.description}</td>
-                <td className="p-2">{l.credit > 0 ? formatINR(l.credit) : "—"}</td>
-                <td className="p-2">{l.debit > 0 ? formatINR(l.debit) : "—"}</td>
-                <td className="p-2 font-medium">{formatINR(l.runningBalance)}</td>
+                <td className="p-2 tabular-nums">{l.credit > 0 ? formatINR(l.credit) : "—"}</td>
+                <td className="p-2 tabular-nums">{l.debit > 0 ? formatINR(l.debit) : "—"}</td>
+                <td className="p-2 font-medium tabular-nums">{formatINR(l.runningBalance)}</td>
               </tr>
             ))}
           </tbody>

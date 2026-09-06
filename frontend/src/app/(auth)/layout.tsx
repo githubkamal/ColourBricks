@@ -53,6 +53,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 stroke="currentColor"
                 strokeWidth="2"
                 className="size-6"
+                aria-hidden="true"
               >
                 <path d="M4 11.5 12 4l8 7.5" strokeLinecap="round" strokeLinejoin="round" />
                 <path
@@ -86,6 +87,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                     stroke="currentColor"
                     strokeWidth="2.5"
                     className="mt-0.5 size-4 shrink-0 text-white/70"
+                    aria-hidden="true"
                   >
                     <path d="m5 13 4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>

@@ -108,7 +108,7 @@ function Editor({
           {costCategories.map((c) => (
             <tr key={c.id} className="border-b last:border-0">
               <td className="py-1">{c.name}</td>
-              <td className="py-1">
+              <td className="py-1 tabular-nums">
                 <AmountInput
                   className="w-40"
                   aria-label={`Budget ${c.name}`}
@@ -122,7 +122,7 @@ function Editor({
         <tfoot>
           <tr>
             <td className="py-1 font-medium">Total</td>
-            <td className="py-1 font-semibold" data-testid="budget-total">
+            <td className="py-1 font-semibold tabular-nums" data-testid="budget-total">
               {formatINR(total)}
             </td>
           </tr>

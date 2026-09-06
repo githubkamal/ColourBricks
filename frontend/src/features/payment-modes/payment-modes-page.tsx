@@ -63,7 +63,7 @@ export function PaymentModesPage() {
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="New payment mode"
+          placeholder="e.g. Cheque"
           aria-label="New payment mode"
         />
         <Button type="submit" disabled={add.isPending || !name.trim()}>

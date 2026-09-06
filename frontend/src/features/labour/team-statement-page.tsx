@@ -2,13 +2,32 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { listTeamsGrouped } from "@/features/teams/api";
 import { TeamPicker } from "@/features/teams/team-picker";
 import type { TeamDto } from "@/features/teams/types";
 import { formatDate, formatINR } from "@/lib/format";
+import { useQueryParamNumber } from "@/lib/use-query-param";
 import { teamStatement } from "./api";
 
 export function TeamStatementPage() {
-  const [team, setTeam] = useState<TeamDto | null>(null);
+  const [teamId, setTeamId] = useQueryParamNumber("teamId", 0);
+  // `undefined` = the user hasn't picked a team in this session yet, so a
+  // deep-linked `?teamId=` (if any) still needs restoring from the team list.
+  const [manualTeam, setManualTeam] = useState<TeamDto | null | undefined>(undefined);
+
+  const { data: restoredTeam } = useQuery({
+    queryKey: ["teams", "grouped", teamId],
+    queryFn: () => listTeamsGrouped(),
+    enabled: teamId > 0 && manualTeam === undefined,
+    select: (groups) => groups.flatMap((g) => g.teams).find((t) => t.id === teamId) ?? null,
+  });
+
+  const team = manualTeam !== undefined ? manualTeam : (restoredTeam ?? null);
+
+  function handleSelect(next: TeamDto | null) {
+    setManualTeam(next);
+    setTeamId(next?.id ?? 0);
+  }
 
   const { data: rows = [] } = useQuery({
     queryKey: ["team-statement", team?.id],
@@ -19,7 +38,7 @@ export function TeamStatementPage() {
   return (
     <div className="max-w-3xl space-y-6">
       <h1 className="text-lg font-semibold">Team Statement</h1>
-      <TeamPicker selected={team} onSelect={setTeam} label="Team" />
+      <TeamPicker selected={team} onSelect={handleSelect} label="Team" />
 
       {team && (
         <div className="rounded border">
@@ -47,9 +66,9 @@ export function TeamStatementPage() {
                   <td className="text-muted-foreground p-2">
                     {r.kind} — {r.reference}
                   </td>
-                  <td className="p-2">{r.workValue > 0 ? formatINR(r.workValue) : "—"}</td>
-                  <td className="p-2">{r.paid > 0 ? formatINR(r.paid) : "—"}</td>
-                  <td className="p-2 font-medium">{formatINR(r.runningOutstanding)}</td>
+                  <td className="p-2 tabular-nums">{r.workValue > 0 ? formatINR(r.workValue) : "—"}</td>
+                  <td className="p-2 tabular-nums">{r.paid > 0 ? formatINR(r.paid) : "—"}</td>
+                  <td className="p-2 font-medium tabular-nums">{formatINR(r.runningOutstanding)}</td>
                 </tr>
               ))}
             </tbody>

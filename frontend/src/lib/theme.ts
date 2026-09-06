@@ -22,6 +22,11 @@ export function applyTheme(mode: ThemeMode, accent: ThemeAccent) {
   const root = document.documentElement;
   root.classList.toggle("dark", mode === "dark");
   root.setAttribute("data-accent", accent);
+  root.style.colorScheme = mode;
+  const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+  if (themeColorMeta) {
+    themeColorMeta.setAttribute("content", mode === "dark" ? "#17191c" : "#fcfcfa");
+  }
 }
 
 export function readStoredMode(): ThemeMode {
@@ -54,6 +59,9 @@ export const THEME_BOOT_SCRIPT = `
     var root = document.documentElement;
     if (mode === "dark") root.classList.add("dark");
     root.setAttribute("data-accent", accent);
+    root.style.colorScheme = mode === "dark" ? "dark" : "light";
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta && mode === "dark") meta.setAttribute("content", "#17191c");
   } catch (e) {}
 })();
 `;

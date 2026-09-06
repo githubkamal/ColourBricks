@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Footer } from "./footer";
 import { Sidebar } from "./sidebar";
@@ -10,6 +10,15 @@ import { useCurrentUser } from "./user-context";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const user = useCurrentUser();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setSidebarOpen(false);
+    }
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [sidebarOpen]);
 
   return (
     <div className="flex h-full min-h-0 flex-1">
@@ -25,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "bg-sidebar border-sidebar-border z-30 w-64 shrink-0 border-r",
+          "bg-sidebar border-sidebar-border z-30 w-64 shrink-0 overscroll-contain border-r",
           "fixed inset-y-0 left-0 transition-transform lg:static lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}

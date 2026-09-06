@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +54,9 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
   const [recent] = useState<RecentItem[]>(() =>
     typeof window === "undefined" ? [] : readRecent(),
   );
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const containerRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
 
   useEffect(() => {
     const id = window.setTimeout(() => setDebounced(term.trim()), 200);
@@ -81,6 +83,7 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
     setOpen(false);
     setTerm("");
     setNearDuplicates([]);
+    setHighlightedIndex(-1);
   }
 
   async function submitNew(confirm: boolean) {
@@ -99,6 +102,7 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
         toast.success(`${outcome.item.name} added`);
       } else if (outcome.kind === "needs-confirmation") {
         setNearDuplicates(outcome.nearDuplicates);
+        setHighlightedIndex(-1);
       } else {
         toast.message(`"${name}" already exists — selecting it`);
         choose({
@@ -119,6 +123,59 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
 
   const optionLabel = (item: ItemSearchItem) =>
     `${item.name} · ${item.unit} · ${formatINR(item.defaultRate)}`;
+
+  const showRecent = debounced.length < 2 && recent.length > 0;
+  const recentCount = showRecent ? recent.length : 0;
+  const showAddNew = term.trim().length > 0;
+  const addNewIndex = recentCount + results.length;
+  const optionCount = nearDuplicates.length > 0 ? nearDuplicates.length : addNewIndex + (showAddNew ? 1 : 0);
+
+  function selectByIndex(index: number) {
+    if (nearDuplicates.length > 0) {
+      const d = nearDuplicates[index];
+      if (d) {
+        choose({
+          id: d.id,
+          name: d.name,
+          categoryName: d.categoryName,
+          unit: defaultUnit,
+          defaultRate: 0,
+          taxRate: 0,
+        });
+      }
+      return;
+    }
+    if (index < recentCount) {
+      const r = recent[index];
+      if (r) choose({ id: r.id, name: r.name, categoryName: null, unit: defaultUnit, defaultRate: 0, taxRate: 0 });
+      return;
+    }
+    if (index < addNewIndex) {
+      const item = results[index - recentCount];
+      if (item) choose(item);
+      return;
+    }
+    if (index === addNewIndex && showAddNew) void submitNew(false);
+  }
+
+  function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      setOpen(false);
+      setHighlightedIndex(-1);
+      return;
+    }
+    if (!open || optionCount === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightedIndex((i) => Math.min(i + 1, optionCount - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightedIndex((i) => Math.max(i - 1, 0));
+    } else if (event.key === "Enter" && highlightedIndex >= 0) {
+      event.preventDefault();
+      selectByIndex(highlightedIndex);
+    }
+  }
 
   return (
     <div ref={containerRef} className="relative">
@@ -152,23 +209,40 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
             setTerm(e.target.value);
             setOpen(true);
             setNearDuplicates([]);
+            setHighlightedIndex(-1);
           }}
           onFocus={() => setOpen(true)}
+          onKeyDown={handleInputKeyDown}
           placeholder="Search or add…"
           aria-label={label ?? "Item"}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listboxId}
+          aria-autocomplete="list"
+          aria-activedescendant={
+            highlightedIndex >= 0 ? `${listboxId}-option-${highlightedIndex}` : undefined
+          }
         />
       )}
 
       {open && !selected && (
-        <div className="bg-popover absolute z-20 mt-1 w-full rounded border p-1 text-sm shadow-md">
+        <div
+          id={listboxId}
+          role="listbox"
+          className="bg-popover absolute z-20 mt-1 w-full rounded border p-1 text-sm shadow-md"
+        >
           {nearDuplicates.length > 0 ? (
             <div className="space-y-2 p-2">
               <p className="text-attention text-xs">Did you mean one of these?</p>
-              {nearDuplicates.map((d) => (
+              {nearDuplicates.map((d, i) => (
                 <button
                   key={d.id}
+                  id={`${listboxId}-option-${i}`}
                   type="button"
-                  className="hover:bg-secondary block w-full rounded px-2 py-1 text-left"
+                  className={cn(
+                    "hover:bg-secondary block w-full rounded px-2 py-1 text-left",
+                    i === highlightedIndex && "bg-secondary",
+                  )}
                   onClick={() =>
                     choose({
                       id: d.id,
@@ -194,7 +268,10 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
                   type="button"
                   size="xs"
                   variant="ghost"
-                  onClick={() => setNearDuplicates([])}
+                  onClick={() => {
+                    setNearDuplicates([]);
+                    setHighlightedIndex(-1);
+                  }}
                 >
                   Back
                 </Button>
@@ -202,14 +279,18 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
             </div>
           ) : (
             <>
-              {debounced.length < 2 && recent.length > 0 && (
+              {showRecent && (
                 <div className="p-1">
                   <p className="text-muted-foreground px-2 pb-1 text-[11px] uppercase">Recent</p>
-                  {recent.map((r) => (
+                  {recent.map((r, i) => (
                     <button
                       key={r.id}
+                      id={`${listboxId}-option-${i}`}
                       type="button"
-                      className="hover:bg-secondary block w-full rounded px-2 py-1 text-left"
+                      className={cn(
+                        "hover:bg-secondary block w-full rounded px-2 py-1 text-left",
+                        i === highlightedIndex && "bg-secondary",
+                      )}
                       onClick={() =>
                         choose({
                           id: r.id,
@@ -229,24 +310,30 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
 
               {isFetching && <p className="text-muted-foreground p-2">Searching…</p>}
 
-              {results.map((item) => (
+              {results.map((item, i) => (
                 <button
                   key={item.id}
+                  id={`${listboxId}-option-${recentCount + i}`}
                   type="button"
-                  className="hover:bg-secondary block w-full rounded px-2 py-1 text-left"
+                  className={cn(
+                    "hover:bg-secondary block w-full rounded px-2 py-1 text-left",
+                    recentCount + i === highlightedIndex && "bg-secondary",
+                  )}
                   onClick={() => choose(item)}
                 >
                   {optionLabel(item)}
                 </button>
               ))}
 
-              {term.trim().length > 0 && (
+              {showAddNew && (
                 <button
+                  id={`${listboxId}-option-${addNewIndex}`}
                   type="button"
                   disabled={creating}
                   className={cn(
                     "text-primary block w-full rounded px-2 py-1.5 text-left font-medium",
                     "hover:bg-secondary",
+                    addNewIndex === highlightedIndex && "bg-secondary",
                   )}
                   onClick={() => void submitNew(false)}
                 >

@@ -93,8 +93,8 @@ export function IntegrityCheckPage() {
                             {v.entity} #{v.id}
                             {v.name ? ` — ${v.name}` : ""}
                           </td>
-                          <td className="py-1 pr-2">{formatINR(v.expected)}</td>
-                          <td className="py-1 pr-2">{formatINR(v.actual)}</td>
+                          <td className="py-1 pr-2 tabular-nums">{formatINR(v.expected)}</td>
+                          <td className="py-1 pr-2 tabular-nums">{formatINR(v.actual)}</td>
                           <td className="text-muted-foreground py-1">{v.detail}</td>
                         </tr>
                       ))}

@@ -1,11 +1,12 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { listProjects } from "@/features/projects/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import {
@@ -22,6 +23,7 @@ const round3 = (n: number) => Math.round((n + Number.EPSILON) * 1000) / 1000;
 
 export function BankImportReviewPage({ batchId }: { batchId: number }) {
   const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
 
   const { data: batch, isLoading } = useQuery({
     queryKey: ["bank-import", batchId],
@@ -82,6 +84,7 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
 
   return (
     <div className="max-w-5xl space-y-6">
+      {dialog}
       <div>
         <h1 className="text-lg font-semibold">Review import — {batch.fileName}</h1>
         <p className="text-muted-foreground text-sm">
@@ -133,7 +136,15 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
             type="button"
             variant="secondary"
             disabled={discard.isPending}
-            onClick={() => discard.mutate()}
+            onClick={async () => {
+              const { confirmed } = await confirm({
+                title: "Discard this import?",
+                description: "The staged rows and any mappings will be lost. This cannot be undone.",
+                destructive: true,
+                confirmLabel: "Discard import",
+              });
+              if (confirmed) discard.mutate();
+            }}
           >
             Discard import
           </Button>
@@ -229,6 +240,8 @@ function RowLine({
     onError: () => toast.error("Could not remove the row"),
   });
 
+  const { confirm: confirmRemove, dialog: removeDialog } = useConfirmDialog();
+
   const allocated = round3(lines.reduce((s, l) => s + (Number(l.amount) || 0), 0));
   const balanced = Math.abs(allocated - target) < 0.0005;
 
@@ -243,25 +256,27 @@ function RowLine({
           : "Needs mapping";
 
   return (
-    <tr
-      className={
-        row.isRemoved
-          ? "text-muted-foreground border-b line-through last:border-0"
-          : "border-b last:border-0"
-      }
-    >
+    <Fragment>
+      {removeDialog}
+      <tr
+        className={
+          row.isRemoved
+            ? "text-muted-foreground border-b line-through last:border-0"
+            : "border-b last:border-0"
+        }
+      >
       <td className="p-2 align-top">{row.sourceLineNo}</td>
       <td className="p-2 align-top">{row.valueDate ? formatDate(row.valueDate) : "—"}</td>
-      <td className="p-2 align-top">
-        <div>{row.narration}</div>
+      <td className="p-2 align-top max-w-xs">
+        <div className="truncate break-words">{row.narration}</div>
         <div className="text-muted-foreground text-xs">
           {statusChip}
           {row.parseError ? ` — ${row.parseError}` : ""}
           {row.bankReference ? ` · ref ${row.bankReference}` : ""}
         </div>
       </td>
-      <td className="p-2 align-top">{row.debit > 0 ? formatINR(row.debit) : "—"}</td>
-      <td className="p-2 align-top">{row.credit > 0 ? formatINR(row.credit) : "—"}</td>
+      <td className="p-2 align-top tabular-nums">{row.debit > 0 ? formatINR(row.debit) : "—"}</td>
+      <td className="p-2 align-top tabular-nums">{row.credit > 0 ? formatINR(row.credit) : "—"}</td>
       <td className="p-2 align-top">
         {row.isRemoved ||
         row.parseState === "Error" ||
@@ -272,7 +287,7 @@ function RowLine({
             {lines.map((l, i) => (
               <div key={i} className="flex items-center gap-2">
                 <select
-                  className="rounded border bg-transparent px-2 py-1 text-sm"
+                  className="rounded border bg-background text-foreground px-2 py-1 text-sm"
                   aria-label={`Line ${row.sourceLineNo} project ${i + 1}`}
                   value={l.projectId}
                   onChange={(e) =>
@@ -320,7 +335,13 @@ function RowLine({
                 + project
               </button>
             )}
-            <div className={balanced ? "text-muted-foreground text-xs" : "text-attention text-xs"}>
+            <div
+              className={
+                balanced
+                  ? "text-muted-foreground text-xs tabular-nums"
+                  : "text-attention text-xs tabular-nums"
+              }
+            >
               allocated {formatINR(allocated)} of {formatINR(target)}
             </div>
             <Button
@@ -335,7 +356,7 @@ function RowLine({
         ) : (
           <ul className="text-xs">
             {row.allocations.map((a, i) => (
-              <li key={i}>
+              <li key={i} className="tabular-nums">
                 {a.projectName}: {formatINR(a.amount)}
               </li>
             ))}
@@ -348,15 +369,22 @@ function RowLine({
             type="button"
             className="text-negative text-xs"
             disabled={remove.isPending}
-            onClick={() => {
-              const reason = window.prompt("Reason for removing this row?");
-              if (reason?.trim()) remove.mutate(reason.trim());
+            onClick={async () => {
+              const { confirmed, value: reason } = await confirmRemove({
+                title: "Remove this row?",
+                description: "It will be excluded from the commit.",
+                inputLabel: "Reason",
+                destructive: true,
+                confirmLabel: "Remove",
+              });
+              if (confirmed && reason?.trim()) remove.mutate(reason.trim());
             }}
           >
             Remove
           </button>
         )}
       </td>
-    </tr>
+      </tr>
+    </Fragment>
   );
 }

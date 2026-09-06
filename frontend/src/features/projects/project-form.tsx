@@ -3,9 +3,11 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
@@ -56,16 +58,45 @@ const API_FIELD_TO_FORM: Record<string, keyof FormValues> = {
 export function ProjectForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
 
   const {
     register,
     handleSubmit,
     setError,
-    formState: { errors },
+    setFocus,
+    formState: { errors, isDirty, isSubmitSuccessful },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { status: "Ongoing" },
   });
+
+  useEffect(() => {
+    const first = Object.keys(errors)[0];
+    if (first) setFocus(first as keyof FormValues);
+  }, [errors, setFocus]);
+
+  useEffect(() => {
+    if (!isDirty || isSubmitSuccessful) return;
+    function handler(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty, isSubmitSuccessful]);
+
+  async function handleCancel() {
+    if (isDirty) {
+      const { confirmed } = await confirm({
+        title: "Discard this project?",
+        description: "Your changes have not been saved.",
+        confirmLabel: "Discard",
+        destructive: true,
+      });
+      if (!confirmed) return;
+    }
+    router.back();
+  }
 
   const mutation = useMutation({
     mutationFn: createProject,
@@ -103,11 +134,12 @@ export function ProjectForm() {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-5" noValidate>
+      {dialog}
       <h1 className="text-lg font-semibold">New project</h1>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Name" error={errors.name?.message} className="sm:col-span-2">
-          <Input autoFocus {...register("name")} />
+          <Input autoFocus autoComplete="off" {...register("name")} />
         </Field>
 
         <Field label="Code (optional — auto-generated)" error={errors.code?.message}>
@@ -144,7 +176,7 @@ export function ProjectForm() {
         </Field>
 
         <Field label="Site address" error={errors.siteAddress?.message} className="sm:col-span-2">
-          <Input {...register("siteAddress")} />
+          <Input autoComplete="off" {...register("siteAddress")} />
         </Field>
 
         <Field label="Notes" error={errors.notes?.message} className="sm:col-span-2">
@@ -160,7 +192,7 @@ export function ProjectForm() {
         <Button type="submit" disabled={mutation.isPending}>
           {mutation.isPending ? "Creating…" : "Create project"}
         </Button>
-        <Button type="button" variant="outline" onClick={() => router.back()}>
+        <Button type="button" variant="outline" onClick={handleCancel}>
           Cancel
         </Button>
       </div>

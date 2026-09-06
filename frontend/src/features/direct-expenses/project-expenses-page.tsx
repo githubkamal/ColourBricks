@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
@@ -12,10 +12,11 @@ import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { useQueryParamNumber } from "@/lib/use-query-param";
 import { listExpenseCategories, listProjectExpenses, recordDirectExpense } from "./api";
 
 export function ProjectExpensesPage() {
-  const [projectId, setProjectId] = useState<number | "">("");
+  const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
 
   const { data: projects } = useQuery({
     queryKey: ["projects", { forExpenses: true }],
@@ -30,9 +31,9 @@ export function ProjectExpensesPage() {
         <span className="text-sm font-medium">Project</span>
         <select
           className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
-          value={projectId}
+          value={projectId || ""}
           aria-label="Project"
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
         >
           <option value="">Select a project…</option>
           {projects?.items.map((p) => (
@@ -43,7 +44,7 @@ export function ProjectExpensesPage() {
         </select>
       </label>
 
-      {projectId !== "" && <ExpenseForm projectId={projectId} />}
+      {projectId !== 0 && <ExpenseForm projectId={projectId} />}
     </div>
   );
 }
@@ -59,6 +60,9 @@ function ExpenseForm({ projectId }: { projectId: number }) {
   const [accountId, setAccountId] = useState<number | "">("");
   const [touchedDate, setTouchedDate] = useState(false);
   const [touchedAmount, setTouchedAmount] = useState(false);
+  const categoryRef = useRef<HTMLSelectElement>(null);
+  const dateRef = useRef<HTMLInputElement>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["expense-categories"],
@@ -103,18 +107,35 @@ function ExpenseForm({ projectId }: { projectId: number }) {
     Number(amount) > 0 &&
     (!paidImmediately || paymentModeId !== null);
 
+  function focusFirstInvalid() {
+    if (categoryId === "") {
+      categoryRef.current?.focus();
+    } else if (date === "") {
+      dateRef.current?.focus();
+    } else if (!(Number(amount) > 0)) {
+      amountRef.current?.focus();
+    }
+  }
+
   return (
     <div className="space-y-6">
       <form
         className="grid grid-cols-2 gap-3 rounded border p-4"
         onSubmit={(e) => {
           e.preventDefault();
-          if (ready) record.mutate();
+          setTouchedDate(true);
+          setTouchedAmount(true);
+          if (ready) {
+            record.mutate();
+          } else {
+            focusFirstInvalid();
+          }
         }}
       >
         <label className="space-y-1">
           <span className="text-sm font-medium">Category</span>
           <select
+            ref={categoryRef}
             className="block w-full rounded border bg-transparent px-3 py-1.5 text-sm"
             value={categoryId}
             aria-label="Category"
@@ -135,6 +156,7 @@ function ExpenseForm({ projectId }: { projectId: number }) {
             Date
           </FieldLabel>
           <Input
+            ref={dateRef}
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
@@ -150,6 +172,7 @@ function ExpenseForm({ projectId }: { projectId: number }) {
             Amount
           </FieldLabel>
           <AmountInput
+            ref={amountRef}
             value={amount}
             onChange={setAmount}
             onBlur={() => setTouchedAmount(true)}
@@ -227,7 +250,7 @@ function ExpenseForm({ projectId }: { projectId: number }) {
                 <td className="p-2">{formatDate(x.date)}</td>
                 <td className="p-2">{x.categoryName}</td>
                 <td className="text-muted-foreground p-2">{x.bucket}</td>
-                <td className="p-2">{formatINR(x.amount)}</td>
+                <td className="p-2 tabular-nums">{formatINR(x.amount)}</td>
                 <td className="text-muted-foreground p-2">
                   {x.paidImmediately ? "Yes" : "Payable"}
                 </td>

@@ -1,10 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { listLoans } from "./api";
 import { Input } from "@/components/ui/input";
 import { formatDate, formatINR } from "@/lib/format";
+import { useQueryParam, useQueryParamNumber } from "@/lib/use-query-param";
+import { cn } from "@/lib/utils";
 import {
   loanReportDateWise,
   loanReportEmiPaid,
@@ -26,15 +27,21 @@ const REPORTS = [
 ] as const;
 type ReportKey = (typeof REPORTS)[number]["key"];
 
-interface Column {
-  header: string;
-  render: (row: Record<string, unknown>) => string;
+interface ColumnRender {
+  (row: Record<string, unknown>): string;
+  isMoney?: boolean;
 }
 
-const money =
-  (key: string): Column["render"] =>
-  (row) =>
-    formatINR((row[key] as number) ?? 0);
+interface Column {
+  header: string;
+  render: ColumnRender;
+}
+
+const money = (key: string): ColumnRender => {
+  const render: ColumnRender = (row) => formatINR((row[key] as number) ?? 0);
+  render.isMoney = true;
+  return render;
+};
 const date =
   (key: string): Column["render"] =>
   (row) =>
@@ -109,18 +116,25 @@ const COLUMNS: Record<ReportKey, Column[]> = {
   ],
 };
 
+const REPORT_KEYS = REPORTS.map((r) => r.key);
+function isReportKey(value: string): value is ReportKey {
+  return (REPORT_KEYS as string[]).includes(value);
+}
+
 /** Loan Reports (BRD §54) — a dedicated controller, so this is its own small explorer. */
 export function LoanReportsPage() {
-  const [reportKey, setReportKey] = useState<ReportKey>("project-wise");
-  const [loanId, setLoanId] = useState<number | "">("");
-  const [projectId, setProjectId] = useState<number | "">("");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [reportKeyRaw, setReportKeyRaw] = useQueryParam("report", "project-wise");
+  const reportKey = isReportKey(reportKeyRaw) ? reportKeyRaw : "project-wise";
+  const setReportKey = (next: ReportKey) => setReportKeyRaw(next);
+  const [loanId, setLoanId] = useQueryParamNumber("loanId", 0);
+  const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
+  const [dateFrom, setDateFrom] = useQueryParam("dateFrom", "");
+  const [dateTo, setDateTo] = useQueryParam("dateTo", "");
 
   const { data: loans = [] } = useQuery({ queryKey: ["loans"], queryFn: () => listLoans() });
 
   const needsLoan = reportKey === "schedule";
-  const canRun = !needsLoan || loanId !== "";
+  const canRun = !needsLoan || loanId !== 0;
 
   const { data: rows = [], isPending } = useQuery({
     queryKey: ["loan-report", reportKey, loanId, projectId, dateFrom, dateTo],
@@ -134,9 +148,7 @@ export function LoanReportsPage() {
             Record<string, unknown>[]
           >;
         case "schedule":
-          return loanReportSchedule(loanId as number) as unknown as Promise<
-            Record<string, unknown>[]
-          >;
+          return loanReportSchedule(loanId) as unknown as Promise<Record<string, unknown>[]>;
         case "emi-paid":
           return loanReportEmiPaid(
             loanId || undefined,
@@ -194,8 +206,8 @@ export function LoanReportsPage() {
             <select
               className="rounded border bg-transparent px-3 py-1.5 text-sm"
               aria-label="Loan"
-              value={loanId}
-              onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : "")}
+              value={loanId || ""}
+              onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}
             >
               <option value="">{needsLoan ? "Select a loan…" : "All loans"}</option>
               {loans.map((l) => (
@@ -214,8 +226,8 @@ export function LoanReportsPage() {
               className="w-28"
               inputMode="numeric"
               aria-label="Project id"
-              value={projectId}
-              onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+              value={projectId || ""}
+              onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
             />
           </label>
         )}
@@ -256,7 +268,7 @@ export function LoanReportsPage() {
             </tr>
           </thead>
           <tbody>
-            {needsLoan && loanId === "" && (
+            {needsLoan && loanId === 0 && (
               <tr>
                 <td colSpan={columns.length} className="text-muted-foreground p-3 text-center">
                   Select a loan to see its schedule.
@@ -280,7 +292,7 @@ export function LoanReportsPage() {
             {rows.map((row, i) => (
               <tr key={i} className="border-b last:border-0">
                 {columns.map((c) => (
-                  <td key={c.header} className="p-2">
+                  <td key={c.header} className={cn("p-2", c.render.isMoney && "tabular-nums")}>
                     {c.render(row)}
                   </td>
                 ))}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { attachmentPreviewUrl, uploadAttachment } from "@/features/attachments/api";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -68,6 +68,16 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
   });
 
   const ready = form.companyName.trim() !== "";
+  const isDirty = JSON.stringify(form) !== JSON.stringify(initial);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    function handler(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -122,6 +132,8 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
                 <img
                   src={attachmentPreviewUrl(form.companyLogoAttachmentId)}
                   alt="Company logo"
+                  width={96}
+                  height={48}
                   className="h-12 w-auto rounded border object-contain"
                 />
                 <Button
@@ -139,6 +151,8 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
                 <img
                   src={form.companyLogoUrl}
                   alt="Company logo"
+                  width={96}
+                  height={48}
                   className="h-12 w-auto rounded border object-contain"
                 />
                 <Button
@@ -233,7 +247,7 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
         </section>
 
         <Button type="submit" disabled={!ready || save.isPending}>
-          Save settings
+          {save.isPending ? "Saving…" : "Save settings"}
         </Button>
       </form>
     </div>

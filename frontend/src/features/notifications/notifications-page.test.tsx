@@ -1,10 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiBaseUrl } from "@/lib/config";
 import { server } from "@/test/msw/server";
+import { resetNavigationMock } from "@/test/next-navigation-mock";
 import { NotificationsPage } from "./notifications-page";
+
+vi.mock("next/navigation", () => import("@/test/next-navigation-mock"));
 
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -39,7 +42,10 @@ const notifications = [
 ];
 
 describe("NotificationsPage", () => {
-  beforeEach(() => localStorage.clear());
+  beforeEach(() => {
+    localStorage.clear();
+    resetNavigationMock();
+  });
 
   it("NotificationsPage_ListsNotificationsAndMarksOneRead", async () => {
     let readCalled = false;

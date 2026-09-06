@@ -167,6 +167,7 @@ export function PurchaseOrderFormPage() {
                       type="button"
                       variant="ghost"
                       size="xs"
+                      aria-label={`Remove line ${i + 1}`}
                       onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
                     >
                       ✕

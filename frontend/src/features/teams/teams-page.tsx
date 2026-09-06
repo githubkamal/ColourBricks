@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { listDepartments } from "@/features/departments/api";
 import { ApiError } from "@/lib/api";
@@ -16,6 +17,7 @@ export function TeamsPage() {
   const [name, setName] = useState("");
   const [departmentId, setDepartmentId] = useState<number | "">("");
   const [selected, setSelected] = useState<TeamDto | null>(null);
+  const { confirm, dialog } = useConfirmDialog();
 
   const { data: departments = [] } = useQuery({
     queryKey: ["departments", { includeInactive: false }],
@@ -36,9 +38,13 @@ export function TeamsPage() {
         setName("");
         void queryClient.invalidateQueries({ queryKey: ["teams"] });
       } else if (outcome.kind === "needs-confirmation") {
-        if (window.confirm(`A similar team name exists. Add "${name.trim()}" anyway?`)) {
-          add.mutate(true);
-        }
+        void confirm({
+          title: "Similar team name exists",
+          description: `A similar team name exists. Add "${name.trim()}" anyway?`,
+          confirmLabel: "Add anyway",
+        }).then(({ confirmed }) => {
+          if (confirmed) add.mutate(true);
+        });
       } else {
         toast.message("That team already exists");
       }
@@ -49,6 +55,7 @@ export function TeamsPage() {
 
   return (
     <div className="max-w-2xl space-y-6">
+      {dialog}
       <h1 className="text-lg font-semibold">Teams</h1>
 
       <form
@@ -70,7 +77,7 @@ export function TeamsPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Department</span>
           <select
-            className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
             value={departmentId}
             aria-label="Department"
             onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : "")}

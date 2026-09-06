@@ -76,8 +76,21 @@ export function AccountsPage({ type }: { type: AccountType }) {
           <tbody>
             {isPending && (
               <tr>
-                <td colSpan={5} className="text-muted-foreground p-3 text-center">
+                <td
+                  colSpan={type === "Bank" ? 5 : 3}
+                  className="text-muted-foreground p-3 text-center"
+                >
                   Loading…
+                </td>
+              </tr>
+            )}
+            {!isPending && (data?.length ?? 0) === 0 && (
+              <tr>
+                <td
+                  colSpan={type === "Bank" ? 5 : 3}
+                  className="text-muted-foreground p-3 text-center"
+                >
+                  No {type.toLowerCase()} accounts found.
                 </td>
               </tr>
             )}

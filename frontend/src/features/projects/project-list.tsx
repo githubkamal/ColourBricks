@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { formatDate, formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { listProjects } from "./api";
@@ -15,13 +16,14 @@ type SortKey = "code" | "name" | "startDate" | "contractValue" | "status";
 export function ProjectList() {
   const [status, setStatus] = useState<ProjectStatus | undefined>(undefined);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState<SortKey>("code");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ["projects", { status, search, page, sortBy, sortDir }],
-    queryFn: () => listProjects({ status, search, page, sortBy, sortDir }),
+    queryKey: ["projects", { status, search: debouncedSearch, page, sortBy, sortDir }],
+    queryFn: () => listProjects({ status, search: debouncedSearch, page, sortBy, sortDir }),
     placeholderData: keepPreviousData,
   });
 
@@ -203,6 +205,17 @@ function Th({
     <th
       className={cn("p-2 font-medium", onClick && "cursor-pointer select-none", className)}
       onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      tabIndex={onClick ? 0 : undefined}
     >
       {children}
     </th>

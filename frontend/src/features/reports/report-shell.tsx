@@ -2,9 +2,11 @@
 
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getSystemSettings } from "@/features/admin/system-settings-api";
 import { attachmentPreviewUrl } from "@/features/attachments/api";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { formatINR } from "@/lib/format";
 import {
@@ -12,10 +14,33 @@ import {
   emptyFilter,
   reportCatalog,
   runReport,
+  type DatePreset,
   type ReportCatalogEntry,
   type ReportColumn,
   type ReportFilterState,
 } from "./api";
+
+const FILTER_PARAM_KEYS: (keyof ReportFilterState)[] = [
+  "datePreset",
+  "dateFrom",
+  "dateTo",
+  "projectId",
+  "vendorId",
+  "subcontractorId",
+  "departmentId",
+  "itemId",
+  "categoryId",
+  "paymentModeId",
+  "accountId",
+  "paymentStatus",
+  "transactionType",
+  "reconciliationStatus",
+  "search",
+  "sortBy",
+  "sortDir",
+  "page",
+  "pageSize",
+];
 
 const ID_FILTERS: { flag: string; key: keyof ReportFilterState; label: string }[] = [
   { flag: "project", key: "projectId", label: "Project" },
@@ -62,15 +87,75 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
     queryFn: reportCatalog,
   });
   const entry: ReportCatalogEntry | undefined = catalog.find((c) => c.key === reportKey);
+  const { confirm, dialog } = useConfirmDialog();
 
-  const [filter, setFilter] = useState<ReportFilterState>(() => emptyFilter);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Filter/sort/groupBy/page all live in the URL so a report view is
+  // deep-linkable and survives back/forward navigation.
+  const filter: ReportFilterState = useMemo(() => {
+    const sortDirRaw = searchParams.get("sortDir");
+    const pageRaw = Number(searchParams.get("page"));
+    const pageSizeRaw = Number(searchParams.get("pageSize"));
+    return {
+      datePreset: (searchParams.get("datePreset") as DatePreset | null) ?? emptyFilter.datePreset,
+      dateFrom: searchParams.get("dateFrom") ?? undefined,
+      dateTo: searchParams.get("dateTo") ?? undefined,
+      projectId: searchParams.get("projectId") ?? undefined,
+      vendorId: searchParams.get("vendorId") ?? undefined,
+      subcontractorId: searchParams.get("subcontractorId") ?? undefined,
+      departmentId: searchParams.get("departmentId") ?? undefined,
+      itemId: searchParams.get("itemId") ?? undefined,
+      categoryId: searchParams.get("categoryId") ?? undefined,
+      paymentModeId: searchParams.get("paymentModeId") ?? undefined,
+      accountId: searchParams.get("accountId") ?? undefined,
+      paymentStatus: searchParams.get("paymentStatus") ?? undefined,
+      transactionType: searchParams.get("transactionType") ?? undefined,
+      reconciliationStatus: searchParams.get("reconciliationStatus") ?? undefined,
+      search: searchParams.get("search") ?? undefined,
+      sortBy: searchParams.get("sortBy") ?? undefined,
+      sortDir: sortDirRaw === "asc" || sortDirRaw === "desc" ? sortDirRaw : undefined,
+      page: Number.isFinite(pageRaw) && pageRaw > 0 ? pageRaw : emptyFilter.page,
+      pageSize:
+        Number.isFinite(pageSizeRaw) && pageSizeRaw > 0 ? pageSizeRaw : emptyFilter.pageSize,
+    };
+  }, [searchParams]);
+
+  const groupBy = searchParams.get("groupBy") ?? "";
+
   const [hidden, setHidden] = useState<Set<string>>(
     () => new Set(readJson<string[]>(`reportshell:${reportKey}:hidden`, [])),
   );
-  const [groupBy, setGroupBy] = useState<string>("");
   const [views, setViews] = useState<SavedView[]>(() =>
     readJson<SavedView[]>(`reportshell:${reportKey}:views`, []),
   );
+
+  function updateParams(updates: Record<string, string | number | undefined>) {
+    const params = new URLSearchParams(searchParams.toString());
+    for (const [key, value] of Object.entries(updates)) {
+      if (value === undefined || value === "") {
+        params.delete(key);
+      } else {
+        params.set(key, String(value));
+      }
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
+  function applyFilter(next: ReportFilterState) {
+    const updates: Record<string, string | number | undefined> = {};
+    for (const key of FILTER_PARAM_KEYS) {
+      updates[key] = next[key] as string | number | undefined;
+    }
+    updateParams(updates);
+  }
+
+  function setGroupBy(next: string) {
+    updateParams({ groupBy: next || undefined });
+  }
 
   const { data: result, isLoading } = useQuery({
     queryKey: ["report-run", reportKey, filter],
@@ -86,7 +171,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
   const supports = (flag: string) => entry?.supportedFilters.includes(flag) ?? false;
 
   const patch = (p: Partial<ReportFilterState>) =>
-    setFilter((f) => ({ ...f, ...p, page: p.page ?? 1 }));
+    updateParams({ ...p, page: p.page ?? 1 } as Record<string, string | number | undefined>);
 
   const toggleColumn = (key: string) => {
     setHidden((prev) => {
@@ -107,13 +192,21 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
   };
 
   const reset = () => {
-    setFilter(emptyFilter);
-    setGroupBy("");
+    const updates: Record<string, string | number | undefined> = { groupBy: undefined };
+    for (const key of FILTER_PARAM_KEYS) {
+      updates[key] = emptyFilter[key] as string | number | undefined;
+    }
+    updateParams(updates);
   };
 
-  const saveView = () => {
-    const name = window.prompt("Save this view as")?.trim();
-    if (!name) return;
+  const saveView = async () => {
+    const { confirmed, value } = await confirm({
+      title: "Save this view",
+      inputLabel: "View name",
+      confirmLabel: "Save",
+    });
+    const name = value?.trim();
+    if (!confirmed || !name) return;
     const next = [...views.filter((v) => v.name !== name), { name, filter }];
     setViews(next);
     writeJson(`reportshell:${reportKey}:views`, next);
@@ -162,6 +255,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
 
   return (
     <div className="space-y-4">
+      {dialog}
       {company && (
         <div className="hidden items-start gap-3 print:flex">
           {(company.companyLogoAttachmentId || company.companyLogoUrl) && (
@@ -311,7 +405,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
           title="Downloads a .csv file — opens directly in Excel, Google Sheets, etc."
           onClick={exportCsv}
         >
-          Export to Excel
+          Export as CSV
         </button>
         <button
           type="button"
@@ -331,7 +425,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
             value=""
             onChange={(e) => {
               const view = views.find((v) => v.name === e.target.value);
-              if (view) setFilter(view.filter);
+              if (view) applyFilter(view.filter);
             }}
           >
             <option value="">Load view…</option>
@@ -359,6 +453,24 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
                         : "p-2 font-medium select-none"
                     }
                     onClick={sortable ? () => sortByColumn(c.key) : undefined}
+                    onKeyDown={
+                      sortable
+                        ? (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                              e.preventDefault();
+                              sortByColumn(c.key);
+                            }
+                          }
+                        : undefined
+                    }
+                    tabIndex={sortable ? 0 : undefined}
+                    aria-sort={
+                      sortable && filter.sortBy === c.key
+                        ? filter.sortDir === "desc"
+                          ? "descending"
+                          : "ascending"
+                        : undefined
+                    }
                     title={sortable ? undefined : "This column can't be sorted"}
                   >
                     {c.header}
@@ -401,7 +513,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
                 {group.rows.map((row, i) => (
                   <tr key={`${group.label}-${i}`} className="border-b last:border-0">
                     {visibleColumns.map((c) => (
-                      <td key={c.key} className={c.numeric ? "p-2 text-right" : "p-2"}>
+                      <td key={c.key} className={c.numeric ? "p-2 text-right tabular-nums" : "p-2"}>
                         {renderCell(row, c)}
                       </td>
                     ))}
@@ -414,7 +526,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
             <tfoot className="sticky bottom-0">
               <tr className="bg-secondary/60 border-t font-medium">
                 {visibleColumns.map((c, i) => (
-                  <td key={c.key} className={c.numeric ? "p-2 text-right" : "p-2"}>
+                  <td key={c.key} className={c.numeric ? "p-2 text-right tabular-nums" : "p-2"}>
                     {i === 0 && !c.total ? "Total" : ""}
                     {c.total && c.total in result.totals ? formatINR(result.totals[c.total]) : ""}
                   </td>
@@ -449,7 +561,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
             type="button"
             className="rounded border px-3 py-1 disabled:opacity-50"
             disabled={result.page <= 1}
-            onClick={() => setFilter((f) => ({ ...f, page: f.page - 1 }))}
+            onClick={() => updateParams({ page: filter.page - 1 })}
           >
             Prev
           </button>
@@ -460,7 +572,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
             type="button"
             className="rounded border px-3 py-1 disabled:opacity-50"
             disabled={result.page >= result.totalPages}
-            onClick={() => setFilter((f) => ({ ...f, page: f.page + 1 }))}
+            onClick={() => updateParams({ page: filter.page + 1 })}
           >
             Next
           </button>

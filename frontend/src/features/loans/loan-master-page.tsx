@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PartyPicker } from "@/features/parties/party-picker";
@@ -9,6 +9,7 @@ import type { PartySearchItem } from "@/features/parties/types";
 import { listProjects } from "@/features/projects/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
@@ -18,6 +19,7 @@ import { listLoans, recordLoan, reverseLoan, type Loan } from "./api";
 /** Loan Master (BRD §48): record a loan and see every loan on file. */
 export function LoanMasterPage() {
   const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
   const { data: accounts } = useQuery({ queryKey: ["accounts"], queryFn: () => listAccounts() });
   const { data: projects } = useQuery({
     queryKey: ["projects", { forLoans: true }],
@@ -41,6 +43,36 @@ export function LoanMasterPage() {
   const [reference, setReference] = useState("");
   const [notes, setNotes] = useState("");
   const [touched, setTouched] = useState(false);
+
+  const principalRef = useRef<HTMLInputElement>(null);
+  const rateRef = useRef<HTMLInputElement>(null);
+  const startDateRef = useRef<HTMLInputElement>(null);
+  const tenureRef = useRef<HTMLInputElement>(null);
+  const emiStartDateRef = useRef<HTMLInputElement>(null);
+  const disbursementAccountRef = useRef<HTMLSelectElement>(null);
+  const disbursementDateRef = useRef<HTMLInputElement>(null);
+
+  const isDirty =
+    lender !== null ||
+    principal !== "" ||
+    rate !== "" ||
+    startDate !== "" ||
+    tenureMonths !== "" ||
+    emiAmount !== "" ||
+    emiStartDate !== "" ||
+    disbursementAccountId !== "" ||
+    disbursementDate !== "" ||
+    reference !== "" ||
+    notes !== "";
+
+  useEffect(() => {
+    if (!isDirty) return;
+    function handler(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
 
   const record = useMutation({
     mutationFn: () =>
@@ -99,8 +131,39 @@ export function LoanMasterPage() {
     disbursementAccountId !== "" &&
     disbursementDate !== "";
 
+  function focusFirstInvalid() {
+    if (!(Number(principal) > 0)) {
+      principalRef.current?.focus();
+    } else if (!(Number(rate) > 0)) {
+      rateRef.current?.focus();
+    } else if (startDate === "") {
+      startDateRef.current?.focus();
+    } else if (!(Number(tenureMonths) > 0)) {
+      tenureRef.current?.focus();
+    } else if (emiStartDate === "") {
+      emiStartDateRef.current?.focus();
+    } else if (disbursementAccountId === "") {
+      disbursementAccountRef.current?.focus();
+    } else if (disbursementDate === "") {
+      disbursementDateRef.current?.focus();
+    }
+  }
+
+  async function handleReverse(loan: Loan) {
+    const { confirmed, value: reason } = await confirm({
+      title: "Reverse this loan?",
+      description: "This cannot be undone.",
+      inputLabel: "Reason",
+      destructive: true,
+      confirmLabel: "Reverse",
+    });
+    if (!confirmed || !reason) return;
+    reverse.mutate({ id: loan.id, reason });
+  }
+
   return (
     <div className="max-w-4xl space-y-6">
+      {dialog}
       <h1 className="text-lg font-semibold">Loan Master</h1>
 
       <form
@@ -108,7 +171,11 @@ export function LoanMasterPage() {
         onSubmit={(e) => {
           e.preventDefault();
           setTouched(true);
-          if (ready) record.mutate();
+          if (ready) {
+            record.mutate();
+          } else {
+            focusFirstInvalid();
+          }
         }}
       >
         <PartyPicker type="Lender" label="Lender" selected={lender} onSelect={setLender} />
@@ -138,13 +205,23 @@ export function LoanMasterPage() {
             >
               Principal amount
             </FieldLabel>
-            <AmountInput value={principal} aria-label="Principal amount" onChange={setPrincipal} />
+            <AmountInput
+              ref={principalRef}
+              value={principal}
+              aria-label="Principal amount"
+              onChange={setPrincipal}
+            />
           </label>
           <label className="space-y-1">
             <FieldLabel required error={touched && !(Number(rate) > 0) ? "Required" : undefined}>
               Annual interest rate %
             </FieldLabel>
-            <AmountInput value={rate} aria-label="Annual interest rate %" onChange={setRate} />
+            <AmountInput
+              ref={rateRef}
+              value={rate}
+              aria-label="Annual interest rate %"
+              onChange={setRate}
+            />
           </label>
         </div>
 
@@ -154,6 +231,7 @@ export function LoanMasterPage() {
               Start date
             </FieldLabel>
             <Input
+              ref={startDateRef}
               type="date"
               value={startDate}
               aria-label="Start date"
@@ -168,6 +246,7 @@ export function LoanMasterPage() {
               Tenure (months)
             </FieldLabel>
             <Input
+              ref={tenureRef}
               inputMode="numeric"
               value={tenureMonths}
               aria-label="Tenure (months)"
@@ -188,6 +267,7 @@ export function LoanMasterPage() {
               EMI start date
             </FieldLabel>
             <Input
+              ref={emiStartDateRef}
               type="date"
               value={emiStartDate}
               aria-label="EMI start date"
@@ -205,6 +285,7 @@ export function LoanMasterPage() {
               Disbursement account
             </FieldLabel>
             <select
+              ref={disbursementAccountRef}
               className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
               value={disbursementAccountId}
               aria-label="Disbursement account"
@@ -228,6 +309,7 @@ export function LoanMasterPage() {
               Disbursement date
             </FieldLabel>
             <Input
+              ref={disbursementDateRef}
               type="date"
               value={disbursementDate}
               aria-label="Disbursement date"
@@ -285,11 +367,7 @@ export function LoanMasterPage() {
               </tr>
             )}
             {loans.map((loan) => (
-              <LoanRow
-                key={loan.id}
-                loan={loan}
-                onReverse={(reason) => reverse.mutate({ id: loan.id, reason })}
-              />
+              <LoanRow key={loan.id} loan={loan} onReverse={() => void handleReverse(loan)} />
             ))}
           </tbody>
         </table>
@@ -298,7 +376,7 @@ export function LoanMasterPage() {
   );
 }
 
-function LoanRow({ loan, onReverse }: { loan: Loan; onReverse: (reason: string) => void }) {
+function LoanRow({ loan, onReverse }: { loan: Loan; onReverse: () => void }) {
   return (
     <tr className="border-b last:border-0">
       <td className="p-2">
@@ -316,10 +394,7 @@ function LoanRow({ loan, onReverse }: { loan: Loan; onReverse: (reason: string) 
             type="button"
             variant="ghost"
             size="xs"
-            onClick={() => {
-              const reason = window.prompt("Reason for reversing this loan?");
-              if (reason?.trim()) onReverse(reason.trim());
-            }}
+            onClick={onReverse}
           >
             Reverse
           </Button>

@@ -1,12 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { listProjects } from "@/features/projects/api";
+import { useQueryParam } from "@/lib/use-query-param";
 import { ProjectDashboardPage } from "./project-dashboard-page";
 
 export function ProjectDashboardPicker() {
-  const [projectId, setProjectId] = useState<number | "">("");
+  const [projectIdParam, setProjectIdParam] = useQueryParam("projectId", "");
+  const projectId = projectIdParam ? Number(projectIdParam) : "";
   const { data } = useQuery({
     queryKey: ["projects", "dashboard-picker"],
     queryFn: () => listProjects({ pageSize: 200 }),
@@ -20,7 +21,7 @@ export function ProjectDashboardPicker() {
           className="rounded border bg-transparent px-3 py-1.5 text-sm"
           aria-label="Project"
           value={projectId}
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+          onChange={(e) => setProjectIdParam(e.target.value)}
         >
           <option value="">Select a project…</option>
           {(data?.items ?? []).map((p) => (

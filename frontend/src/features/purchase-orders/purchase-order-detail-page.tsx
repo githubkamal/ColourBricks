@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { listProjects } from "@/features/projects/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
@@ -40,6 +41,7 @@ interface SubmitRow {
 
 export function PurchaseOrderDetailPage({ id }: { id: number }) {
   const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
 
   const { data: po } = useQuery({
     queryKey: ["purchase-order", id],
@@ -60,12 +62,24 @@ export function PurchaseOrderDetailPage({ id }: { id: number }) {
     onError: (error) => toast.error(error instanceof ApiError ? error.message : "Could not cancel"),
   });
 
+  async function handleCancel() {
+    const { confirmed } = await confirm({
+      title: "Cancel this purchase order?",
+      description: "This cannot be undone.",
+      confirmLabel: "Cancel order",
+      destructive: true,
+    });
+    if (!confirmed) return;
+    cancel.mutate();
+  }
+
   if (!po) {
     return <p className="text-muted-foreground text-sm">Loading…</p>;
   }
 
   return (
     <div className="max-w-4xl space-y-6">
+      {dialog}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold">{po.poNumber}</h1>
@@ -75,7 +89,7 @@ export function PurchaseOrderDetailPage({ id }: { id: number }) {
           </p>
         </div>
         {po.status === "Draft" && (
-          <Button type="button" variant="destructive" size="sm" onClick={() => cancel.mutate()}>
+          <Button type="button" variant="destructive" size="sm" onClick={handleCancel}>
             Cancel order
           </Button>
         )}
@@ -209,6 +223,7 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
                       type="button"
                       variant="ghost"
                       size="xs"
+                      aria-label={`Remove line ${i + 1}`}
                       onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
                     >
                       ✕

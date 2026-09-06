@@ -7,25 +7,26 @@ import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { useQueryParamNumber } from "@/lib/use-query-param";
 import { generateSchedule, getSchedule, listLoans, regenerateSchedule } from "./api";
 
 /** EMI Schedule (BRD §48/§49): pick a loan, generate/regenerate, and see every instalment. */
 export function LoanSchedulePage() {
   const queryClient = useQueryClient();
   const { data: loans = [] } = useQuery({ queryKey: ["loans"], queryFn: () => listLoans() });
-  const [loanId, setLoanId] = useState<number | "">("");
+  const [loanId, setLoanId] = useQueryParamNumber("loanId", 0);
 
   const { data: schedule = [], isPending } = useQuery({
     queryKey: ["loan-schedule", loanId],
-    queryFn: () => getSchedule(loanId as number),
-    enabled: loanId !== "",
+    queryFn: () => getSchedule(loanId),
+    enabled: loanId !== 0,
   });
 
   const [emiAmount, setEmiAmount] = useState("");
   const [newRate, setNewRate] = useState("");
 
   const generate = useMutation({
-    mutationFn: () => generateSchedule(loanId as number, emiAmount ? Number(emiAmount) : null),
+    mutationFn: () => generateSchedule(loanId, emiAmount ? Number(emiAmount) : null),
     onSuccess: () => {
       toast.success("Schedule generated");
       setEmiAmount("");
@@ -37,7 +38,7 @@ export function LoanSchedulePage() {
 
   const regenerate = useMutation({
     mutationFn: () =>
-      regenerateSchedule(loanId as number, Number(newRate), emiAmount ? Number(emiAmount) : null),
+      regenerateSchedule(loanId, Number(newRate), emiAmount ? Number(emiAmount) : null),
     onSuccess: () => {
       toast.success("Schedule regenerated");
       setNewRate("");
@@ -56,9 +57,9 @@ export function LoanSchedulePage() {
         <span className="text-sm font-medium">Loan</span>
         <select
           className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
-          value={loanId}
+          value={loanId || ""}
           aria-label="Loan"
-          onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : "")}
+          onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}
         >
           <option value="">Select a loan…</option>
           {loans.map((l) => (
@@ -69,7 +70,7 @@ export function LoanSchedulePage() {
         </select>
       </label>
 
-      {loanId !== "" && (
+      {loanId !== 0 && (
         <>
           <div className="flex flex-wrap items-end gap-3 rounded border p-4">
             <label className="space-y-1">

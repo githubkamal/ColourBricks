@@ -56,11 +56,11 @@ export function ItemsPage() {
             )}
             {data?.items.map((item) => (
               <tr key={item.id} className="border-b last:border-0">
-                <td className="p-2">{item.name}</td>
+                <td className="max-w-xs truncate p-2 break-words">{item.name}</td>
                 <td className="text-muted-foreground p-2">{item.categoryName ?? "—"}</td>
                 <td className="text-muted-foreground p-2">{item.unit}</td>
-                <td className="p-2">{formatINR(item.defaultRate)}</td>
-                <td className="text-muted-foreground p-2">{item.taxRate}</td>
+                <td className="p-2 tabular-nums">{formatINR(item.defaultRate)}</td>
+                <td className="text-muted-foreground p-2 tabular-nums">{item.taxRate}</td>
               </tr>
             ))}
           </tbody>

@@ -48,18 +48,21 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         Colour Bricks
       </span>
 
-      <div className="ml-auto flex items-center gap-3">
+      <div className="ml-auto flex min-w-0 items-center gap-3">
         {user.permissions.includes("dashboard.view") && <NotificationBell />}
         <ThemeToggle />
         <span className="bg-border hidden h-5 w-px sm:block" aria-hidden="true" />
-        <span className="text-muted-foreground hidden text-sm sm:inline">{user.email}</span>
-        <span className="text-sm font-medium">{user.name}</span>
+        <span className="text-muted-foreground hidden min-w-0 truncate text-sm sm:inline">
+          {user.email}
+        </span>
+        <span className="min-w-0 truncate text-sm font-medium">{user.name}</span>
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={handleSignOut}
           disabled={signingOut}
+          className="shrink-0"
         >
           {signingOut ? "Signing out…" : "Sign out"}
         </Button>

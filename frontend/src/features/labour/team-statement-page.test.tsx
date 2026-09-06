@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiBaseUrl } from "@/lib/config";
 import { server } from "@/test/msw/server";
+import { resetNavigationMock } from "@/test/next-navigation-mock";
 import { TeamStatementPage } from "./team-statement-page";
 
 vi.mock("@/features/teams/team-picker", () => ({
@@ -14,12 +15,16 @@ vi.mock("@/features/teams/team-picker", () => ({
   ),
 }));
 
+vi.mock("next/navigation", () => import("@/test/next-navigation-mock"));
+
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
 }
 
 describe("TeamStatementPage", () => {
+  beforeEach(() => resetNavigationMock());
+
   it("TeamStatement_ShowsRunningOutstandingPerRow", async () => {
     server.use(
       http.get(`${apiBaseUrl}/labour/teams/9/statement`, () =>

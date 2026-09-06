@@ -8,6 +8,7 @@ import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select"
 import { listProjects } from "@/features/projects/api";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
@@ -50,6 +51,7 @@ export function ProjectIncomePage() {
 
 function ProjectIncome({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
   const [type, setType] = useState<IncomeType>("ClientAdvance");
   const [date, setDate] = useState("");
   const [amount, setAmount] = useState("");
@@ -102,7 +104,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
   });
 
   const reverse = useMutation({
-    mutationFn: (id: number) => reverseReceipt(id, "reversed from project income screen"),
+    mutationFn: ({ id, reason }: { id: number; reason: string }) => reverseReceipt(id, reason),
     onSuccess: () => {
       toast.success("Receipt reversed");
       invalidate();
@@ -111,10 +113,23 @@ function ProjectIncome({ projectId }: { projectId: number }) {
       toast.error(error instanceof ApiError ? error.message : "Could not reverse the receipt"),
   });
 
+  async function handleReverse(id: number) {
+    const { confirmed, value: reason } = await confirm({
+      title: "Reverse this receipt?",
+      description: "This cannot be undone.",
+      inputLabel: "Reason",
+      destructive: true,
+      confirmLabel: "Reverse",
+    });
+    if (!confirmed) return;
+    reverse.mutate({ id, reason: reason ?? "" });
+  }
+
   const ready = date && Number(amount) > 0 && paymentModeId !== null;
 
   return (
     <div className="space-y-6">
+      {dialog}
       <form
         className="grid grid-cols-2 gap-3 rounded border p-4"
         onSubmit={(e) => {
@@ -229,7 +244,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
                       variant="ghost"
                       size="xs"
                       disabled={reverse.isPending}
-                      onClick={() => reverse.mutate(r.id)}
+                      onClick={() => handleReverse(r.id)}
                     >
                       Reverse
                     </Button>

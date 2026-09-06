@@ -24,7 +24,7 @@ export function CompanyDashboardPage() {
         {data.tiles.map((t) => (
           <div key={t.key} className="rounded border p-3">
             <div className="text-muted-foreground text-xs">{t.label}</div>
-            <div className="text-base font-semibold">
+            <div className="text-base font-semibold tabular-nums">
               {COUNT_KEYS.has(t.key) ? String(t.value) : formatINR(t.value)}
             </div>
           </div>
@@ -45,9 +45,15 @@ export function CompanyDashboardPage() {
             {data.projectProfitability.map((r) => (
               <tr key={r.projectId} className="border-b last:border-0">
                 <td className="p-2">{r.projectName}</td>
-                <td className="p-2">{formatINR(r.revenue)}</td>
-                <td className="p-2">{formatINR(r.actualCost)}</td>
-                <td className={r.profit < 0 ? "text-negative p-2" : "text-positive p-2"}>
+                <td className="p-2 tabular-nums">{formatINR(r.revenue)}</td>
+                <td className="p-2 tabular-nums">{formatINR(r.actualCost)}</td>
+                <td
+                  className={
+                    r.profit < 0
+                      ? "text-negative p-2 tabular-nums"
+                      : "text-positive p-2 tabular-nums"
+                  }
+                >
                   {formatINR(r.profit)}
                 </td>
               </tr>
@@ -63,7 +69,7 @@ export function CompanyDashboardPage() {
             {data.monthlyFlow.map((m) => (
               <li key={m.month} className="flex justify-between">
                 <span>{m.month}</span>
-                <span>
+                <span className="tabular-nums">
                   <span className="text-positive">{formatINR(m.income)}</span> /{" "}
                   <span className="text-negative">{formatINR(m.expense)}</span>
                 </span>

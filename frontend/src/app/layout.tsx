@@ -36,6 +36,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
+        {/* Matches the light-mode background; the boot script/theme toggle update this
+            to the dark background before/after a mode switch. */}
+        <meta name="theme-color" content="#fcfcfa" />
         {/* Applies the stored light/dark mode and accent before first paint, so
             there's no flash of the wrong theme (client request, 2026-09-04). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />

@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { Button } from "@/components/ui/button";
@@ -84,6 +84,20 @@ export function BankStatementUploadPage() {
     onError: (e) => toast.error(e instanceof ApiError ? e.message : "Could not save the mapping"),
   });
 
+  // Mid-wizard means a file has been picked and the transaction hasn't yet
+  // reached the reconciliation-review page — losing that progress means
+  // re-uploading and re-mapping columns from scratch.
+  const midWizard = file !== null && !uploadWithProfile.isSuccess && !saveAndUpload.isSuccess;
+
+  useEffect(() => {
+    if (!midWizard) return;
+    function handler(e: BeforeUnloadEvent) {
+      e.preventDefault();
+    }
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [midWizard]);
+
   const columnOptions =
     detected?.headers.map((h, i) => ({ i, label: `[${i}] ${h || "(blank)"}` })) ?? [];
   const setCol = (field: string, value: string) =>
@@ -97,7 +111,7 @@ export function BankStatementUploadPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
             aria-label="Account"
             value={accountId}
             onChange={(e) => {
@@ -133,7 +147,7 @@ export function BankStatementUploadPage() {
               <p className="text-sm font-medium">Use a saved mapping</p>
               <div className="flex flex-wrap items-end gap-3">
                 <select
-                  className="rounded border bg-transparent px-3 py-1.5 text-sm"
+                  className="rounded border bg-background text-foreground px-3 py-1.5 text-sm"
                   aria-label="Saved profile"
                   value={profileId}
                   onChange={(e) => setProfileId(e.target.value ? Number(e.target.value) : "")}
@@ -193,7 +207,7 @@ export function BankStatementUploadPage() {
                   <label key={field} className="flex items-center gap-2 text-sm">
                     <span className="w-40">{field.replace("Column", "")}</span>
                     <select
-                      className="rounded border bg-transparent px-2 py-1 text-sm"
+                      className="rounded border bg-background text-foreground px-2 py-1 text-sm"
                       aria-label={field}
                       value={map[field] ?? ""}
                       onChange={(e) => setCol(field, e.target.value)}
@@ -225,7 +239,7 @@ export function BankStatementUploadPage() {
                   <label className="flex items-center gap-2 text-sm">
                     <span className="w-40">amount</span>
                     <select
-                      className="rounded border bg-transparent px-2 py-1 text-sm"
+                      className="rounded border bg-background text-foreground px-2 py-1 text-sm"
                       aria-label="amountColumn"
                       value={map.amountColumn ?? ""}
                       onChange={(e) => setCol("amountColumn", e.target.value)}
@@ -243,7 +257,7 @@ export function BankStatementUploadPage() {
                     <label key={field} className="flex items-center gap-2 text-sm">
                       <span className="w-40">{field.replace("Column", "")}</span>
                       <select
-                        className="rounded border bg-transparent px-2 py-1 text-sm"
+                        className="rounded border bg-background text-foreground px-2 py-1 text-sm"
                         aria-label={field}
                         value={map[field] ?? ""}
                         onChange={(e) => setCol(field, e.target.value)}

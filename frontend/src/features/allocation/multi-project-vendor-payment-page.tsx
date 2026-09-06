@@ -148,8 +148,8 @@ export function MultiProjectVendorPaymentPage() {
                       return (
                         <tr key={line.projectId} className="border-b last:border-0">
                           <td className="p-2">{line.projectName}</td>
-                          <td className="p-2">{formatINR(line.outstandingBefore)}</td>
-                          <td className="p-2 font-medium">
+                          <td className="p-2 tabular-nums">{formatINR(line.outstandingBefore)}</td>
+                          <td className="p-2 font-medium tabular-nums">
                             {canOverride ? (
                               <AmountInput
                                 className="w-28"
@@ -166,7 +166,7 @@ export function MultiProjectVendorPaymentPage() {
                               formatINR(line.allocated)
                             )}
                           </td>
-                          <td className="p-2">
+                          <td className="p-2 tabular-nums">
                             {formatINR(round3(line.outstandingBefore - allocated))}
                           </td>
                         </tr>
@@ -177,7 +177,7 @@ export function MultiProjectVendorPaymentPage() {
                     <tr className="border-t">
                       <td className="p-2 font-medium">Total</td>
                       <td />
-                      <td className="p-2 font-semibold" data-testid="total-allocated">
+                      <td className="p-2 font-semibold tabular-nums" data-testid="total-allocated">
                         {formatINR(totalAllocated)}
                       </td>
                       <td className="p-2">
@@ -234,7 +234,7 @@ export function MultiProjectVendorPaymentPage() {
                 <label className="space-y-1">
                   <span className="text-sm font-medium">Account</span>
                   <select
-                    className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+                    className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
                     value={accountId}
                     aria-label="Account"
                     onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}

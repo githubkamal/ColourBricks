@@ -13,6 +13,7 @@ import { AmountInput } from "@/components/ui/amount-input";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { useQueryParamNumber } from "@/lib/use-query-param";
 import {
   listWork,
   payWork,
@@ -23,7 +24,7 @@ import {
 } from "./api";
 
 export function LabourWorkPage() {
-  const [projectId, setProjectId] = useState<number | "">("");
+  const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
 
   const { data: projects } = useQuery({
     queryKey: ["projects", { forLabour: true }],
@@ -38,9 +39,9 @@ export function LabourWorkPage() {
         <span className="text-sm font-medium">Project</span>
         <select
           className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
-          value={projectId}
+          value={projectId || ""}
           aria-label="Project"
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
         >
           <option value="">Select a project…</option>
           {projects?.items.map((p) => (
@@ -51,7 +52,7 @@ export function LabourWorkPage() {
         </select>
       </label>
 
-      {projectId !== "" && <WorkList projectId={projectId} />}
+      {projectId !== 0 && <WorkList projectId={projectId} />}
     </div>
   );
 }
@@ -184,7 +185,7 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
           {formatDate(entry.date)} · {entry.teamName}
           {entry.workType && <span className="text-muted-foreground"> · {entry.workType}</span>}
         </span>
-        <span>
+        <span className="tabular-nums">
           Agreed {formatINR(entry.agreedValue)} · Paid {formatINR(entry.totalPaid)} ·{" "}
           <span className="font-semibold" data-testid={`outstanding-${entry.id}`}>
             Outstanding {formatINR(entry.outstanding)}

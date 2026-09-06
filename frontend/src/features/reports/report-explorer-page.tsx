@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useSearchParams } from "next/navigation";
+import { useQueryParam } from "@/lib/use-query-param";
 import { reportCatalog } from "./api";
 import { ReportShell } from "./report-shell";
 
@@ -13,11 +12,9 @@ import { ReportShell } from "./report-shell";
  */
 export function ReportExplorerPage() {
   const { data: catalog = [] } = useQuery({ queryKey: ["report-catalog"], queryFn: reportCatalog });
-  const searchParams = useSearchParams();
-  const presetKey = searchParams?.get("report") ?? "";
-  const [selected, setSelected] = useState<string>("");
+  const [selected, setSelected] = useQueryParam("report", "");
 
-  const active = selected || presetKey || catalog[0]?.key || "";
+  const active = selected || catalog[0]?.key || "";
 
   return (
     <div className="space-y-4">

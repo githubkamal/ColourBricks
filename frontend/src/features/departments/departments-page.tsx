@@ -61,7 +61,7 @@ export function DepartmentsPage() {
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="New department name"
+          placeholder="e.g. Site Operations"
           aria-label="New department name"
         />
         <Button type="submit" disabled={add.isPending || !name.trim()}>
@@ -83,6 +83,13 @@ export function DepartmentsPage() {
               <tr>
                 <td colSpan={3} className="text-muted-foreground p-3 text-center">
                   Loading…
+                </td>
+              </tr>
+            )}
+            {!isPending && (data?.length ?? 0) === 0 && (
+              <tr>
+                <td colSpan={3} className="text-muted-foreground p-3 text-center">
+                  No departments found.
                 </td>
               </tr>
             )}

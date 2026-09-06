@@ -63,7 +63,7 @@ export function LoadingBar() {
     <div
       aria-hidden="true"
       data-testid="loading-bar"
-      className={`bg-primary fixed top-0 right-0 left-0 z-50 h-0.5 origin-left transition-transform duration-300 ease-out ${
+      className={`bg-primary fixed top-0 right-0 left-0 z-50 h-0.5 origin-left transition-[transform,opacity] duration-300 ease-out ${
         active ? "scale-x-100 opacity-100" : "scale-x-0 opacity-0"
       }`}
     />

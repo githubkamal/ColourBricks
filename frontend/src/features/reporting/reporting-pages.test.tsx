@@ -1,14 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiBaseUrl } from "@/lib/config";
 import { server } from "@/test/msw/server";
+import { resetNavigationMock } from "@/test/next-navigation-mock";
 import { BudgetVsActualPage } from "./budget-vs-actual-page";
 import { CompanyDashboardPage } from "./company-dashboard-page";
 import { ProjectDashboardPage } from "./project-dashboard-page";
 import { ProjectLedgerPage } from "./project-ledger-page";
 import { ProjectPnlPage } from "./project-pnl-page";
+
+vi.mock("next/navigation", () => import("@/test/next-navigation-mock"));
 
 function rc(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -16,6 +19,8 @@ function rc(ui: React.ReactElement) {
 }
 
 describe("reporting pages", () => {
+  beforeEach(() => resetNavigationMock());
+
   it("ProjectDashboard_BreakdownSumsToTotal_And12Tiles", async () => {
     server.use(
       http.get(`${apiBaseUrl}/projects/4/dashboard`, () =>

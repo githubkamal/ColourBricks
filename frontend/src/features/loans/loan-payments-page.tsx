@@ -6,9 +6,11 @@ import { toast } from "sonner";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { useQueryParamNumber } from "@/lib/use-query-param";
 import {
   getSchedule,
   listEmiPayments,
@@ -22,18 +24,19 @@ import {
 /** EMI Payments (BRD §49): settle a scheduled instalment or pay ahead of schedule. */
 export function LoanPaymentsPage() {
   const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
   const { data: loans = [] } = useQuery({ queryKey: ["loans"], queryFn: () => listLoans() });
-  const [loanId, setLoanId] = useState<number | "">("");
+  const [loanId, setLoanId] = useQueryParamNumber("loanId", 0);
 
   const { data: schedule = [] } = useQuery({
     queryKey: ["loan-schedule", loanId],
-    queryFn: () => getSchedule(loanId as number),
-    enabled: loanId !== "",
+    queryFn: () => getSchedule(loanId),
+    enabled: loanId !== 0,
   });
   const { data: payments = [], isPending } = useQuery({
     queryKey: ["loan-emi-payments", loanId],
-    queryFn: () => listEmiPayments(loanId as number),
-    enabled: loanId !== "",
+    queryFn: () => listEmiPayments(loanId),
+    enabled: loanId !== 0,
   });
 
   const pendingInstalments = schedule.filter((i) => i.status !== "Paid");
@@ -57,7 +60,7 @@ export function LoanPaymentsPage() {
 
   const pay = useMutation({
     mutationFn: () =>
-      payEmi(loanId as number, {
+      payEmi(loanId, {
         instalmentId: instalmentId as number,
         date,
         paymentModeId: paymentModeId!,
@@ -81,7 +84,7 @@ export function LoanPaymentsPage() {
 
   const prepay = useMutation({
     mutationFn: () =>
-      prepayLoan(loanId as number, {
+      prepayLoan(loanId, {
         amount: Number(prepayAmount),
         date: prepayDate,
         paymentModeId: prepayModeId!,
@@ -110,17 +113,30 @@ export function LoanPaymentsPage() {
   const payReady = instalmentId !== "" && date !== "" && paymentModeId !== null;
   const prepayReady = Number(prepayAmount) > 0 && prepayDate !== "" && prepayModeId !== null;
 
+  async function handleReverse(id: number) {
+    const { confirmed, value: reason } = await confirm({
+      title: "Reverse this payment?",
+      description: "This cannot be undone.",
+      inputLabel: "Reason",
+      destructive: true,
+      confirmLabel: "Reverse",
+    });
+    if (!confirmed || !reason) return;
+    reverse.mutate({ id, reason });
+  }
+
   return (
     <div className="max-w-4xl space-y-6">
+      {dialog}
       <h1 className="text-lg font-semibold">EMI Payments</h1>
 
       <label className="block max-w-sm space-y-1">
         <span className="text-sm font-medium">Loan</span>
         <select
           className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
-          value={loanId}
+          value={loanId || ""}
           aria-label="Loan"
-          onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : "")}
+          onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}
         >
           <option value="">Select a loan…</option>
           {loans.map((l) => (
@@ -131,7 +147,7 @@ export function LoanPaymentsPage() {
         </select>
       </label>
 
-      {loanId !== "" && (
+      {loanId !== 0 && (
         <>
           <form
             className="space-y-3 rounded border p-4"
@@ -256,11 +272,7 @@ export function LoanPaymentsPage() {
                   </tr>
                 )}
                 {payments.map((p) => (
-                  <PaymentRow
-                    key={p.id}
-                    payment={p}
-                    onReverse={(reason) => reverse.mutate({ id: p.id, reason })}
-                  />
+                  <PaymentRow key={p.id} payment={p} onReverse={() => void handleReverse(p.id)} />
                 ))}
               </tbody>
             </table>
@@ -276,7 +288,7 @@ function PaymentRow({
   onReverse,
 }: {
   payment: LoanEmiPayment;
-  onReverse: (reason: string) => void;
+  onReverse: () => void;
 }) {
   return (
     <tr className="border-b last:border-0">
@@ -292,10 +304,7 @@ function PaymentRow({
             type="button"
             variant="ghost"
             size="xs"
-            onClick={() => {
-              const reason = window.prompt("Reason for reversing this payment?");
-              if (reason?.trim()) onReverse(reason.trim());
-            }}
+            onClick={onReverse}
           >
             Reverse
           </Button>

@@ -28,6 +28,13 @@ export function ItemCategoriesPage() {
                 </td>
               </tr>
             )}
+            {!isPending && data?.length === 0 && (
+              <tr>
+                <td colSpan={2} className="text-muted-foreground p-3 text-center">
+                  No categories found.
+                </td>
+              </tr>
+            )}
             {data?.map((category) => (
               <tr key={category.id} className="border-b last:border-0">
                 <td className="p-2">{category.name}</td>

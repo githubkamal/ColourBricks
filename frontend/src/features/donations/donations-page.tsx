@@ -1,13 +1,13 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { getProject, listProjects } from "@/features/projects/api";
+import { useQueryParamNumber } from "@/lib/use-query-param";
 import { DonationOutstandingPanel } from "./donation-outstanding-panel";
 import { ProjectDonationForm } from "./project-donation-form";
 
 export function DonationsPage() {
-  const [projectId, setProjectId] = useState<number | "">("");
+  const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
 
   const { data: projects } = useQuery({
     queryKey: ["projects", { forDonations: true }],
@@ -16,8 +16,8 @@ export function DonationsPage() {
 
   const { data: project } = useQuery({
     queryKey: ["project", projectId],
-    queryFn: () => getProject(Number(projectId)),
-    enabled: projectId !== "",
+    queryFn: () => getProject(projectId),
+    enabled: projectId !== 0,
   });
 
   return (
@@ -28,9 +28,9 @@ export function DonationsPage() {
         <span className="text-sm font-medium">Project</span>
         <select
           className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
-          value={projectId}
+          value={projectId || ""}
           aria-label="Project"
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
         >
           <option value="">Select a project…</option>
           {projects?.items.map((p) => (

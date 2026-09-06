@@ -1,14 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiBaseUrl } from "@/lib/config";
 import { server } from "@/test/msw/server";
+import { resetNavigationMock } from "@/test/next-navigation-mock";
 import { VendorPaymentAllocationReportPage } from "./vendor-payment-allocation-report-page";
 
 vi.mock("@/features/parties/party-picker", () => ({
   PartyPicker: () => <div>party picker</div>,
 }));
+
+vi.mock("next/navigation", () => import("@/test/next-navigation-mock"));
 
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -43,6 +46,8 @@ const reportRows = [
 ];
 
 describe("VendorPaymentAllocationReportPage", () => {
+  beforeEach(() => resetNavigationMock());
+
   it("AllocationReport_ShowsRowsAndDrillsIntoOneSettlement", async () => {
     server.use(
       http.get(`${apiBaseUrl}/reports/vendor-payment-allocations`, () =>

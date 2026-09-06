@@ -20,7 +20,14 @@ type LoginForm = z.infer<typeof schema>;
 
 function MailIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="size-4"
+      aria-hidden="true"
+    >
       <rect
         x="3"
         y="5"
@@ -37,7 +44,14 @@ function MailIcon() {
 
 function LockIcon() {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-4">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      className="size-4"
+      aria-hidden="true"
+    >
       <rect
         x="5"
         y="11"
@@ -101,7 +115,6 @@ export default function LoginPage() {
               id="email"
               type="email"
               autoComplete="username"
-              autoFocus
               aria-invalid={errors.email ? true : undefined}
               className="pl-9"
               {...register("email")}

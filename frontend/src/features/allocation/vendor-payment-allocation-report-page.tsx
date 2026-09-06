@@ -6,6 +6,7 @@ import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { Input } from "@/components/ui/input";
 import { formatDate, formatINR } from "@/lib/format";
+import { useQueryParam } from "@/lib/use-query-param";
 import {
   settlementAllocationHistory,
   vendorPaymentAllocationReport,
@@ -13,10 +14,20 @@ import {
 } from "./api";
 
 export function VendorPaymentAllocationReportPage() {
-  const [vendor, setVendor] = useState<PartySearchItem | null>(null);
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [vendorId, setVendorId] = useQueryParam("vendorId", "");
+  const [vendorName, setVendorName] = useQueryParam("vendorName", "");
+  const [dateFrom, setDateFrom] = useQueryParam("dateFrom", "");
+  const [dateTo, setDateTo] = useQueryParam("dateTo", "");
   const [openSettlement, setOpenSettlement] = useState<number | null>(null);
+
+  const vendor: PartySearchItem | null = vendorId
+    ? { id: Number(vendorId), name: vendorName, types: [], category: null }
+    : null;
+
+  function setVendor(party: PartySearchItem | null) {
+    setVendorId(party ? String(party.id) : "");
+    setVendorName(party ? party.name : "");
+  }
 
   const { data: rows = [] } = useQuery({
     queryKey: ["allocation-report", vendor?.id ?? null, dateFrom, dateTo],
@@ -91,7 +102,7 @@ export function VendorPaymentAllocationReportPage() {
                 >
                   <td className="p-2">{firstOfGroup ? formatDate(r.date) : ""}</td>
                   <td className="p-2">{firstOfGroup ? r.vendorName : ""}</td>
-                  <td className="p-2">
+                  <td className="p-2 tabular-nums">
                     {firstOfGroup ? (
                       <button
                         type="button"
@@ -109,7 +120,7 @@ export function VendorPaymentAllocationReportPage() {
                     )}
                   </td>
                   <td className="p-2">{r.projectName}</td>
-                  <td className="p-2 font-medium">{formatINR(r.allocated)}</td>
+                  <td className="p-2 font-medium tabular-nums">{formatINR(r.allocated)}</td>
                   <td className="p-2">
                     {r.status === "Reversed" ? (
                       <span className="text-negative">Reversed</span>

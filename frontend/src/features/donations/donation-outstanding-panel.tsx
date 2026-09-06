@@ -109,9 +109,9 @@ function TempleRow({
     <>
       <tr className="border-b last:border-0">
         <td className="p-2">{templeName}</td>
-        <td className="p-2">{formatINR(allocated)}</td>
-        <td className="text-muted-foreground p-2">{formatINR(paid)}</td>
-        <td className="p-2 font-medium" data-testid={`donation-outstanding-${templeId}`}>
+        <td className="p-2 tabular-nums">{formatINR(allocated)}</td>
+        <td className="text-muted-foreground p-2 tabular-nums">{formatINR(paid)}</td>
+        <td className="p-2 font-medium tabular-nums" data-testid={`donation-outstanding-${templeId}`}>
           {formatINR(outstanding)}
         </td>
         <td className="p-2 text-right">

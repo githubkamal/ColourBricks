@@ -1,10 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiBaseUrl } from "@/lib/config";
 import { server } from "@/test/msw/server";
+import { resetNavigationMock } from "@/test/next-navigation-mock";
 import { FieldOfficerExpensePage } from "./field-officer-expense-page";
+
+vi.mock("next/navigation", () => import("@/test/next-navigation-mock"));
 
 function renderWithClient(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -12,6 +15,8 @@ function renderWithClient(ui: React.ReactElement) {
 }
 
 describe("FieldOfficerExpensePage", () => {
+  beforeEach(() => resetNavigationMock());
+
   it("FieldOfficerBills_ShowsOutstandingAndAdvance_OnceAnOfficerIsPicked", async () => {
     server.use(
       http.get(`${apiBaseUrl}/parties/search`, () =>

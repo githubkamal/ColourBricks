@@ -52,10 +52,10 @@ export function BudgetVsActualPage({ projectId }: { projectId: number }) {
             {data.rows.map((r) => (
               <tr key={r.categoryId} className="border-b last:border-0">
                 <td className="p-2">{r.categoryName}</td>
-                <td className="p-2">{formatINR(r.budget)}</td>
-                <td className="p-2">{formatINR(r.actual)}</td>
-                <td className="p-2">{formatINR(r.variance)}</td>
-                <td className="p-2">
+                <td className="p-2 tabular-nums">{formatINR(r.budget)}</td>
+                <td className="p-2 tabular-nums">{formatINR(r.actual)}</td>
+                <td className="p-2 tabular-nums">{formatINR(r.variance)}</td>
+                <td className="p-2 tabular-nums">
                   {r.variancePercent == null ? "—" : `${r.variancePercent.toFixed(1)}%`}
                 </td>
                 <td className={`p-2 font-medium ${cls(r.status)}`}>

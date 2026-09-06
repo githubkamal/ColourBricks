@@ -20,27 +20,20 @@ export function formatINR(value: number): string {
   return inrFormatter.format(value);
 }
 
-const MONTHS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-] as const;
-
 const YMD = /^(\d{4})-(\d{2})-(\d{2})/;
+
+const dateFormatter = new Intl.DateTimeFormat("en-IN", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
 /**
  * Formats a business date held as a `YYYY-MM-DD` string (or an ISO datetime whose
- * date part is one) as `DD MMM YYYY`. Deliberately does not go through `new Date()`,
- * which would shift the day across timezones (plan.md §5.5).
+ * date part is one) as `DD MMM YYYY`. Parses the date part as UTC noon before
+ * handing it to `Intl.DateTimeFormat` (also pinned to UTC), so the result never
+ * shifts a day across the viewer's local timezone (plan.md §5.5).
  */
 export function formatDate(value: string): string {
   const match = YMD.exec(value);
@@ -50,7 +43,8 @@ export function formatDate(value: string): string {
   const monthIndex = Number(month) - 1;
   if (monthIndex < 0 || monthIndex > 11) return value;
 
-  return `${day} ${MONTHS[monthIndex]} ${year}`;
+  const date = new Date(Date.UTC(Number(year), monthIndex, Number(day)));
+  return dateFormatter.format(date);
 }
 
 /**

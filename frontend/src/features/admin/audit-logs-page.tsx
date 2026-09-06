@@ -3,21 +3,50 @@
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { useQueryParam, useQueryParamNumber } from "@/lib/use-query-param";
 import { listAuditLogs, type AuditLogQuery } from "./audit-logs-api";
 
-const emptyFilter: AuditLogQuery = { page: 1, pageSize: 50 };
+const timestampFormatter = new Intl.DateTimeFormat("en-IN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
 
 /** Admin > Audit Logs (BRD §65): every create/update/delete/reverse, who did it, and why. */
 export function AuditLogsPage() {
-  const [filter, setFilter] = useState<AuditLogQuery>(emptyFilter);
+  const [userId, setUserId] = useQueryParam("userId", "");
+  const [module, setModule] = useQueryParam("module", "");
+  const [action, setAction] = useQueryParam("action", "");
+  const [recordId, setRecordId] = useQueryParam("recordId", "");
+  const [dateFrom, setDateFrom] = useQueryParam("dateFrom", "");
+  const [dateTo, setDateTo] = useQueryParam("dateTo", "");
+  const [page, setPage] = useQueryParamNumber("page", 1);
   const [expanded, setExpanded] = useState<number | null>(null);
+
+  const filter: AuditLogQuery = {
+    userId: userId ? Number(userId) : undefined,
+    module: module || undefined,
+    action: action || undefined,
+    recordId: recordId || undefined,
+    dateFrom: dateFrom || undefined,
+    dateTo: dateTo || undefined,
+    page,
+    pageSize: 50,
+  };
 
   const { data, isPending } = useQuery({
     queryKey: ["audit-logs", filter],
     queryFn: () => listAuditLogs(filter),
   });
 
-  const patch = (p: Partial<AuditLogQuery>) => setFilter((f) => ({ ...f, ...p, page: 1 }));
+  function resetFilters() {
+    setUserId("");
+    setModule("");
+    setAction("");
+    setRecordId("");
+    setDateFrom("");
+    setDateTo("");
+    setPage(1);
+  }
 
   return (
     <div className="space-y-4">
@@ -30,8 +59,11 @@ export function AuditLogsPage() {
             className="w-24"
             inputMode="numeric"
             aria-label="User id"
-            value={filter.userId ?? ""}
-            onChange={(e) => patch({ userId: e.target.value ? Number(e.target.value) : undefined })}
+            value={userId}
+            onChange={(e) => {
+              setUserId(e.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label className="space-y-1">
@@ -39,8 +71,11 @@ export function AuditLogsPage() {
           <Input
             className="w-36"
             aria-label="Module"
-            value={filter.module ?? ""}
-            onChange={(e) => patch({ module: e.target.value || undefined })}
+            value={module}
+            onChange={(e) => {
+              setModule(e.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label className="space-y-1">
@@ -48,8 +83,11 @@ export function AuditLogsPage() {
           <Input
             className="w-32"
             aria-label="Action"
-            value={filter.action ?? ""}
-            onChange={(e) => patch({ action: e.target.value || undefined })}
+            value={action}
+            onChange={(e) => {
+              setAction(e.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label className="space-y-1">
@@ -57,8 +95,11 @@ export function AuditLogsPage() {
           <Input
             className="w-28"
             aria-label="Record id"
-            value={filter.recordId ?? ""}
-            onChange={(e) => patch({ recordId: e.target.value || undefined })}
+            value={recordId}
+            onChange={(e) => {
+              setRecordId(e.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label className="space-y-1">
@@ -66,8 +107,11 @@ export function AuditLogsPage() {
           <Input
             type="date"
             aria-label="From"
-            value={filter.dateFrom ?? ""}
-            onChange={(e) => patch({ dateFrom: e.target.value || undefined })}
+            value={dateFrom}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label className="space-y-1">
@@ -75,14 +119,17 @@ export function AuditLogsPage() {
           <Input
             type="date"
             aria-label="To"
-            value={filter.dateTo ?? ""}
-            onChange={(e) => patch({ dateTo: e.target.value || undefined })}
+            value={dateTo}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <button
           type="button"
           className="rounded border px-3 py-1.5 text-sm"
-          onClick={() => setFilter(emptyFilter)}
+          onClick={resetFilters}
         >
           Reset filters
         </button>
@@ -120,7 +167,7 @@ export function AuditLogsPage() {
               <Fragment key={row.id}>
                 <tr className="border-b last:border-0">
                   <td className="p-2 whitespace-nowrap">
-                    {new Date(row.timestampUtc).toLocaleString()}
+                    {timestampFormatter.format(new Date(row.timestampUtc))}
                   </td>
                   <td className="p-2">{row.userId ?? "—"}</td>
                   <td className="p-2">{row.module}</td>
@@ -174,7 +221,7 @@ export function AuditLogsPage() {
             type="button"
             className="rounded border px-3 py-1 disabled:opacity-50"
             disabled={data.page <= 1}
-            onClick={() => setFilter((f) => ({ ...f, page: (f.page ?? 1) - 1 }))}
+            onClick={() => setPage(page - 1)}
           >
             Prev
           </button>
@@ -185,7 +232,7 @@ export function AuditLogsPage() {
             type="button"
             className="rounded border px-3 py-1 disabled:opacity-50"
             disabled={data.page >= data.totalPages}
-            onClick={() => setFilter((f) => ({ ...f, page: (f.page ?? 1) + 1 }))}
+            onClick={() => setPage(page + 1)}
           >
             Next
           </button>

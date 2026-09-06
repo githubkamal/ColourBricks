@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { createTemple, listTemples } from "./api";
@@ -11,6 +12,7 @@ import { createTemple, listTemples } from "./api";
 export function TemplesPage() {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
+  const { confirm, dialog } = useConfirmDialog();
 
   const { data, isPending } = useQuery({ queryKey: ["temples"], queryFn: () => listTemples() });
 
@@ -22,9 +24,13 @@ export function TemplesPage() {
         setName("");
         void queryClient.invalidateQueries({ queryKey: ["temples"] });
       } else if (outcome.kind === "needs-confirmation") {
-        if (window.confirm(`A similar temple name exists. Add "${name.trim()}" anyway?`)) {
-          add.mutate(true);
-        }
+        void confirm({
+          title: "Similar temple name exists",
+          description: `A similar temple name exists. Add "${name.trim()}" anyway?`,
+          confirmLabel: "Add anyway",
+        }).then(({ confirmed }) => {
+          if (confirmed) add.mutate(true);
+        });
       } else {
         toast.message("That temple already exists");
       }
@@ -35,6 +41,7 @@ export function TemplesPage() {
 
   return (
     <div className="max-w-xl space-y-4">
+      {dialog}
       <h1 className="text-lg font-semibold">Temple Master</h1>
 
       <form

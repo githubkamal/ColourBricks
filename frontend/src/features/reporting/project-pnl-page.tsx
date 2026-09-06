@@ -1,12 +1,14 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 import { formatINR } from "@/lib/format";
+import { useQueryParam } from "@/lib/use-query-param";
 import { projectPnl } from "./api";
 
 export function ProjectPnlPage({ projectId }: { projectId: number }) {
-  const [basis, setBasis] = useState<"Contract" | "Receipts">("Contract");
+  const [basisParam, setBasisParam] = useQueryParam("basis", "Contract");
+  const basis: "Contract" | "Receipts" = basisParam === "Receipts" ? "Receipts" : "Contract";
+  const setBasis = (v: "Contract" | "Receipts") => setBasisParam(v);
   const { data, isLoading, isError } = useQuery({
     queryKey: ["project-pnl", projectId, basis],
     queryFn: () => projectPnl(projectId, basis),
@@ -51,7 +53,7 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
           {rows.map(([k, v]) => (
             <tr key={k} className="border-b last:border-0">
               <td className="py-1.5">{k}</td>
-              <td className="py-1.5 text-right font-medium">{v}</td>
+              <td className="py-1.5 text-right font-medium tabular-nums">{v}</td>
             </tr>
           ))}
         </tbody>

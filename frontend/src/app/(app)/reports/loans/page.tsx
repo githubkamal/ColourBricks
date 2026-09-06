@@ -1,5 +1,10 @@
+import { Suspense } from "react";
 import { LoanReportsPage } from "@/features/loans/loan-reports-page";
 
 export default function Page() {
-  return <LoanReportsPage />;
+  return (
+    <Suspense fallback={null}>
+      <LoanReportsPage />
+    </Suspense>
+  );
 }

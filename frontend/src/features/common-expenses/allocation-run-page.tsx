@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
@@ -21,6 +22,7 @@ const ALL_TYPES: CommonExpenseType[] = ["Personal", "Office", "Savings"];
 
 export function AllocationRunPage() {
   const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
   const [periodFrom, setPeriodFrom] = useState("");
   const [periodTo, setPeriodTo] = useState("");
   const [types, setTypes] = useState<CommonExpenseType[]>(["Personal", "Office"]);
@@ -63,6 +65,7 @@ export function AllocationRunPage() {
 
   return (
     <div className="max-w-4xl space-y-6">
+      {dialog}
       <h1 className="text-lg font-semibold">Common expense allocation</h1>
 
       <div className="flex flex-wrap items-end gap-3 rounded border p-3">
@@ -104,7 +107,7 @@ export function AllocationRunPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Method</span>
           <select
-            className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
             aria-label="Method"
             value={method}
             onChange={(e) => setMethod(e.target.value as AllocationMethod)}
@@ -126,7 +129,7 @@ export function AllocationRunPage() {
 
       {preview && (
         <div className="space-y-2 rounded border p-3">
-          <p className="text-sm font-medium">
+          <p className="text-sm font-medium tabular-nums">
             Pool {formatINR(preview.poolAmount)} · allocated {formatINR(preview.totalAllocated)} ·{" "}
             <span
               className={preview.balances ? "text-positive" : "text-negative"}
@@ -148,9 +151,9 @@ export function AllocationRunPage() {
               {preview.lines.map((l) => (
                 <tr key={l.projectId} className="border-b last:border-0">
                   <td className="py-1">{l.projectName}</td>
-                  <td className="py-1">{formatINR(l.before)}</td>
-                  <td className="py-1">{formatINR(l.allocated)}</td>
-                  <td className="py-1">{formatINR(l.after)}</td>
+                  <td className="py-1 tabular-nums">{formatINR(l.before)}</td>
+                  <td className="py-1 tabular-nums">{formatINR(l.allocated)}</td>
+                  <td className="py-1 tabular-nums">{formatINR(l.after)}</td>
                 </tr>
               ))}
             </tbody>
@@ -185,14 +188,23 @@ export function AllocationRunPage() {
                 </td>
                 <td className="p-2">{r.types}</td>
                 <td className="p-2">{r.method}</td>
-                <td className="p-2">{formatINR(r.poolAmount)}</td>
+                <td className="p-2 tabular-nums">{formatINR(r.poolAmount)}</td>
                 <td className="p-2">{r.status}</td>
                 <td className="p-2">
                   {r.status === "Active" && (
                     <button
                       type="button"
                       className="text-negative text-xs"
-                      onClick={() => reverseMut.mutate(r.id)}
+                      onClick={async () => {
+                        const { confirmed } = await confirm({
+                          title: "Reverse this allocation run?",
+                          description:
+                            "This will reverse the allocations made against these projects. This cannot be undone.",
+                          destructive: true,
+                          confirmLabel: "Reverse",
+                        });
+                        if (confirmed) reverseMut.mutate(r.id);
+                      }}
                     >
                       Reverse
                     </button>
