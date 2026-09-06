@@ -20,6 +20,10 @@ log() { echo "[deploy $RELEASE] $*"; }
 [ -d "$API_REL" ] || { echo "missing $API_REL"; exit 1; }
 [ -d "$WEB_REL" ] || { echo "missing $WEB_REL"; exit 1; }
 
+# Belt-and-suspenders: rsync from the GitHub runner can otherwise leave these
+# owned by whatever local UID happens to match the runner's (see deploy.yml).
+chown -R colourbricks:colourbricks "$API_REL" "$WEB_REL"
+
 PREV_API=$(readlink -f "$BASE/api/current" || true)
 PREV_WEB=$(readlink -f "$BASE/web/current" || true)
 
@@ -42,12 +46,13 @@ log "installing production node_modules for web release (npm ci --omit=dev)"
 
 if [ -x "$API_REL/efbundle" ]; then
   log "applying EF Core migrations via efbundle"
-  # shellcheck disable=SC1091
-  source "$SHARED/api.env"
+  # NOT `source api.env` — its ConnectionStrings__Default value contains ';' and
+  # 'User ID=...' (a space), which bash would parse as separate commands
+  # ("User: command not found"). Pull just that one line's value instead.
   # efbundle's own --connection flag does NOT override the app's design-time
   # DbContext factory (AppDbContextFactory) — confirmed the hard way. That
   # factory reads COLOURBRICKS_MIGRATIONS_CONNECTION, so export it instead.
-  export COLOURBRICKS_MIGRATIONS_CONNECTION="$ConnectionStrings__Default"
+  export COLOURBRICKS_MIGRATIONS_CONNECTION="$(grep -m1 '^ConnectionStrings__Default=' "$SHARED/api.env" | cut -d= -f2-)"
   "$API_REL/efbundle"
 else
   log "no efbundle found in release, skipping migrations"
