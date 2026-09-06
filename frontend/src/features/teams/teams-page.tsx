@@ -79,7 +79,7 @@ export function TeamsPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Department</span>
           <select
-            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
             value={departmentId}
             aria-label="Department"
             onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : "")}

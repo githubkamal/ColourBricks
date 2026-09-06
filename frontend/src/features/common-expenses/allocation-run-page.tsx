@@ -68,7 +68,7 @@ export function AllocationRunPage() {
       {dialog}
       <h1 className="text-lg font-semibold">Common expense allocation</h1>
 
-      <div className="flex flex-wrap items-end gap-3 rounded border p-3">
+      <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-3">
         <label className="space-y-1">
           <span className="text-sm font-medium">From</span>
           <Input
@@ -107,7 +107,7 @@ export function AllocationRunPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Method</span>
           <select
-            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
             aria-label="Method"
             value={method}
             onChange={(e) => setMethod(e.target.value as AllocationMethod)}
@@ -128,7 +128,7 @@ export function AllocationRunPage() {
       </div>
 
       {preview && (
-        <div className="space-y-2 rounded border p-3">
+        <div className="bg-card space-y-2 rounded border p-3">
           <p className="text-sm font-medium tabular-nums">
             Pool {formatINR(preview.poolAmount)} · allocated {formatINR(preview.totalAllocated)} ·{" "}
             <span
@@ -168,7 +168,7 @@ export function AllocationRunPage() {
         </div>
       )}
 
-      <div className="rounded border">
+      <div className="bg-card rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

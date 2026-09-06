@@ -76,11 +76,11 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
         </p>
       )}
 
-      <div className="flex flex-wrap items-end gap-3 rounded border p-3">
+      <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-3">
         <label className="space-y-1">
           <span className="text-sm font-medium">Sub-category</span>
           <select
-            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
             aria-label="Sub-category"
             value={subCategory}
             onChange={(e) => setSubCategory(e.target.value)}
@@ -126,7 +126,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
             aria-label="Account"
             value={accountId}
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -144,7 +144,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
         </Button>
       </div>
 
-      <div className="rounded border">
+      <div className="bg-card rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

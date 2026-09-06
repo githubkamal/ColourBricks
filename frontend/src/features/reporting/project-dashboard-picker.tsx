@@ -18,7 +18,7 @@ export function ProjectDashboardPicker() {
       <label className="flex items-center gap-2 text-sm">
         <span className="font-medium">Project</span>
         <select
-          className="rounded border bg-transparent px-3 py-1.5 text-sm"
+          className="bg-card rounded border px-3 py-1.5 text-sm"
           aria-label="Project"
           value={projectId}
           onChange={(e) => setProjectIdParam(e.target.value)}

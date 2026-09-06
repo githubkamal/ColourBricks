@@ -8,27 +8,33 @@ type BadgeVariant = VariantProps<typeof badgeVariants>["variant"];
  * account pages (Active/Reversed/Closed/Draft/Submitted/Cancelled/Paid/Pending/
  * Inactive, …). Falls back to "neutral" for anything not in the map, so a page
  * can pass any status string without throwing.
+ *
+ * Each status gets its own fixed, theme-independent colour (client request,
+ * 2026-09-06) — no two statuses share a colour, and none of them move when
+ * the accent picker changes (only "primary" tracks that, and nothing here
+ * uses it). Loosely grouped warm/cool by good-vs-bad, but every entry is its
+ * own distinct hue, not a shared bucket.
  */
 const STATUS_VARIANT: Record<string, BadgeVariant> = {
-  active: "positive",
-  paid: "positive",
-  reconciled: "positive",
-  approved: "positive",
-  completed: "positive",
-  closed: "neutral",
-  inactive: "neutral",
-  draft: "neutral",
+  active: "emerald",
+  paid: "teal",
+  reconciled: "cyan",
+  approved: "sky",
+  completed: "green",
+  closed: "slate",
+  inactive: "zinc",
+  draft: "blue",
   excluded: "neutral",
-  ongoing: "primary",
-  submitted: "primary",
-  open: "primary",
-  pending: "attention",
-  onhold: "attention",
-  "on hold": "attention",
-  overdue: "negative",
-  reversed: "negative",
-  cancelled: "negative",
-  rejected: "negative",
+  ongoing: "sky",
+  submitted: "green",
+  open: "violet",
+  pending: "amber",
+  onhold: "yellow",
+  "on hold": "yellow",
+  overdue: "red",
+  reversed: "rose",
+  cancelled: "red",
+  rejected: "fuchsia",
 };
 
 export function StatusBadge({ status }: { status: string }) {

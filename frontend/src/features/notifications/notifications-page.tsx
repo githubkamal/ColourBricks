@@ -65,7 +65,7 @@ export function NotificationsPage() {
         </label>
       </div>
 
-      <div className="rounded border">
+      <div className="bg-card rounded border">
         {isPending && <p className="text-muted-foreground p-4 text-sm">Loading…</p>}
         {!isPending && notifications.length === 0 && (
           <p className="text-muted-foreground p-4 text-sm">
@@ -113,7 +113,7 @@ export function NotificationsPage() {
       </div>
 
       {muted.length > 0 && (
-        <div className="rounded border p-4">
+        <div className="bg-card rounded border p-4">
           <h2 className="mb-2 text-sm font-semibold">Muted notification types</h2>
           <ul className="space-y-1">
             {muted.map((trigger) => (

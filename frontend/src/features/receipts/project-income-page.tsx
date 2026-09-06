@@ -27,22 +27,24 @@ export function ProjectIncomePage() {
     <div className="max-w-3xl space-y-6">
       <h1 className="text-lg font-semibold">Project Income</h1>
 
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">Project</span>
-        <select
-          className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
-          value={projectId}
-          aria-label="Project"
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
-        >
-          <option value="">Select a project…</option>
-          {projects?.items.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.code} — {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="bg-card max-w-xs rounded border p-4">
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Project</span>
+          <select
+            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+            value={projectId}
+            aria-label="Project"
+            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+          >
+            <option value="">Select a project…</option>
+            {projects?.items.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       {projectId !== "" && <ProjectIncome projectId={projectId} />}
     </div>
@@ -131,7 +133,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
     <div className="space-y-6">
       {dialog}
       <form
-        className="grid grid-cols-2 gap-3 rounded border p-4"
+        className="bg-card grid grid-cols-2 gap-3 rounded border p-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (ready) record.mutate();
@@ -140,7 +142,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
         <label className="space-y-1">
           <span className="text-sm font-medium">Transaction type</span>
           <select
-            className="block w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="bg-card block w-full rounded border px-3 py-1.5 text-sm"
             value={type}
             aria-label="Transaction type"
             onChange={(e) => setType(e.target.value as IncomeType)}
@@ -175,7 +177,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="block w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="bg-card block w-full rounded border px-3 py-1.5 text-sm"
             value={accountId}
             aria-label="Account"
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -210,7 +212,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
         Total income: <span className="font-semibold">{formatINR(total?.total ?? 0)}</span>
       </p>
 
-      <div className="rounded border">
+      <div className="bg-card rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

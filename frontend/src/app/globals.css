@@ -52,72 +52,79 @@
 }
 
 /*
- * A back-office accounting tool: neutral paper base, one type family, and exactly
- * three semantic colours (plan.md §8.2) that never change with the accent — they
- * mean credit/debit/needs-attention, not decoration. `--primary`/`--ring`/the
- * sidebar's primary+ring are the only tokens an accent theme touches (client
- * request, 2026-09-04); "Slate" is the original neutral look, unchanged.
+ * Adminto-style theme (client request, 2026-09-06): a sky-blue primary, soft
+ * gray-blue surfaces, and a white sidebar with a tinted active-item pill —
+ * replacing the earlier neutral-paper look. Same token names throughout, so
+ * every component built on them (Button, Badge, Card, Sidebar, …) picks this
+ * up automatically. The three semantic colours (plan.md §8.2 — credit/debit/
+ * needs-attention) map onto the equivalent success/danger/warning hues.
  */
 :root {
-  --background: #fcfcfa; /* paper white */
-  --foreground: #1a1d21; /* ink */
+  /* A thin ash-gray frame around one white content card (client request,
+     2026-09-06) — not a gray canvas behind several separately-colored boxes
+     (that read as seams), and not all-white either (no frame at all). The
+     card's own interior stays one white surface differentiated only by
+     borders; --background only shows as the margin around that single card
+     (see AppShell's <main>). */
+  --background: #f0f4f7;
+  --foreground: #30394a;
   --card: #ffffff;
-  --card-foreground: #1a1d21;
+  --card-foreground: #30394a;
   --popover: #ffffff;
-  --popover-foreground: #1a1d21;
-  --primary: #1a1d21;
-  --primary-foreground: #fcfcfa;
-  --secondary: #f2f1ec;
-  --secondary-foreground: #1a1d21;
-  --muted: #f2f1ec;
-  --muted-foreground: #6b6b66;
-  --accent: #f0efe9;
-  --accent-foreground: #1a1d21;
-  --destructive: #b03a2e;
-  --border: #e2e1dc; /* rule */
-  --input: #d8d7d1;
-  --ring: #b8b7b0;
+  --popover-foreground: #30394a;
+  --primary: #188ae2;
+  --primary-foreground: #ffffff;
+  --secondary: #eef2f7;
+  --secondary-foreground: #30394a;
+  --muted: #f6f7fb;
+  --muted-foreground: #77838f;
+  --accent: #eef2f7;
+  --accent-foreground: #30394a;
+  --destructive: #ff5b5b;
+  --border: #e7e9ef;
+  --input: #ced4da;
+  --ring: #79c1ee;
   --radius: 0.5rem;
-  --shadow-color: 220 15% 25%;
+  --shadow-color: 214 40% 30%;
   --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.06);
   --shadow-md:
     0 4px 12px -2px hsl(var(--shadow-color) / 0.1), 0 2px 4px -2px hsl(var(--shadow-color) / 0.06);
   --shadow-lg:
     0 12px 32px -8px hsl(var(--shadow-color) / 0.16), 0 4px 8px -4px hsl(var(--shadow-color) / 0.08);
 
-  --positive: #1f7a4d; /* credit / money in */
-  --negative: #b03a2e; /* debit / money out */
-  --attention: #b8860b; /* unreconciled / needs attention */
+  --positive: #10a75c; /* credit / money in */
+  --negative: #ff5b5b; /* debit / money out */
+  --attention: #b8790f; /* unreconciled / needs attention */
 
-  --sidebar: #f6f5f1;
-  --sidebar-foreground: #1a1d21;
-  --sidebar-primary: #1a1d21;
-  --sidebar-primary-foreground: #fcfcfa;
-  --sidebar-accent: #eceae3;
-  --sidebar-accent-foreground: #1a1d21;
-  --sidebar-border: #e2e1dc;
-  --sidebar-ring: #b8b7b0;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #30394a;
+  --sidebar-primary: #188ae2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #dcedfb;
+  --sidebar-accent-foreground: #1475c0;
+  --sidebar-border: #e7e9ef;
+  --sidebar-ring: #79c1ee;
 }
 
 .dark {
-  --background: #17191c;
-  --foreground: #f2f1ec;
-  --card: #1f2226;
-  --card-foreground: #f2f1ec;
-  --popover: #1f2226;
-  --popover-foreground: #f2f1ec;
-  --primary: #f2f1ec;
-  --primary-foreground: #1a1d21;
-  --secondary: #272a2e;
-  --secondary-foreground: #f2f1ec;
-  --muted: #272a2e;
-  --muted-foreground: #a3a29b;
-  --accent: #272a2e;
-  --accent-foreground: #f2f1ec;
-  --destructive: #d1584a;
-  --border: #ffffff1a;
-  --input: #ffffff26;
-  --ring: #6b6b66;
+  --background: #1c1d27;
+  --foreground: #eef1f4;
+  --card: #23242f;
+  --card-foreground: #eef1f4;
+  --popover: #23242f;
+  --popover-foreground: #eef1f4;
+  --primary: #3ea6f0;
+  --primary-foreground: #0b1620;
+  --secondary: #2b2c3a;
+  --secondary-foreground: #eef1f4;
+  --muted: #2b2c3a;
+  --muted-foreground: #9aa5b1;
+  --accent: #2b2c3a;
+  --accent-foreground: #eef1f4;
+  --destructive: #ff6b6b;
+  --border: #37394d;
+  --input: #37394d;
+  --ring: #3ea6f0;
   --shadow-color: 0 0% 0%;
   --shadow-sm: 0 1px 2px hsl(var(--shadow-color) / 0.3);
   --shadow-md:
@@ -125,18 +132,18 @@
   --shadow-lg:
     0 12px 32px -8px hsl(var(--shadow-color) / 0.5), 0 4px 8px -4px hsl(var(--shadow-color) / 0.35);
 
-  --positive: #3ba876;
-  --negative: #d1584a;
-  --attention: #d0a13a;
+  --positive: #22d485;
+  --negative: #ff6b6b;
+  --attention: #f0b429;
 
-  --sidebar: #1b1e21;
-  --sidebar-foreground: #f2f1ec;
-  --sidebar-primary: #f2f1ec;
-  --sidebar-primary-foreground: #1a1d21;
-  --sidebar-accent: #272a2e;
-  --sidebar-accent-foreground: #f2f1ec;
-  --sidebar-border: #ffffff1a;
-  --sidebar-ring: #6b6b66;
+  --sidebar: #23242f;
+  --sidebar-foreground: #eef1f4;
+  --sidebar-primary: #3ea6f0;
+  --sidebar-primary-foreground: #0b1620;
+  --sidebar-accent: #1c3a52;
+  --sidebar-accent-foreground: #79c1ee;
+  --sidebar-border: #37394d;
+  --sidebar-ring: #3ea6f0;
 }
 
 /* Accent themes (client request, 2026-09-04) — a curated palette layered on top of
@@ -211,6 +218,135 @@
   --sidebar-ring: #a78bfa;
 }
 
+:root[data-accent="teal"] {
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
+  --ring: #5eead4;
+  --sidebar-primary: #0d9488;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #5eead4;
+}
+:root.dark[data-accent="teal"] {
+  --primary: #14b8a6;
+  --primary-foreground: #06231f;
+  --ring: #2dd4bf;
+  --sidebar-primary: #14b8a6;
+  --sidebar-primary-foreground: #06231f;
+  --sidebar-ring: #2dd4bf;
+}
+
+:root[data-accent="rose"] {
+  --primary: #e11d48;
+  --primary-foreground: #ffffff;
+  --ring: #fda4af;
+  --sidebar-primary: #e11d48;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #fda4af;
+}
+:root.dark[data-accent="rose"] {
+  --primary: #fb7185;
+  --primary-foreground: #2c0a0f;
+  --ring: #fda4af;
+  --sidebar-primary: #fb7185;
+  --sidebar-primary-foreground: #2c0a0f;
+  --sidebar-ring: #fda4af;
+}
+
+:root[data-accent="indigo"] {
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --ring: #a5b4fc;
+  --sidebar-primary: #4f46e5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #a5b4fc;
+}
+:root.dark[data-accent="indigo"] {
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+  --ring: #818cf8;
+  --sidebar-primary: #6366f1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #818cf8;
+}
+
+:root[data-accent="orange"] {
+  --primary: #ea580c;
+  --primary-foreground: #ffffff;
+  --ring: #fdba74;
+  --sidebar-primary: #ea580c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #fdba74;
+}
+:root.dark[data-accent="orange"] {
+  --primary: #fb923c;
+  --primary-foreground: #2b1002;
+  --ring: #f97316;
+  --sidebar-primary: #fb923c;
+  --sidebar-primary-foreground: #2b1002;
+  --sidebar-ring: #f97316;
+}
+
+/* Gradient accents (client request, 2026-09-06) — every functional token
+   below stays a solid colour (background-color can't hold a gradient);
+   --primary-gradient is decorative only, read by the theme-picker swatch and
+   the sidebar logo badge. */
+:root[data-accent="sunset"] {
+  --primary: #e2506b;
+  --primary-foreground: #ffffff;
+  --primary-gradient: linear-gradient(135deg, #f0a020 0%, #e2506b 60%, #c026d3 100%);
+  --ring: #f3a8b6;
+  --sidebar-primary: #e2506b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #f3a8b6;
+}
+:root.dark[data-accent="sunset"] {
+  --primary: #ef6f88;
+  --primary-foreground: #2b0a10;
+  --primary-gradient: linear-gradient(135deg, #fbbf24 0%, #ef6f88 60%, #d946ef 100%);
+  --ring: #f3a8b6;
+  --sidebar-primary: #ef6f88;
+  --sidebar-primary-foreground: #2b0a10;
+  --sidebar-ring: #f3a8b6;
+}
+
+:root[data-accent="ocean"] {
+  --primary: #0891b2;
+  --primary-foreground: #ffffff;
+  --primary-gradient: linear-gradient(135deg, #2563eb 0%, #0891b2 55%, #059669 100%);
+  --ring: #67e8f9;
+  --sidebar-primary: #0891b2;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #67e8f9;
+}
+:root.dark[data-accent="ocean"] {
+  --primary: #22b8dd;
+  --primary-foreground: #05242c;
+  --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #22b8dd 55%, #10b981 100%);
+  --ring: #67e8f9;
+  --sidebar-primary: #22b8dd;
+  --sidebar-primary-foreground: #05242c;
+  --sidebar-ring: #67e8f9;
+}
+
+:root[data-accent="aurora"] {
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #db2777 100%);
+  --ring: #c4b5fd;
+  --sidebar-primary: #7c3aed;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-ring: #c4b5fd;
+}
+:root.dark[data-accent="aurora"] {
+  --primary: #9163f0;
+  --primary-foreground: #1a0f2e;
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #9163f0 55%, #ec4899 100%);
+  --ring: #c4b5fd;
+  --sidebar-primary: #9163f0;
+  --sidebar-primary-foreground: #1a0f2e;
+  --sidebar-ring: #c4b5fd;
+}
+
 /* Amount cells: tabular figures, right-aligned (plan.md §8.2). */
 @utility num {
   font-variant-numeric: tabular-nums;
@@ -255,5 +391,28 @@
 
   main {
     padding: 0 !important;
+  }
+}
+
+/* A thin, arrow-less scrollbar for the sidebar nav — some browsers/OS
+   settings render scrollbars with big up/down arrow buttons that look
+   heavy-handed for a couple of pixels of overflow (client request,
+   2026-09-06). Only changes appearance; scrolling still works when needed. */
+@utility scrollbar-thin {
+  scrollbar-width: thin;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: var(--sidebar-border);
+    border-radius: 9999px;
+  }
+  &::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
   }
 }

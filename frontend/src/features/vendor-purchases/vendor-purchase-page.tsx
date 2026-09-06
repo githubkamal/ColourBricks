@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AttachmentPanel } from "@/features/attachments/attachment-panel";
+import { ItemPicker } from "@/features/items/item-picker";
+import type { ItemSearchItem } from "@/features/items/types";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { listProjects } from "@/features/projects/api";
@@ -24,14 +26,14 @@ import {
 const round3 = (n: number) => Math.round((n + Number.EPSILON) * 1000) / 1000;
 
 interface Row {
-  itemName: string;
+  item: ItemSearchItem | null;
   quantity: string;
   unit: string;
   rate: string;
   taxAmount: string;
 }
 
-const emptyRow = (): Row => ({ itemName: "", quantity: "", unit: "", rate: "", taxAmount: "" });
+const emptyRow = (): Row => ({ item: null, quantity: "", unit: "", rate: "", taxAmount: "" });
 
 export function VendorPurchasePage() {
   const [projectId, setProjectId] = useState<number | "">("");
@@ -49,11 +51,11 @@ export function VendorPurchasePage() {
     <div className="max-w-4xl space-y-6">
       <PageHeader title="Material Purchases" />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-4">
         <label className="space-y-1">
           <span className="text-sm font-medium">Bought by</span>
           <select
-            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
             aria-label="Bought by"
             value={partyType}
             onChange={(e) => setPartyType(e.target.value as PartyType)}
@@ -65,7 +67,7 @@ export function VendorPurchasePage() {
         <label className="block space-y-1">
           <span className="text-sm font-medium">Project</span>
           <select
-            className="bg-background text-foreground w-full rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground w-full rounded border px-3 py-1.5 text-sm"
             value={projectId}
             aria-label="Project"
             onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -121,7 +123,8 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
         total,
         invoiceNumber: invoiceNumber.trim() || null,
         lines: rows.map<PurchaseLineInput>((r) => ({
-          itemName: r.itemName.trim(),
+          itemId: r.item?.id ?? null,
+          itemName: r.item!.name,
           quantity: Number(r.quantity),
           unit: r.unit.trim(),
           rate: Number(r.rate),
@@ -150,14 +153,14 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
     vendor !== null &&
     date !== "" &&
     total > 0 &&
-    rows.every((r) => r.itemName.trim() && Number(r.quantity) > 0 && r.unit.trim());
+    rows.every((r) => r.item !== null && Number(r.quantity) > 0 && r.unit.trim());
 
   const isDirty =
     vendor !== null ||
     date !== "" ||
     invoiceNumber !== "" ||
     rows.length > 1 ||
-    rows.some((r) => r.itemName || r.quantity || r.unit || r.rate || r.taxAmount);
+    rows.some((r) => r.item || r.quantity || r.unit || r.rate || r.taxAmount);
 
   useEffect(() => {
     if (!isDirty) return;
@@ -171,7 +174,7 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
   return (
     <div className="space-y-6">
       <form
-        className="space-y-3 rounded border p-4"
+        className="bg-card space-y-3 rounded border p-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (ready) record.mutate();
@@ -224,7 +227,27 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
           <tbody>
             {rows.map((row, i) => (
               <tr key={i}>
-                {(["itemName", "quantity", "unit", "rate", "taxAmount"] as const).map((field) => {
+                <td className="py-1 pr-2">
+                  <ItemPicker
+                    selected={row.item}
+                    ariaLabel={`itemName ${i + 1}`}
+                    onSelect={(item) =>
+                      setRows((rs) =>
+                        rs.map((r, j) =>
+                          j === i
+                            ? {
+                                ...r,
+                                item,
+                                unit: r.unit || (item?.unit ?? ""),
+                                rate: r.rate || (item ? String(item.defaultRate) : ""),
+                              }
+                            : r,
+                        ),
+                      )
+                    }
+                  />
+                </td>
+                {(["quantity", "unit", "rate", "taxAmount"] as const).map((field) => {
                   const numeric = field === "quantity" || field === "rate" || field === "taxAmount";
                   return (
                     <td key={field} className="py-1 pr-2">

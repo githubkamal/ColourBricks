@@ -73,7 +73,7 @@ export function MastersPage() {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {GROUPS.map((group) => (
-          <div key={group.title} className="rounded border p-4">
+          <div key={group.title} className="bg-card rounded border p-4">
             <h2 className="text-muted-foreground mb-2 text-xs font-medium tracking-wide uppercase">
               {group.title}
             </h2>

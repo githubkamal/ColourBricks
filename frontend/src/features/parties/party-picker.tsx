@@ -168,7 +168,7 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
       {label && <label className="mb-1 block text-sm font-medium">{label}</label>}
 
       {selected ? (
-        <div className="flex items-center justify-between rounded border px-3 py-1.5 text-sm">
+        <div className="bg-card flex items-center justify-between rounded border px-3 py-1.5 text-sm">
           <span>
             {selected.name}
             {selected.types.length > 0 && (

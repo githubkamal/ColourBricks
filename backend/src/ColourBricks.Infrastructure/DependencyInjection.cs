@@ -114,6 +114,7 @@ public static class DependencyInjection
         services.AddScoped<Application.Reporting.Framework.IReportRunner, Reporting.Framework.VendorPaymentReport>();
         services.AddScoped<Application.Reporting.Framework.IReportRunner, Reporting.Framework.VendorStatementReport>();
         services.AddScoped<Application.Reporting.Framework.IReportRunner, Reporting.Framework.VendorOutstandingReport>();
+        services.AddScoped<Application.Reporting.Framework.IReportRunner, Reporting.Framework.FieldOfficerOutstandingReport>();
         services.AddScoped<Application.Reporting.Framework.IReportRunner, Reporting.Framework.VendorProjectWiseStatementReport>();
         services.AddScoped<Application.Reporting.Framework.IReportRunner, Reporting.Framework.VendorPaymentAllocationReport>();
         services.AddScoped<Application.Reporting.Framework.IReportRunner, Reporting.Framework.SubcontractorWorkValueVsPaymentReport>();

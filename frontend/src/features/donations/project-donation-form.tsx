@@ -182,7 +182,7 @@ function DonationEditor({
         </label>
       )}
 
-      <div className="rounded border p-3">
+      <div className="bg-card rounded border p-3">
         <p className="text-muted-foreground text-xs uppercase">Donation amount</p>
         <p className="text-xl font-semibold" data-testid="donation-amount">
           {formatINR(donationAmount)}
@@ -197,7 +197,7 @@ function DonationEditor({
         {rows.map((row, index) => (
           <div key={row.id} className="flex gap-2">
             <select
-              className="flex-1 rounded border bg-transparent px-2 py-1.5 text-sm"
+              className="bg-card flex-1 rounded border px-2 py-1.5 text-sm"
               value={row.templeId}
               aria-label={`Temple ${index + 1}`}
               onChange={(e) =>

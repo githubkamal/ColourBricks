@@ -185,7 +185,7 @@ export function FieldOfficerExpensePage() {
             <label className="space-y-1">
               <FieldLabel required>Type</FieldLabel>
               <select
-                className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+                className="bg-card block rounded border px-3 py-1.5 text-sm"
                 aria-label="Type"
                 value={type}
                 onChange={(e) => setType(e.target.value as FieldOfficerExpenseType)}

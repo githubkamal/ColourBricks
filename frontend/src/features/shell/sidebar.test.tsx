@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Sidebar } from "./sidebar";
 
@@ -12,6 +12,10 @@ vi.mock("next/link", () => ({
 describe("Sidebar", () => {
   it("Sidebar_HidesItems_WithoutPermission", () => {
     render(<Sidebar permissions={["projects.view", "vendors.view"]} />);
+
+    // Every section starts collapsed — expand the ones under test.
+    fireEvent.click(screen.getByRole("button", { name: "Projects" }));
+    fireEvent.click(screen.getByRole("button", { name: "Vendors" }));
 
     // Permitted items are shown.
     expect(screen.getByRole("link", { name: "Project Master" })).toBeInTheDocument();
@@ -27,6 +31,7 @@ describe("Sidebar", () => {
     render(<Sidebar permissions={["*"]} />);
 
     expect(screen.getByText("Administration")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Administration" }));
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Audit Logs" })).toBeInTheDocument();
   });

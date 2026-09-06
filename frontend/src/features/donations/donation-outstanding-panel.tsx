@@ -24,7 +24,7 @@ export function DonationOutstandingPanel({ projectId }: { projectId: number }) {
   return (
     <div className="space-y-2">
       <h2 className="text-sm font-semibold">Donation outstanding by temple</h2>
-      <div className="rounded border">
+      <div className="bg-card rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -160,7 +160,7 @@ function TempleRow({
               <label className="space-y-1">
                 <span className="text-xs">Account</span>
                 <select
-                  className="block rounded border bg-transparent px-2 py-1.5 text-sm"
+                  className="bg-card block rounded border px-2 py-1.5 text-sm"
                   value={accountId}
                   aria-label={`Donation pay account ${templeId}`}
                   onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}

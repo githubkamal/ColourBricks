@@ -3,50 +3,103 @@
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { visibleNavigation, type NavSection } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
-function sectionIsActive(section: NavSection, pathname: string): boolean {
-  return section.items.some((item) => {
-    const target = item.href.split("?")[0];
-    return pathname === target || pathname.startsWith(`${target}/`);
-  });
+/**
+ * The single best-matching href for the current path across the whole nav
+ * tree — the longest target that's an exact or prefix match — so a parent
+ * route (e.g. "/vendors") never lights up alongside a more specific sibling
+ * ("/vendors/purchase-orders") that's actually the current page.
+ */
+function bestMatchHref(sections: NavSection[], pathname: string): string | null {
+  let best: string | null = null;
+  for (const section of sections) {
+    for (const item of section.items) {
+      const target = item.href.split("?")[0];
+      const matches = pathname === target || pathname.startsWith(`${target}/`);
+      if (matches && (best === null || target.length > best.length)) {
+        best = item.href;
+      }
+    }
+  }
+  return best;
 }
 
-export function Sidebar({ permissions }: { permissions: string[] }) {
+export function Sidebar({ permissions, rail = false }: { permissions: string[]; rail?: boolean }) {
   const pathname = usePathname();
   const sections = visibleNavigation(permissions);
+  const activeHref = bestMatchHref(sections, pathname);
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-sidebar-border flex h-14 shrink-0 items-center gap-2.5 border-b px-4">
-        <span className="bg-sidebar-primary text-sidebar-primary-foreground font-heading flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold">
+      <div
+        className={cn(
+          "border-sidebar-border flex h-14 shrink-0 items-center gap-2.5 border-b px-4",
+          rail && "justify-center px-2",
+        )}
+      >
+        <span
+          className="text-sidebar-primary-foreground font-heading flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-semibold"
+          style={{
+            backgroundColor: "var(--sidebar-primary)",
+            backgroundImage: "var(--primary-gradient, none)",
+          }}
+        >
           CB
         </span>
-        <span className="min-w-0 leading-tight">
-          <span className="font-heading block truncate text-[15px] font-semibold">
-            Colour Bricks
+        {!rail && (
+          <span className="min-w-0 leading-tight">
+            <span className="font-heading block truncate text-[15px] font-semibold">
+              Colour Bricks
+            </span>
+            <span className="text-sidebar-foreground/55 block truncate text-[11px]">
+              Fund &amp; site ledger
+            </span>
           </span>
-          <span className="text-sidebar-foreground/55 block truncate text-[11px]">
-            Fund &amp; site ledger
-          </span>
-        </span>
+        )}
       </div>
 
-      <nav aria-label="Primary" className="flex-1 space-y-1 overflow-y-auto px-3 py-3">
-        {sections.map((section) => (
-          <SidebarSection key={section.label} section={section} pathname={pathname} />
-        ))}
+      <nav
+        aria-label="Primary"
+        className={cn("flex-1 scrollbar-thin space-y-1 overflow-y-auto px-3 py-3", rail && "px-2")}
+      >
+        {sections.map((section) =>
+          rail ? (
+            <RailSection key={section.label} section={section} activeHref={activeHref} />
+          ) : (
+            <SidebarSection key={section.label} section={section} activeHref={activeHref} />
+          ),
+        )}
       </nav>
     </div>
   );
 }
 
-function SidebarSection({ section, pathname }: { section: NavSection; pathname: string }) {
-  const [open, setOpen] = useState(true);
+function SidebarSection({
+  section,
+  activeHref,
+}: {
+  section: NavSection;
+  activeHref: string | null;
+}) {
+  const active = section.items.some((item) => item.href === activeHref);
+  const [open, setOpen] = useState(active);
+  const [wasActive, setWasActive] = useState(active);
   const Icon = section.icon;
-  const active = sectionIsActive(section, pathname);
+
+  // A navigation elsewhere in the app can make this section active without
+  // this component ever unmounting — auto-expand when that happens, but
+  // never fight a user's manual collapse of an inactive section. Derived
+  // during render (React's documented escape hatch for "adjust state when a
+  // prop changes") rather than an effect, which would set state one render
+  // late and cascade an extra render besides.
+  if (active !== wasActive) {
+    setWasActive(active);
+    if (active) setOpen(true);
+  }
 
   return (
     <div>
@@ -67,15 +120,20 @@ function SidebarSection({ section, pathname }: { section: NavSection; pathname: 
         />
       </button>
 
-      {open && (
-        <ul className="mt-0.5 space-y-0.5 pb-2">
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-out",
+          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+        )}
+      >
+        <ul aria-hidden={!open} className="mt-0.5 min-h-0 space-y-0.5 overflow-hidden pb-2">
           {section.items.map((item) => {
-            const target = item.href.split("?")[0];
-            const itemActive = pathname === target || pathname.startsWith(`${target}/`);
+            const itemActive = item.href === activeHref;
             return (
               <li key={`${item.href}:${item.label}`}>
                 <Link
                   href={item.href}
+                  tabIndex={open ? undefined : -1}
                   aria-current={itemActive ? "page" : undefined}
                   className={cn(
                     "relative block rounded-md py-1.5 pr-2.5 pl-6 text-sm transition-colors",
@@ -96,7 +154,105 @@ function SidebarSection({ section, pathname }: { section: NavSection; pathname: 
             );
           })}
         </ul>
-      )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Icon-only rail: hover reveals the section's items as a flyout panel.
+ * Rendered through a portal at document.body, positioned from the trigger
+ * button's real screen coordinates — not CSS `absolute` inside the nav.
+ * The nav scrolls vertically (`overflow-y-auto`), and CSS has no way to keep
+ * one axis clipped while leaving the other visible on the same element (the
+ * spec forces `overflow-x` to `auto` too the moment `overflow-y` isn't
+ * `visible`) — so a plain absolutely-positioned flyout gets its horizontal
+ * overflow clipped by the nav's own boundary no matter what z-index says.
+ * A portal sidesteps that entirely.
+ */
+function RailSection({ section, activeHref }: { section: NavSection; activeHref: string | null }) {
+  const active = section.items.some((item) => item.href === activeHref);
+  const Icon = section.icon;
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(
+    () => () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    },
+    [],
+  );
+
+  function open() {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (rect) setPos({ top: rect.top, left: rect.right + 4 });
+  }
+
+  // A short grace period, not an immediate close — the mouse crosses a few
+  // pixels of gap moving from the icon to the flyout beside it, and both
+  // elements are separate portalled trees now (no shared hover ancestor to
+  // cover that gap the way nested DOM + :hover used to).
+  function scheduleClose() {
+    closeTimer.current = setTimeout(() => setPos(null), 150);
+  }
+
+  return (
+    <div onMouseEnter={open} onMouseLeave={scheduleClose}>
+      <button
+        ref={buttonRef}
+        type="button"
+        aria-label={section.label}
+        className={cn(
+          "text-sidebar-foreground/65 hover:bg-sidebar-accent hover:text-sidebar-foreground flex w-full items-center justify-center rounded-md py-2 transition-colors",
+          active && "bg-sidebar-accent text-sidebar-accent-foreground",
+        )}
+      >
+        <Icon className="size-4.5 shrink-0" aria-hidden="true" />
+      </button>
+
+      {pos &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            style={{ top: pos.top, left: pos.left }}
+            className="animate-in fade-in-0 fixed z-50 min-w-44 duration-100"
+            onMouseEnter={open}
+            onMouseLeave={scheduleClose}
+          >
+            <div className="bg-popover border-border text-popover-foreground rounded-md border p-1.5 shadow-lg">
+              <p className="text-muted-foreground px-2 pb-1 text-[11px] font-semibold tracking-wide uppercase">
+                {section.label}
+              </p>
+              <ul className="space-y-0.5">
+                {section.items.map((item) => {
+                  const itemActive = item.href === activeHref;
+                  return (
+                    <li key={`${item.href}:${item.label}`}>
+                      <Link
+                        href={item.href}
+                        aria-current={itemActive ? "page" : undefined}
+                        className={cn(
+                          "block rounded-md px-2 py-1.5 text-sm whitespace-nowrap transition-colors",
+                          itemActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                            : "hover:bg-muted",
+                        )}
+                      >
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

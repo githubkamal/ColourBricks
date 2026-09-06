@@ -30,7 +30,7 @@ export function PaymentModeSelect({
     <label className="block space-y-1">
       <span className="text-sm font-medium">{label}</span>
       <select
-        className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+        className="bg-card w-full rounded border px-3 py-1.5 text-sm"
         value={value ?? ""}
         disabled={isPending}
         aria-label={label}

@@ -80,7 +80,9 @@ export function VendorStatementPage({
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader title={title} />
-      <PartyPicker type={partyType} label={pickerLabel} selected={vendor} onSelect={setVendor} />
+      <div className="bg-card max-w-xs rounded border p-4">
+        <PartyPicker type={partyType} label={pickerLabel} selected={vendor} onSelect={setVendor} />
+      </div>
 
       {vendor && summary && (
         <div className="bg-card border-border grid gap-3 rounded-xl border p-3 shadow-xs sm:grid-cols-[auto_1fr]">
@@ -122,7 +124,7 @@ export function VendorStatementPage({
             <label className="space-y-1">
               <span className="text-sm font-medium">Apply to purchase</span>
               <select
-                className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+                className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
                 value={purchaseId}
                 aria-label="Apply to purchase"
                 onChange={(e) => setPurchaseId(e.target.value ? Number(e.target.value) : "")}

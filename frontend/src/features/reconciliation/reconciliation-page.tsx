@@ -154,7 +154,7 @@ export function ReconciliationPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="bg-card block rounded border px-3 py-1.5 text-sm"
             aria-label="Account"
             value={accountId}
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -170,7 +170,7 @@ export function ReconciliationPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Status</span>
           <select
-            className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="bg-card block rounded border px-3 py-1.5 text-sm"
             aria-label="Status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -236,7 +236,7 @@ export function ReconciliationPage() {
         </div>
       )}
 
-      <div className="overflow-x-auto rounded border">
+      <div className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -320,7 +320,7 @@ function BulkExcludeBar({
 }) {
   const [reason, setReason] = useState("");
   return (
-    <div className="flex items-center gap-3 rounded border p-3 text-sm">
+    <div className="bg-card flex items-center gap-3 rounded border p-3 text-sm">
       <span className="font-medium">{count} selected</span>
       <Input
         aria-label="Exclude reason"
@@ -473,7 +473,7 @@ function CreditMapForm({ row, onDone }: { row: ReconciliationRow; onDone: () => 
       <label className="space-y-1">
         <span className="text-sm font-medium">Project</span>
         <select
-          className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+          className="bg-card block rounded border px-3 py-1.5 text-sm"
           aria-label="Project"
           value={projectId}
           onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -579,12 +579,12 @@ function DebitSplitForm({ row, onDone }: { row: ReconciliationRow; onDone: () =>
   return (
     <div className="space-y-3">
       {lines.map((l, i) => (
-        <div key={i} className="space-y-2 rounded border p-2">
+        <div key={i} className="bg-card space-y-2 rounded border p-2">
           <div className="flex flex-wrap items-end gap-2">
             <label className="space-y-1">
               <span className="text-sm font-medium">Target</span>
               <select
-                className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+                className="bg-card block rounded border px-3 py-1.5 text-sm"
                 aria-label={`Target ${i + 1}`}
                 value={l.target}
                 onChange={(e) =>
@@ -652,7 +652,7 @@ function DebitSplitForm({ row, onDone }: { row: ReconciliationRow; onDone: () =>
                     {projectRequired(l.target) ? "Project" : "Project (optional — none = advance)"}
                   </span>
                   <select
-                    className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+                    className="bg-card block rounded border px-3 py-1.5 text-sm"
                     aria-label={`Project ${i + 1}`}
                     value={l.project?.id ?? ""}
                     onChange={(e) => {

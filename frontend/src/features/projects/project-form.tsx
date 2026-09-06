@@ -149,7 +149,7 @@ export function ProjectForm() {
         <Field label="Status" error={errors.status?.message}>
           <select
             {...register("status")}
-            className="border-input bg-background h-9 w-full rounded border px-3 text-sm"
+            className="border-input bg-card h-9 w-full rounded border px-3 text-sm"
           >
             {PROJECT_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -183,7 +183,7 @@ export function ProjectForm() {
           <textarea
             {...register("notes")}
             rows={3}
-            className="border-input bg-background w-full rounded border px-3 py-2 text-sm"
+            className="border-input bg-card w-full rounded border px-3 py-2 text-sm"
           />
         </Field>
       </div>

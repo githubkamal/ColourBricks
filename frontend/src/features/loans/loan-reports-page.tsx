@@ -184,11 +184,11 @@ export function LoanReportsPage() {
     <div className="space-y-4">
       <PageHeader title="Loan Reports" />
 
-      <div className="flex flex-wrap items-end gap-3 rounded border p-3">
+      <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-3">
         <label className="space-y-1">
           <span className="text-sm font-medium">Report</span>
           <select
-            className="rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="bg-card rounded border px-3 py-1.5 text-sm"
             aria-label="Report"
             value={reportKey}
             onChange={(e) => setReportKey(e.target.value as ReportKey)}
@@ -205,7 +205,7 @@ export function LoanReportsPage() {
           <label className="space-y-1">
             <span className="text-sm font-medium">Loan{needsLoan ? "" : " (optional)"}</span>
             <select
-              className="rounded border bg-transparent px-3 py-1.5 text-sm"
+              className="bg-card rounded border px-3 py-1.5 text-sm"
               aria-label="Loan"
               value={loanId || ""}
               onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}

@@ -279,13 +279,16 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
       )}
       <h1 className="text-lg font-semibold">{entry.title}</h1>
 
-      <div className="flex flex-wrap items-end gap-3 rounded border p-3" data-report-controls>
+      <div
+        className="bg-card flex flex-wrap items-end gap-3 rounded border p-3"
+        data-report-controls
+      >
         {supports("date") && (
           <>
             <label className="space-y-1">
               <span className="text-sm font-medium">Date preset</span>
               <select
-                className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+                className="bg-card block rounded border px-3 py-1.5 text-sm"
                 aria-label="Date preset"
                 value={filter.datePreset}
                 onChange={(e) =>
@@ -385,7 +388,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
         <label className="flex items-center gap-2">
           Group by
           <select
-            className="rounded border bg-transparent px-2 py-1"
+            className="bg-card rounded border px-2 py-1"
             aria-label="Group by"
             value={groupBy}
             onChange={(e) => setGroupBy(e.target.value)}
@@ -420,7 +423,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
         </button>
         {views.length > 0 && (
           <select
-            className="rounded border bg-transparent px-2 py-1"
+            className="bg-card rounded border px-2 py-1"
             aria-label="Saved views"
             value=""
             onChange={(e) => {
@@ -438,7 +441,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
         )}
       </div>
 
-      <div className="overflow-x-auto rounded border" data-report-grid>
+      <div className="bg-card overflow-x-auto rounded border" data-report-grid>
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground sticky top-0">
             <tr className="border-b text-left">
@@ -545,7 +548,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
           <label className="flex items-center gap-2">
             Page size
             <select
-              className="rounded border bg-transparent px-2 py-1"
+              className="bg-card rounded border px-2 py-1"
               aria-label="Page size"
               value={filter.pageSize}
               onChange={(e) => patch({ pageSize: Number(e.target.value) })}

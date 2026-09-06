@@ -42,9 +42,21 @@ export interface ItemPickerProps {
   /** Unit an inline-created item is given until it is edited in the master (BRD §15). */
   defaultUnit?: string;
   label?: string;
+  /**
+   * Accessible name when no visible `label` is wanted — e.g. one picker per row
+   * in a table that already has an "Item" column header. Falls back to `label`,
+   * then "Item".
+   */
+  ariaLabel?: string;
 }
 
-export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: ItemPickerProps) {
+export function ItemPicker({
+  selected,
+  onSelect,
+  defaultUnit = "Nos",
+  label,
+  ariaLabel,
+}: ItemPickerProps) {
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -191,7 +203,7 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
       {label && <label className="mb-1 block text-sm font-medium">{label}</label>}
 
       {selected ? (
-        <div className="flex items-center justify-between rounded border px-3 py-1.5 text-sm">
+        <div className="bg-card flex items-center justify-between rounded border px-3 py-1.5 text-sm">
           <span>
             {selected.name}
             <span className="text-muted-foreground">
@@ -223,7 +235,7 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
           onFocus={() => setOpen(true)}
           onKeyDown={handleInputKeyDown}
           placeholder="Search or add…"
-          aria-label={label ?? "Item"}
+          aria-label={ariaLabel ?? label ?? "Item"}
           role="combobox"
           aria-expanded={open}
           aria-controls={listboxId}

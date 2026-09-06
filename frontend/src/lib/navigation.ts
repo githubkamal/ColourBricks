@@ -65,7 +65,6 @@ export const navigation: NavSection[] = [
     icon: Truck,
     items: [
       { label: "Vendor Master", href: "/vendors", permission: "vendors.view" },
-      { label: "Purchases", href: "/materials/purchases", permission: "materials.view" },
       {
         label: "Purchase Orders",
         href: "/vendors/purchase-orders",
@@ -95,6 +94,12 @@ export const navigation: NavSection[] = [
     icon: UserCheck,
     items: [
       { label: "Field Officer Master", href: "/field-officers", permission: "vendors.view" },
+      { label: "Payments", href: "/field-officers/payments", permission: "payments.view" },
+      {
+        label: "Outstanding",
+        href: "/reports/explorer?report=field-officer-outstanding",
+        permission: "reports.view",
+      },
       { label: "No-project Bills", href: "/field-officers/bills", permission: "vendors.view" },
       { label: "Statement", href: "/field-officers/statements", permission: "vendors.view" },
     ],

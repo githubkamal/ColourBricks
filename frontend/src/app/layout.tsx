@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter } from "next/font/google";
+import { Outfit, Public_Sans } from "next/font/google";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/providers";
@@ -7,20 +7,16 @@ import { LoadingBar } from "@/features/shell/loading-bar";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
-const inter = Inter({
+// The Adminto theme's body/heading pairing (client request, 2026-09-06).
+const publicSans = Public_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-// A distinct display face for the brand wordmark/tagline (client request,
-// 2026-09-05) — everything else in the app stays on Inter; this only feeds
-// the `font-heading` utility, already scaffolded in globals.css but unused
-// until now.
-const fraunces = Fraunces({
+const outfit = Outfit({
   variable: "--font-display",
   subsets: ["latin"],
-  weight: ["500", "600"],
-  style: ["normal", "italic"],
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -32,13 +28,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${publicSans.variable} ${outfit.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
         {/* Matches the light-mode background; the boot script/theme toggle update this
             to the dark background before/after a mode switch. */}
-        <meta name="theme-color" content="#fcfcfa" />
+        <meta name="theme-color" content="#f0f4f7" />
         {/* Applies the stored light/dark mode and accent before first paint, so
             there's no flash of the wrong theme (client request, 2026-09-04). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />

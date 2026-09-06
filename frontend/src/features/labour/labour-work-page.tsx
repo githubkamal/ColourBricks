@@ -37,22 +37,24 @@ export function LabourWorkPage() {
     <div className="max-w-3xl space-y-6">
       <PageHeader title="Labour & Subcontractor Work" />
 
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">Project</span>
-        <select
-          className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
-          value={projectId || ""}
-          aria-label="Project"
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
-        >
-          <option value="">Select a project…</option>
-          {projects?.items.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.code} — {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="bg-card max-w-xs rounded border p-4">
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Project</span>
+          <select
+            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+            value={projectId || ""}
+            aria-label="Project"
+            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
+          >
+            <option value="">Select a project…</option>
+            {projects?.items.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       {projectId !== 0 && <WorkList projectId={projectId} />}
     </div>
@@ -97,7 +99,7 @@ function WorkList({ projectId }: { projectId: number }) {
   return (
     <div className="space-y-6">
       <form
-        className="space-y-3 rounded border p-4"
+        className="bg-card space-y-3 rounded border p-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (ready) add.mutate();
@@ -225,7 +227,7 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
               <label className="space-y-1">
                 <span className="text-xs">Frequency</span>
                 <select
-                  className="block rounded border bg-transparent px-2 py-1.5 text-sm"
+                  className="bg-card block rounded border px-2 py-1.5 text-sm"
                   value={frequency}
                   aria-label={`Pay frequency ${entry.id}`}
                   onChange={(e) => setFrequency(e.target.value as PaymentFrequency)}
@@ -244,7 +246,7 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
               <label className="space-y-1">
                 <span className="text-xs">Account</span>
                 <select
-                  className="block rounded border bg-transparent px-2 py-1.5 text-sm"
+                  className="bg-card block rounded border px-2 py-1.5 text-sm"
                   value={accountId}
                   aria-label={`Pay account ${entry.id}`}
                   onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}

@@ -136,7 +136,7 @@ export function LoanPaymentsPage() {
       <label className="block max-w-sm space-y-1">
         <span className="text-sm font-medium">Loan</span>
         <select
-          className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+          className="bg-card w-full rounded border px-3 py-1.5 text-sm"
           value={loanId || ""}
           aria-label="Loan"
           onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}
@@ -153,7 +153,7 @@ export function LoanPaymentsPage() {
       {loanId !== 0 && (
         <>
           <form
-            className="space-y-3 rounded border p-4"
+            className="bg-card space-y-3 rounded border p-4"
             onSubmit={(e) => {
               e.preventDefault();
               if (payReady) pay.mutate();
@@ -163,7 +163,7 @@ export function LoanPaymentsPage() {
             <label className="block space-y-1">
               <span className="text-sm font-medium">Instalment</span>
               <select
-                className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+                className="bg-card w-full rounded border px-3 py-1.5 text-sm"
                 value={instalmentId}
                 aria-label="Instalment"
                 onChange={(e) => setInstalmentId(e.target.value ? Number(e.target.value) : "")}
@@ -211,7 +211,7 @@ export function LoanPaymentsPage() {
           </form>
 
           <form
-            className="space-y-3 rounded border p-4"
+            className="bg-card space-y-3 rounded border p-4"
             onSubmit={(e) => {
               e.preventDefault();
               if (prepayReady) prepay.mutate();

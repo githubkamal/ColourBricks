@@ -91,7 +91,7 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
           if (ready) save.mutate(form);
         }}
       >
-        <section className="space-y-3 rounded border p-4">
+        <section className="bg-card space-y-3 rounded border p-4">
           <h2 className="text-sm font-semibold">Company profile</h2>
           <p className="text-muted-foreground text-xs">
             Shown on report headers, exports and printed documents.
@@ -192,7 +192,7 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
           </div>
         </section>
 
-        <section className="space-y-3 rounded border p-4">
+        <section className="bg-card space-y-3 rounded border p-4">
           <h2 className="text-sm font-semibold">Notification defaults</h2>
           <p className="text-muted-foreground text-xs">
             Thresholds the daily notification job and loan EMI alerts use.

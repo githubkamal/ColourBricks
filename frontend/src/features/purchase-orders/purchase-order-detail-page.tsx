@@ -155,7 +155,7 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
 
   return (
     <div className="space-y-4">
-      <div className="rounded border p-4">
+      <div className="bg-card rounded border p-4">
         <table className="w-full text-sm">
           <thead className="text-muted-foreground">
             <tr className="text-left">
@@ -171,7 +171,7 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
               <tr key={i}>
                 <td className="py-1 pr-2">
                   <select
-                    className="w-full rounded border bg-transparent px-2 py-1.5 text-sm"
+                    className="bg-card w-full rounded border px-2 py-1.5 text-sm"
                     aria-label={`Project ${i + 1}`}
                     value={row.projectId}
                     onChange={(e) =>
@@ -323,7 +323,7 @@ function SubmitForm({
     rows.every((r) => Number(r.quantity) > 0 && Number(r.rate) >= 0 && Number(r.taxAmount) >= 0);
 
   return (
-    <div className="space-y-3 rounded border p-4">
+    <div className="bg-card space-y-3 rounded border p-4">
       <p className="text-sm font-medium">Price against the vendor&apos;s invoice</p>
       <p className="text-muted-foreground text-xs">
         Quantity, rate and tax can all be corrected here to match what the invoice actually says.
@@ -406,7 +406,7 @@ function SubmittedView({ po }: { po: PurchaseOrder }) {
 
   return (
     <div className="space-y-4">
-      <div className="rounded border p-3 text-sm">
+      <div className="bg-card rounded border p-3 text-sm">
         <p>
           Invoice <span className="font-medium">{po.invoiceNumber}</span> · submitted{" "}
           {po.submittedDate ? formatDate(po.submittedDate) : ""}
@@ -415,7 +415,7 @@ function SubmittedView({ po }: { po: PurchaseOrder }) {
       </div>
 
       {[...byProject.entries()].map(([projectId, group]) => (
-        <div key={projectId} className="rounded border p-3">
+        <div key={projectId} className="bg-card rounded border p-3">
           <div className="mb-2 flex items-center justify-between">
             <Link href={`/projects/${projectId}`} className="text-primary font-medium underline">
               {group.name}

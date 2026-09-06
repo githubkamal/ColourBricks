@@ -21,7 +21,7 @@ export function ReportExplorerPage() {
       <label className="flex items-center gap-2 text-sm">
         <span className="font-medium">Report</span>
         <select
-          className="rounded border bg-transparent px-3 py-1.5"
+          className="bg-card rounded border px-3 py-1.5"
           aria-label="Report"
           value={active}
           onChange={(e) => setSelected(e.target.value)}

@@ -106,7 +106,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             without boxing the form itself in a card. Only from `lg` up, same
             breakpoint the brand panel appears at — otherwise it's a stray
             border on the left edge of the viewport with nothing beside it. */}
-        <div className="border-border flex flex-1 items-center justify-center p-6 lg:border-l">
+        <div className="border-border bg-card flex flex-1 items-center justify-center p-6 lg:border-l">
           <div className="w-full max-w-sm">{children}</div>
         </div>
       </div>

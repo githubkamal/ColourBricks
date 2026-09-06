@@ -91,7 +91,7 @@ export function NotificationBell() {
       </Button>
 
       {open && (
-        <div className="bg-popover border-border absolute right-0 z-40 mt-1 w-80 rounded-lg border shadow-md">
+        <div className="bg-popover border-border animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 absolute right-0 z-40 mt-1 w-80 origin-top-right rounded-lg border shadow-lg duration-150">
           <div className="border-border flex items-center justify-between border-b px-3 py-2">
             <span className="text-sm font-semibold">Notifications</span>
             <Link

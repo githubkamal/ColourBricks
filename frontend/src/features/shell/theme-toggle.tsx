@@ -35,6 +35,7 @@ export function ThemeToggle() {
   const { mode, accent, setMode, setAccent } = useTheme();
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const current = ACCENTS.find((a) => a.id === accent);
 
   useEffect(() => {
     function onClickAway(event: MouseEvent) {
@@ -74,12 +75,16 @@ export function ThemeToggle() {
         >
           <span
             className="size-3.5 rounded-full ring-1 ring-black/10"
-            style={{ backgroundColor: ACCENTS.find((a) => a.id === accent)?.swatch }}
+            style={
+              current?.gradient
+                ? { backgroundImage: current.gradient }
+                : { backgroundColor: current?.swatch }
+            }
           />
         </Button>
 
         {open && (
-          <div className="bg-popover border-border absolute right-0 z-40 mt-1 flex gap-1.5 rounded-lg border p-2 shadow-md">
+          <div className="bg-popover border-border animate-in fade-in-0 zoom-in-95 slide-in-from-top-1 absolute right-0 z-40 mt-1 flex w-40 origin-top-right flex-wrap gap-1.5 rounded-lg border p-2 shadow-lg duration-150">
             {ACCENTS.map((a) => (
               <button
                 key={a.id}
@@ -91,7 +96,7 @@ export function ThemeToggle() {
                   "size-6 rounded-full ring-1 ring-black/10 transition-transform hover:scale-110",
                   accent === a.id && "ring-ring ring-2 ring-offset-2 ring-offset-[var(--popover)]",
                 )}
-                style={{ backgroundColor: a.swatch }}
+                style={a.gradient ? { backgroundImage: a.gradient } : { backgroundColor: a.swatch }}
                 onClick={() => {
                   setAccent(a.id);
                   setOpen(false);

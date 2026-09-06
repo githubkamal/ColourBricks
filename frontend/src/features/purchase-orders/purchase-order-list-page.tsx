@@ -38,7 +38,7 @@ export function PurchaseOrderListPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Status</span>
           <select
-            className="border-input bg-background rounded-md border px-2 py-1 text-sm"
+            className="border-input bg-card rounded-md border px-2 py-1 text-sm"
             aria-label="Status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}

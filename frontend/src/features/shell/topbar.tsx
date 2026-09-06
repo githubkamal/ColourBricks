@@ -1,7 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Menu } from "lucide-react";
+import { ChevronsLeft, ChevronsRight, LogOut, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,7 +12,15 @@ import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
 import { useCurrentUser } from "./user-context";
 
-export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
+export function Topbar({
+  onToggleSidebar,
+  railOpen,
+  onToggleRail,
+}: {
+  onToggleSidebar: () => void;
+  railOpen: boolean;
+  onToggleRail: () => void;
+}) {
   const user = useCurrentUser();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -32,7 +40,7 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
   }
 
   return (
-    <header className="border-border bg-background/95 flex h-14 shrink-0 items-center gap-3 border-b px-4 shadow-xs backdrop-blur-sm">
+    <header className="border-border bg-card/95 flex h-14 shrink-0 items-center gap-3 border-b px-4 shadow-xs backdrop-blur-sm">
       <Button
         type="button"
         variant="ghost"
@@ -42,6 +50,18 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         onClick={onToggleSidebar}
       >
         <Menu aria-hidden="true" />
+      </Button>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="hidden lg:inline-flex"
+        aria-label={railOpen ? "Expand sidebar" : "Collapse sidebar to icons"}
+        aria-pressed={railOpen}
+        onClick={onToggleRail}
+      >
+        {railOpen ? <ChevronsRight aria-hidden="true" /> : <ChevronsLeft aria-hidden="true" />}
       </Button>
 
       <span className="font-heading hidden font-semibold lg:inline">Colour Bricks</span>
@@ -56,13 +76,15 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         <span className="min-w-0 truncate text-sm font-medium">{user.name}</span>
         <Button
           type="button"
-          variant="outline"
-          size="sm"
+          variant="ghost"
+          size="icon-sm"
           onClick={handleSignOut}
           disabled={signingOut}
-          className="shrink-0"
+          aria-label={signingOut ? "Signing out…" : "Sign out"}
+          title="Sign out"
+          className="text-primary hover:text-primary hover:bg-primary/10 shrink-0"
         >
-          {signingOut ? "Signing out…" : "Sign out"}
+          <LogOut aria-hidden="true" />
         </Button>
       </div>
     </header>

@@ -170,7 +170,7 @@ export function LoanMasterPage() {
       <PageHeader title="Loan Master" />
 
       <form
-        className="space-y-3 rounded border p-4"
+        className="bg-card space-y-3 rounded border p-4"
         onSubmit={(e) => {
           e.preventDefault();
           setTouched(true);
@@ -186,7 +186,7 @@ export function LoanMasterPage() {
         <label className="block space-y-1">
           <span className="text-sm font-medium">Project (optional)</span>
           <select
-            className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
             value={projectId}
             aria-label="Project"
             onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -289,7 +289,7 @@ export function LoanMasterPage() {
             </FieldLabel>
             <select
               ref={disbursementAccountRef}
-              className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+              className="bg-card w-full rounded border px-3 py-1.5 text-sm"
               value={disbursementAccountId}
               aria-label="Disbursement account"
               onChange={(e) =>

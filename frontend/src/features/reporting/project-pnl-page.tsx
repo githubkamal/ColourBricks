@@ -45,7 +45,7 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
       <label className="flex items-center gap-2 text-sm">
         <span>Revenue basis</span>
         <select
-          className="border-input bg-background rounded-md border px-2 py-1 text-sm"
+          className="border-input bg-card rounded-md border px-2 py-1 text-sm"
           aria-label="Revenue basis"
           value={basis}
           onChange={(e) => setBasis(e.target.value as "Contract" | "Receipts")}

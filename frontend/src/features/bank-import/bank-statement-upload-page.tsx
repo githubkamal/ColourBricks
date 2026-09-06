@@ -111,7 +111,7 @@ export function BankStatementUploadPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
             aria-label="Account"
             value={accountId}
             onChange={(e) => {
@@ -143,11 +143,11 @@ export function BankStatementUploadPage() {
       {accountId !== "" && file && (
         <>
           {profiles.length > 0 && (
-            <div className="space-y-2 rounded border p-3">
+            <div className="bg-card space-y-2 rounded border p-3">
               <p className="text-sm font-medium">Use a saved mapping</p>
               <div className="flex flex-wrap items-end gap-3">
                 <select
-                  className="bg-background text-foreground rounded border px-3 py-1.5 text-sm"
+                  className="bg-card text-foreground rounded border px-3 py-1.5 text-sm"
                   aria-label="Saved profile"
                   value={profileId}
                   onChange={(e) => setProfileId(e.target.value ? Number(e.target.value) : "")}
@@ -170,7 +170,7 @@ export function BankStatementUploadPage() {
             </div>
           )}
 
-          <div className="space-y-3 rounded border p-3">
+          <div className="bg-card space-y-3 rounded border p-3">
             <p className="text-sm font-medium">
               {profiles.length > 0 ? "…or create a new mapping" : "Map the columns for this bank"}
             </p>
@@ -207,7 +207,7 @@ export function BankStatementUploadPage() {
                   <label key={field} className="flex items-center gap-2 text-sm">
                     <span className="w-40">{field.replace("Column", "")}</span>
                     <select
-                      className="bg-background text-foreground rounded border px-2 py-1 text-sm"
+                      className="bg-card text-foreground rounded border px-2 py-1 text-sm"
                       aria-label={field}
                       value={map[field] ?? ""}
                       onChange={(e) => setCol(field, e.target.value)}
@@ -239,7 +239,7 @@ export function BankStatementUploadPage() {
                   <label className="flex items-center gap-2 text-sm">
                     <span className="w-40">amount</span>
                     <select
-                      className="bg-background text-foreground rounded border px-2 py-1 text-sm"
+                      className="bg-card text-foreground rounded border px-2 py-1 text-sm"
                       aria-label="amountColumn"
                       value={map.amountColumn ?? ""}
                       onChange={(e) => setCol("amountColumn", e.target.value)}
@@ -257,7 +257,7 @@ export function BankStatementUploadPage() {
                     <label key={field} className="flex items-center gap-2 text-sm">
                       <span className="w-40">{field.replace("Column", "")}</span>
                       <select
-                        className="bg-background text-foreground rounded border px-2 py-1 text-sm"
+                        className="bg-card text-foreground rounded border px-2 py-1 text-sm"
                         aria-label={field}
                         value={map[field] ?? ""}
                         onChange={(e) => setCol(field, e.target.value)}

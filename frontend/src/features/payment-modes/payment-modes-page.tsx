@@ -71,7 +71,7 @@ export function PaymentModesPage() {
         </Button>
       </form>
 
-      <div className="rounded border">
+      <div className="bg-card rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

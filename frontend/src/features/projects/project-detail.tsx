@@ -11,11 +11,13 @@ import { formatDate, formatINR } from "@/lib/format";
 import { getProject } from "./api";
 import { PROJECT_STATUS_LABELS, type ProjectStatus } from "./types";
 
-const STATUS_BADGE: Record<ProjectStatus, "primary" | "positive" | "attention" | "negative"> = {
-  Ongoing: "primary",
-  Completed: "positive",
-  OnHold: "attention",
-  Cancelled: "negative",
+// Matches the generic StatusBadge palette's ongoing/completed/onhold/cancelled
+// colours (client request, 2026-09-06) — fixed, not theme-accent-driven.
+const STATUS_BADGE: Record<ProjectStatus, "sky" | "green" | "yellow" | "red"> = {
+  Ongoing: "sky",
+  Completed: "green",
+  OnHold: "yellow",
+  Cancelled: "red",
 };
 
 const TABS = (id: number) => [

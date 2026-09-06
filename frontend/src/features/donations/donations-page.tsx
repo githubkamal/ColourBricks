@@ -25,22 +25,24 @@ export function DonationsPage() {
     <div className="max-w-xl space-y-6">
       <PageHeader title="Project Donations" />
 
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">Project</span>
-        <select
-          className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
-          value={projectId || ""}
-          aria-label="Project"
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
-        >
-          <option value="">Select a project…</option>
-          {projects?.items.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.code} — {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="bg-card max-w-xs rounded border p-4">
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Project</span>
+          <select
+            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+            value={projectId || ""}
+            aria-label="Project"
+            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
+          >
+            <option value="">Select a project…</option>
+            {projects?.items.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       {project && (
         <>

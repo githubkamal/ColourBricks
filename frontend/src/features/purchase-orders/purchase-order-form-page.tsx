@@ -4,6 +4,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ItemPicker } from "@/features/items/item-picker";
+import type { ItemSearchItem } from "@/features/items/types";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { listProjects } from "@/features/projects/api";
@@ -15,12 +17,12 @@ import { createPurchaseOrder, type PurchaseOrderLineInput } from "./api";
 
 interface Row {
   projectId: number | "";
-  itemName: string;
+  item: ItemSearchItem | null;
   quantity: string;
   unit: string;
 }
 
-const emptyRow = (): Row => ({ projectId: "", itemName: "", quantity: "", unit: "" });
+const emptyRow = (): Row => ({ projectId: "", item: null, quantity: "", unit: "" });
 
 export function PurchaseOrderFormPage() {
   const router = useRouter();
@@ -42,7 +44,8 @@ export function PurchaseOrderFormPage() {
         notes: notes.trim() || null,
         lines: rows.map<PurchaseOrderLineInput>((r) => ({
           projectId: Number(r.projectId),
-          itemName: r.itemName.trim(),
+          itemId: r.item?.id ?? null,
+          itemName: r.item!.name,
           quantity: Number(r.quantity),
           unit: r.unit.trim(),
         })),
@@ -63,7 +66,7 @@ export function PurchaseOrderFormPage() {
     vendor !== null &&
     orderDate !== "" &&
     rows.every(
-      (r) => r.projectId !== "" && r.itemName.trim() && Number(r.quantity) > 0 && r.unit.trim(),
+      (r) => r.projectId !== "" && r.item !== null && Number(r.quantity) > 0 && r.unit.trim(),
     );
 
   return (
@@ -71,7 +74,7 @@ export function PurchaseOrderFormPage() {
       <h1 className="text-lg font-semibold">New Purchase Order</h1>
 
       <form
-        className="space-y-4 rounded border p-4"
+        className="bg-card space-y-4 rounded border p-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (ready) create.mutate();
@@ -115,7 +118,7 @@ export function PurchaseOrderFormPage() {
               <tr key={i}>
                 <td className="py-1 pr-2">
                   <select
-                    className="w-full rounded border bg-transparent px-2 py-1.5 text-sm"
+                    className="bg-card w-full rounded border px-2 py-1.5 text-sm"
                     aria-label={`Project ${i + 1}`}
                     value={row.projectId}
                     onChange={(e) =>
@@ -136,7 +139,20 @@ export function PurchaseOrderFormPage() {
                     ))}
                   </select>
                 </td>
-                {(["itemName", "quantity", "unit"] as const).map((field) =>
+                <td className="py-1 pr-2">
+                  <ItemPicker
+                    selected={row.item}
+                    ariaLabel={`itemName ${i + 1}`}
+                    onSelect={(item) =>
+                      setRows((rs) =>
+                        rs.map((r, j) =>
+                          j === i ? { ...r, item, unit: r.unit || (item?.unit ?? "") } : r,
+                        ),
+                      )
+                    }
+                  />
+                </td>
+                {(["quantity", "unit"] as const).map((field) =>
                   field === "quantity" ? (
                     <td key={field} className="py-1 pr-2">
                       <AmountInput

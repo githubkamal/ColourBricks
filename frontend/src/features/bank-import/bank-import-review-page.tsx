@@ -95,7 +95,7 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
 
       <Counts batch={batch} />
 
-      <div className="overflow-x-auto rounded border">
+      <div className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -290,7 +290,7 @@ function RowLine({
               {lines.map((l, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <select
-                    className="bg-background text-foreground rounded border px-2 py-1 text-sm"
+                    className="bg-card text-foreground rounded border px-2 py-1 text-sm"
                     aria-label={`Line ${row.sourceLineNo} project ${i + 1}`}
                     value={l.projectId}
                     onChange={(e) =>

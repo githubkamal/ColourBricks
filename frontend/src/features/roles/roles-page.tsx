@@ -56,7 +56,7 @@ export function RolesPage() {
       {dialog}
       <div className="w-64 shrink-0 space-y-3">
         <h1 className="text-lg font-semibold">Roles</h1>
-        <ul className="rounded border text-sm">
+        <ul className="bg-card rounded border text-sm">
           {roles.map((role) => (
             <li key={role.id} className="flex items-center">
               <button
@@ -211,7 +211,7 @@ function MatrixEditor({
   return (
     <div className="space-y-3">
       <h2 className="text-sm font-semibold">{roleName} — permission matrix</h2>
-      <div className="overflow-x-auto rounded border">
+      <div className="bg-card overflow-x-auto rounded border">
         <table className="text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr>

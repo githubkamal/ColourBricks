@@ -28,11 +28,13 @@ const SORT_LABELS: Record<SortKey, string> = {
   status: "Status",
 };
 
-const STATUS_BADGE: Record<ProjectStatus, "primary" | "positive" | "attention" | "negative"> = {
-  Ongoing: "primary",
-  Completed: "positive",
-  OnHold: "attention",
-  Cancelled: "negative",
+// Matches the generic StatusBadge palette's ongoing/completed/onhold/cancelled
+// colours (client request, 2026-09-06) — fixed, not theme-accent-driven.
+const STATUS_BADGE: Record<ProjectStatus, "sky" | "green" | "yellow" | "red"> = {
+  Ongoing: "sky",
+  Completed: "green",
+  OnHold: "yellow",
+  Cancelled: "red",
 };
 
 const STATUS_BAR: Record<ProjectStatus, string> = {
@@ -114,7 +116,7 @@ export function ProjectList() {
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortKey)}
-              className="border-input bg-background h-8 rounded-md border px-2 text-sm"
+              className="border-input bg-card h-8 rounded-md border px-2 text-sm"
             >
               {Object.entries(SORT_LABELS).map(([key, label]) => (
                 <option key={key} value={key}>

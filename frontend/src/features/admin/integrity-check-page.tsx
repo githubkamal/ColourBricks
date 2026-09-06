@@ -68,7 +68,7 @@ export function IntegrityCheckPage() {
 
           <div className="space-y-3">
             {data.controls.map((c) => (
-              <div key={c.control} className="rounded border p-3">
+              <div key={c.control} className="bg-card rounded border p-3">
                 <div className="flex items-center justify-between">
                   <span className="font-medium">{c.control}</span>
                   <span className={c.passed ? "text-positive text-sm" : "text-negative text-sm"}>

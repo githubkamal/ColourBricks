@@ -75,7 +75,7 @@ export function UsersPage() {
 
       <AddUserForm roles={roles} onAdded={invalidate} />
 
-      <div className="rounded border">
+      <div className="bg-card rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -225,7 +225,7 @@ function AddUserForm({ roles, onAdded }: { roles: RoleOption[]; onAdded: () => v
 
   return (
     <form
-      className="flex flex-wrap items-end gap-2 rounded border p-3"
+      className="bg-card flex flex-wrap items-end gap-2 rounded border p-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (ready) add.mutate();
@@ -257,7 +257,7 @@ function AddUserForm({ roles, onAdded }: { roles: RoleOption[]; onAdded: () => v
       <label className="space-y-1">
         <span className="text-sm font-medium">Role</span>
         <select
-          className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+          className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
           value={roleId}
           aria-label="Role"
           onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}
@@ -356,7 +356,7 @@ function UserEditor({
         <label className="space-y-1">
           <span className="text-sm font-medium">Role</span>
           <select
-            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
             value={roleId}
             aria-label="Edit role"
             onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}
@@ -375,7 +375,7 @@ function UserEditor({
         <legend className="text-sm font-medium">
           Project access <span className="text-muted-foreground">(none = all projects)</span>
         </legend>
-        <div className="grid max-h-40 grid-cols-2 gap-1 overflow-auto rounded border p-2">
+        <div className="bg-card grid max-h-40 grid-cols-2 gap-1 overflow-auto rounded border p-2">
           {projects?.items.map((project) => (
             <label key={project.id} className="flex items-center gap-2 text-sm">
               <input

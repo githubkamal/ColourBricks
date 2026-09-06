@@ -26,7 +26,7 @@ export function TeamPicker({ selected, onSelect, label = "Team" }: TeamPickerPro
     <label className="block space-y-1">
       <span className="text-sm font-medium">{label}</span>
       <select
-        className="bg-background text-foreground w-full rounded border px-3 py-1.5 text-sm"
+        className="bg-card text-foreground w-full rounded border px-3 py-1.5 text-sm"
         value={selected?.id ?? ""}
         disabled={isPending}
         aria-label={label}

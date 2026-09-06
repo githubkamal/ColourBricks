@@ -38,22 +38,24 @@ export function CustomWorkPage() {
     <div className="max-w-3xl space-y-6">
       <PageHeader title="Customized / Ad-hoc Work" />
 
-      <label className="block space-y-1">
-        <span className="text-sm font-medium">Project</span>
-        <select
-          className="bg-background text-foreground w-full rounded border px-3 py-1.5 text-sm"
-          value={projectId}
-          aria-label="Project"
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
-        >
-          <option value="">Select a project…</option>
-          {projects?.items.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.code} — {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <div className="bg-card max-w-xs rounded border p-4">
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Project</span>
+          <select
+            className="bg-card text-foreground w-full rounded border px-3 py-1.5 text-sm"
+            value={projectId}
+            aria-label="Project"
+            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
+          >
+            <option value="">Select a project…</option>
+            {projects?.items.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
 
       {projectId !== "" && <CustomWorkForm projectId={projectId} />}
     </div>
@@ -107,7 +109,7 @@ function CustomWorkForm({ projectId }: { projectId: number }) {
   return (
     <div className="space-y-6">
       <form
-        className="space-y-3 rounded border p-4"
+        className="bg-card space-y-3 rounded border p-4"
         onSubmit={(e) => {
           e.preventDefault();
           if (ready) record.mutate();
@@ -379,7 +381,7 @@ function CustomWorkPaymentForm({
       <label className="space-y-1">
         <span className="text-sm font-medium">Account</span>
         <select
-          className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+          className="bg-card block rounded border px-3 py-1.5 text-sm"
           aria-label="Payment account"
           value={accountId}
           onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}

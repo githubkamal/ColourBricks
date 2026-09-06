@@ -59,7 +59,7 @@ export function LoanSchedulePage() {
       <label className="block max-w-sm space-y-1">
         <span className="text-sm font-medium">Loan</span>
         <select
-          className="w-full rounded border bg-transparent px-3 py-1.5 text-sm"
+          className="bg-card w-full rounded border px-3 py-1.5 text-sm"
           value={loanId || ""}
           aria-label="Loan"
           onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}
@@ -75,7 +75,7 @@ export function LoanSchedulePage() {
 
       {loanId !== 0 && (
         <>
-          <div className="flex flex-wrap items-end gap-3 rounded border p-4">
+          <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-4">
             <label className="space-y-1">
               <span className="text-sm font-medium">EMI amount (optional)</span>
               <AmountInput value={emiAmount} aria-label="EMI amount" onChange={setEmiAmount} />

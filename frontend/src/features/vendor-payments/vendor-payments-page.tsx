@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PartyPicker } from "@/features/parties/party-picker";
-import type { PartySearchItem } from "@/features/parties/types";
+import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -23,13 +23,23 @@ import {
   vendorOutstandingSummary,
 } from "./api";
 
-export function VendorPaymentsPage() {
+export function VendorPaymentsPage({
+  partyType = "Vendor",
+  title = "Vendor Payments",
+  pickerLabel = "Vendor",
+}: {
+  partyType?: PartyType;
+  title?: string;
+  pickerLabel?: string;
+}) {
   const [vendor, setVendor] = useState<PartySearchItem | null>(null);
 
   return (
     <div className="max-w-3xl space-y-6">
-      <PageHeader title="Vendor Payments" />
-      <PartyPicker type="Vendor" label="Vendor" selected={vendor} onSelect={setVendor} />
+      <PageHeader title={title} />
+      <div className="bg-card max-w-xs rounded border p-4">
+        <PartyPicker type={partyType} label={pickerLabel} selected={vendor} onSelect={setVendor} />
+      </div>
       {vendor && <VendorPay vendorId={vendor.id} vendorName={vendor.name} />}
     </div>
   );
@@ -126,7 +136,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
         <label className="space-y-1">
           <span className="text-sm font-medium">Project</span>
           <select
-            className="bg-background text-foreground block w-full rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block w-full rounded border px-3 py-1.5 text-sm"
             value={projectId}
             aria-label="Project"
             onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -159,7 +169,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="bg-background text-foreground block w-full rounded border px-3 py-1.5 text-sm"
+            className="bg-card text-foreground block w-full rounded border px-3 py-1.5 text-sm"
             value={accountId}
             aria-label="Account"
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}

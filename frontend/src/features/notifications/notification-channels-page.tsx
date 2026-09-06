@@ -71,7 +71,7 @@ export function NotificationChannelsPage() {
       {isPending && <p className="text-muted-foreground text-sm">Loading…</p>}
 
       {!isPending && (
-        <div className="overflow-x-auto rounded border">
+        <div className="bg-card overflow-x-auto rounded border">
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">
@@ -90,7 +90,7 @@ export function NotificationChannelsPage() {
                   {roles.map(([roleId]) => (
                     <td key={roleId} className="p-2">
                       <select
-                        className="rounded border bg-transparent px-2 py-1 text-xs"
+                        className="bg-card rounded border px-2 py-1 text-xs"
                         aria-label={`${trigger} channel for role ${roleId}`}
                         value={cell(roleId, trigger)}
                         onChange={(e) =>

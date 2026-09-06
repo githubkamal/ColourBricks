@@ -52,7 +52,7 @@ export function AuditLogsPage() {
     <div className="space-y-4">
       <h1 className="text-lg font-semibold">Audit Logs</h1>
 
-      <div className="flex flex-wrap items-end gap-3 rounded border p-3">
+      <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-3">
         <label className="space-y-1">
           <span className="text-sm font-medium">User id</span>
           <Input
@@ -131,7 +131,7 @@ export function AuditLogsPage() {
         </button>
       </div>
 
-      <div className="overflow-x-auto rounded border">
+      <div className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
