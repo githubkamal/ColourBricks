@@ -106,7 +106,7 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
         setHighlightedIndex(-1);
       } else {
         toast.message(`"${name}" already exists — selecting it`);
-        choose({ id: outcome.existingId, name, types: [type ?? "Vendor"], category: null });
+        choose({ id: outcome.existingId, name, types: [type ?? "Vendor"], category: null, isActive: true });
       }
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Could not add the party");
@@ -125,12 +125,12 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
   function selectByIndex(index: number) {
     if (nearDuplicates.length > 0) {
       const d = nearDuplicates[index];
-      if (d) choose({ id: d.id, name: d.name, types: d.types, category: null });
+      if (d) choose({ id: d.id, name: d.name, types: d.types, category: null, isActive: true });
       return;
     }
     if (index < recentCount) {
       const r = recent[index];
-      if (r) choose({ id: r.id, name: r.name, types: [], category: null });
+      if (r) choose({ id: r.id, name: r.name, types: [], category: null, isActive: true });
       return;
     }
     if (index < addNewIndex) {
@@ -229,7 +229,7 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
                     "hover:bg-secondary block w-full rounded px-2 py-1 text-left",
                     i === highlightedIndex && "bg-secondary",
                   )}
-                  onClick={() => choose({ id: d.id, name: d.name, types: d.types, category: null })}
+                  onClick={() => choose({ id: d.id, name: d.name, types: d.types, category: null, isActive: true })}
                 >
                   {d.name} <span className="text-muted-foreground">· {d.types.join(", ")}</span>
                 </button>
@@ -265,7 +265,7 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
                         "hover:bg-secondary block w-full rounded px-2 py-1 text-left",
                         i === highlightedIndex && "bg-secondary",
                       )}
-                      onClick={() => choose({ id: r.id, name: r.name, types: [], category: null })}
+                      onClick={() => choose({ id: r.id, name: r.name, types: [], category: null, isActive: true })}
                     >
                       {r.name}
                     </button>

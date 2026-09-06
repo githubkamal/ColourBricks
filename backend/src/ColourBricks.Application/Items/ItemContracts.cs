@@ -21,7 +21,8 @@ public sealed record ItemSearchItem(
     string? CategoryName,
     string Unit,
     decimal DefaultRate,
-    decimal TaxRate);
+    decimal TaxRate,
+    bool IsActive = true);
 
 /// <summary>An item close enough to a new name to warrant a warning (plan.md §6).</summary>
 public sealed record ItemNearDuplicate(long Id, string Name, string? CategoryName);
@@ -47,6 +48,8 @@ public sealed record UpdateItemRequest(
     long? CategoryId = null);
 
 public sealed record CreateItemCategoryRequest(string Name);
+
+public sealed record UpdateItemCategoryRequest(string Name, bool IsActive, string ConcurrencyStamp);
 
 public sealed record CreateUnitRequest(string Code, int SortOrder = 100);
 

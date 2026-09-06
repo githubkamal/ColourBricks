@@ -134,6 +134,46 @@ public sealed class PartyService(AppDbContext db) : IPartyService
         return CreatePartyResult.Created(ToDto(party));
     }
 
+    public async Task<PartyDto?> UpdateAsync(
+        long id, UpdatePartyRequest request, CancellationToken cancellationToken)
+    {
+        Party? party = await db.Parties.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (party is null)
+        {
+            return null;
+        }
+
+        string norm = NameNormalizer.Normalize(request.Name);
+        db.Entry(party).Property(p => p.ConcurrencyStamp).OriginalValue = request.ConcurrencyStamp;
+
+        party.Name = request.Name.Trim();
+        party.NormalisedName = norm;
+        party.Types = request.Types.Aggregate(PartyType.None, (acc, t) => acc | t);
+        party.Category = request.Category;
+        party.ContactPerson = request.ContactPerson;
+        party.Phone = request.Phone;
+        party.Email = request.Email;
+        party.Address = request.Address;
+        party.GstNumber = request.GstNumber;
+        party.BankDetails = request.BankDetails;
+        party.PaymentTerms = request.PaymentTerms;
+        party.DepartmentId = request.DepartmentId;
+        party.IsActive = request.IsActive;
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex is not DbUpdateConcurrencyException)
+        {
+            Party? clash = await db.Parties.AsNoTracking()
+                .FirstOrDefaultAsync(p => p.NormalisedName == norm && p.Id != id, cancellationToken);
+            throw new PartyExactDuplicateException(clash?.Id ?? 0, request.Name);
+        }
+
+        return ToDto(party);
+    }
+
     private static IReadOnlyList<string> TypeNames(PartyType types) =>
         Enum.GetValues<PartyType>()
             .Where(t => t != PartyType.None && types.HasFlag(t))
@@ -141,7 +181,7 @@ public sealed class PartyService(AppDbContext db) : IPartyService
             .ToList();
 
     private static PartySearchItem ToSearchItem(Party p) =>
-        new(p.Id, p.Name, TypeNames(p.Types), p.Category);
+        new(p.Id, p.Name, TypeNames(p.Types), p.Category, p.IsActive);
 
     private static PartyDto ToDto(Party p) => new(
         p.Id, p.Name, TypeNames(p.Types), p.Category, p.ContactPerson, p.Phone, p.Email,

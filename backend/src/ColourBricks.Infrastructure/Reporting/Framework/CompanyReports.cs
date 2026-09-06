@@ -75,7 +75,10 @@ public sealed class CompanySummaryReport(ReportExecutor executor, AppDbContext d
 
     protected override async ValueTask<IQueryable<CompanyReportRow>> SourceAsync(AppDbContext db, CancellationToken ct)
     {
-        CompanyDashboardDto d = await reporting.CompanyDashboardAsync(ct);
+        // "Entire" — this report has its own date filters (ReportFilters), it must not
+        // inherit the dashboard's own Weekly/Monthly/Yearly default (client request,
+        // 2026-09-07 added that scoping to the dashboard specifically, not this report).
+        CompanyDashboardDto d = await reporting.CompanyDashboardAsync("Entire", null, null, ct);
         long serial = 0;
         return d.Tiles.Select(t => new CompanyReportRow
         {
@@ -114,7 +117,7 @@ public sealed class CompanyMonthlyReport(ReportExecutor executor, AppDbContext d
 
     protected override async ValueTask<IQueryable<CompanyReportRow>> SourceAsync(AppDbContext db, CancellationToken ct)
     {
-        CompanyDashboardDto d = await reporting.CompanyDashboardAsync(ct);
+        CompanyDashboardDto d = await reporting.CompanyDashboardAsync("Entire", null, null, ct);
         long serial = 0;
         return d.MonthlyFlow.Select(m => new CompanyReportRow
         {
@@ -157,7 +160,7 @@ public sealed class ProjectProfitabilityRankingReport(
 
     protected override async ValueTask<IQueryable<CompanyReportRow>> SourceAsync(AppDbContext db, CancellationToken ct)
     {
-        CompanyDashboardDto d = await reporting.CompanyDashboardAsync(ct);
+        CompanyDashboardDto d = await reporting.CompanyDashboardAsync("Entire", null, null, ct);
         return d.ProjectProfitability.Select(p => new CompanyReportRow
         {
             Id = p.ProjectId,
@@ -279,7 +282,7 @@ public sealed class CompanyOutstandingReport(
 
     protected override async ValueTask<IQueryable<CompanyReportRow>> SourceAsync(AppDbContext db, CancellationToken ct)
     {
-        CompanyDashboardDto d = await reporting.CompanyDashboardAsync(ct);
+        CompanyDashboardDto d = await reporting.CompanyDashboardAsync("Entire", null, null, ct);
         decimal Tile(string key) => d.Tiles.FirstOrDefault(t => t.Key == key)?.Value ?? 0m;
         decimal loanOutstanding = (await loans.OutstandingAsync(null, ct)).Sum(l => l.OutstandingPrincipal);
 

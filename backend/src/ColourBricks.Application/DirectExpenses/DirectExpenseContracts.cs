@@ -11,7 +11,13 @@ public sealed record DirectExpenseDto(
     decimal Amount,
     bool PaidImmediately,
     string? Description,
-    string Status);
+    string Status,
+    /// <summary>
+    /// A reconciliation-anchor Settlement id, present only when paid immediately
+    /// through an account — lets the caller optionally link this expense to a bank
+    /// transaction (client request, 2026-09-06).
+    /// </summary>
+    long? SettlementId = null);
 
 public sealed record RecordDirectExpenseRequest(
     long ProjectId,

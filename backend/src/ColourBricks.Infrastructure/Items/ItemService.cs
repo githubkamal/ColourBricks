@@ -211,6 +211,36 @@ public sealed class ItemService(AppDbContext db) : IItemService
         return new ItemCategoryDto(category.Id, category.Name, category.IsActive, category.ConcurrencyStamp);
     }
 
+    public async Task<ItemCategoryDto?> UpdateCategoryAsync(
+        long id, UpdateItemCategoryRequest request, CancellationToken cancellationToken)
+    {
+        ItemCategory? category = await db.ItemCategories.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        if (category is null)
+        {
+            return null;
+        }
+
+        string norm = NameNormalizer.Normalize(request.Name);
+        db.Entry(category).Property(c => c.ConcurrencyStamp).OriginalValue = request.ConcurrencyStamp;
+
+        category.Name = request.Name.Trim();
+        category.NormalisedName = norm;
+        category.IsActive = request.IsActive;
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (ex is not DbUpdateConcurrencyException)
+        {
+            ItemCategory? clash = await db.ItemCategories.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.NormalisedName == norm && c.Id != id, cancellationToken);
+            throw new ItemCategoryExactDuplicateException(clash?.Id ?? 0, request.Name);
+        }
+
+        return new ItemCategoryDto(category.Id, category.Name, category.IsActive, category.ConcurrencyStamp);
+    }
+
     public async Task<IReadOnlyList<UnitDto>> ListUnitsAsync(CancellationToken cancellationToken) =>
         await db.Units.AsNoTracking()
             .Where(u => u.IsActive)
@@ -276,7 +306,7 @@ public sealed class ItemService(AppDbContext db) : IItemService
         await db.ItemCategories.AsNoTracking().ToDictionaryAsync(c => c.Id, c => c.Name, cancellationToken);
 
     private static ItemSearchItem ToSearchItem(Item i, IReadOnlyDictionary<long, string> categories) =>
-        new(i.Id, i.Name, CategoryName(i.CategoryId, categories), i.Unit, i.DefaultRate, i.TaxRate);
+        new(i.Id, i.Name, CategoryName(i.CategoryId, categories), i.Unit, i.DefaultRate, i.TaxRate, i.IsActive);
 
     private static ItemDto ToDto(Item i, IReadOnlyDictionary<long, string> categories) =>
         new(i.Id, i.Name, i.CategoryId, CategoryName(i.CategoryId, categories),

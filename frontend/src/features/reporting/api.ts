@@ -16,6 +16,7 @@ export interface ProjectDashboard {
   summary: DashboardTile[];
   expenseBreakdown: ExpenseBreakdownRow[];
   totalExpenses: number;
+  monthlyFlow: MonthlyFlow[];
 }
 export interface CompanyProjectProfitRow {
   projectId: number;
@@ -89,12 +90,44 @@ export interface ProjectPnl {
   budgetVariance: number;
 }
 
+/**
+ * Scopes the dashboard's flow figures — "Entire" = all time, default "Monthly"
+ * = this month, "Custom" = the caller-supplied `dateFrom`/`dateTo`.
+ */
+export type DashboardPeriod = "Weekly" | "Monthly" | "Yearly" | "Entire" | "Custom";
+
 export const projectDashboard = (id: number) =>
   apiClient.get<ProjectDashboard>(`/projects/${id}/dashboard`);
-export const companyDashboard = () => apiClient.get<CompanyDashboard>(`/dashboard`);
+export function companyDashboard(
+  period: DashboardPeriod = "Monthly",
+  dateFrom?: string,
+  dateTo?: string,
+): Promise<CompanyDashboard> {
+  const params = new URLSearchParams({ period });
+  if (period === "Custom") {
+    if (dateFrom) params.set("dateFrom", dateFrom);
+    if (dateTo) params.set("dateTo", dateTo);
+  }
+  return apiClient.get<CompanyDashboard>(`/dashboard?${params.toString()}`);
+}
 export const budgetVsActual = (id: number) =>
   apiClient.get<BudgetVsActual>(`/projects/${id}/budget-vs-actual`);
-export const projectFinancialLedger = (id: number) =>
-  apiClient.get<ProjectLedgerView>(`/projects/${id}/financial-ledger`);
+export interface ProjectLedgerFilter {
+  dateFrom?: string;
+  dateTo?: string;
+  categoryId?: number;
+}
+
+export function projectFinancialLedger(
+  id: number,
+  filter: ProjectLedgerFilter = {},
+): Promise<ProjectLedgerView> {
+  const params = new URLSearchParams();
+  if (filter.dateFrom) params.set("dateFrom", filter.dateFrom);
+  if (filter.dateTo) params.set("dateTo", filter.dateTo);
+  if (filter.categoryId) params.set("categoryId", String(filter.categoryId));
+  const q = params.toString();
+  return apiClient.get<ProjectLedgerView>(`/projects/${id}/financial-ledger${q ? `?${q}` : ""}`);
+}
 export const projectPnl = (id: number, revenueBasis: "Contract" | "Receipts") =>
   apiClient.get<ProjectPnl>(`/projects/${id}/pnl?revenueBasis=${revenueBasis}`);

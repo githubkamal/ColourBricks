@@ -13,6 +13,7 @@ export interface PartySearchItem {
   name: string;
   types: PartyType[];
   category: string | null;
+  isActive: boolean;
 }
 
 export interface PartyDto extends PartySearchItem {
@@ -40,4 +41,20 @@ export interface CreatePartyInput {
   category?: string | null;
   phone?: string | null;
   email?: string | null;
+}
+
+export interface UpdatePartyInput {
+  name: string;
+  types: PartyType[];
+  isActive: boolean;
+  concurrencyStamp: string;
+  category?: string | null;
+  contactPerson?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  gstNumber?: string | null;
+  bankDetails?: string | null;
+  paymentTerms?: string | null;
+  departmentId?: number | null;
 }

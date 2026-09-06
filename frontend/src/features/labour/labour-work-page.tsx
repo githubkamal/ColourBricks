@@ -5,7 +5,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
-import { listProjects } from "@/features/projects/api";
+import { getProject } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
+import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
+import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { TeamPicker } from "@/features/teams/team-picker";
 import type { TeamDto } from "@/features/teams/types";
 import { Button } from "@/components/ui/button";
@@ -13,8 +17,10 @@ import { AmountInput } from "@/components/ui/amount-input";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import {
   listWork,
@@ -27,36 +33,30 @@ import {
 
 export function LabourWorkPage() {
   const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
-
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forLabour: true }],
-    queryFn: () => listProjects({ pageSize: 100 }),
+  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(
+    undefined,
+  );
+  const { data: restoredProject } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => getProject(projectId),
+    enabled: projectId > 0 && manualProject === undefined,
   });
+  const project = manualProject !== undefined ? manualProject : (restoredProject ?? null);
+
+  function handleSelect(next: ProjectListItem | null) {
+    setManualProject(next);
+    setProjectId(next?.id ?? 0);
+  }
 
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader title="Labour & Subcontractor Work" />
 
       <div className="bg-card max-w-xs rounded border p-4">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Project</span>
-          <select
-            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
-            value={projectId || ""}
-            aria-label="Project"
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
-          >
-            <option value="">Select a project…</option>
-            {projects?.items.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ProjectPicker selected={project} onSelect={handleSelect} label="Project" />
       </div>
 
-      {projectId !== 0 && <WorkList projectId={projectId} />}
+      {project && <WorkList projectId={project.id} />}
     </div>
   );
 }
@@ -72,6 +72,7 @@ function WorkList({ projectId }: { projectId: number }) {
     queryKey: ["labour-work", projectId],
     queryFn: () => listWork(projectId),
   });
+  const { pageRows: pagedWork, page, setPage, pageCount, total } = usePagination(work, 20);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["labour-work", projectId] });
 
@@ -140,21 +141,31 @@ function WorkList({ projectId }: { projectId: number }) {
 
       <div className="space-y-3">
         {dataState({ isEmpty: work.length === 0, emptyLabel: "No work entries yet." })}
-        {work.map((entry) => (
+        {pagedWork.map((entry) => (
           <WorkRow key={entry.id} entry={entry} onPaid={invalidate} />
         ))}
       </div>
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="work entries"
+      />
     </div>
   );
 }
 
 function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
+  const queryClient = useQueryClient();
   const [paying, setPaying] = useState(false);
   const [amount, setAmount] = useState("");
   const [frequency, setFrequency] = useState<PaymentFrequency>("Weekly");
   const [date, setDate] = useState("");
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | "">("");
+  const [bankTx, setBankTx] = useState<ReconciliationRow | null>(null);
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", { all: true }],
@@ -170,11 +181,25 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
         paymentModeId: paymentModeId!,
         accountId: accountId === "" ? null : accountId,
       }),
-    onSuccess: () => {
+    onSuccess: async (result) => {
       toast.success("Payment recorded");
       setPaying(false);
       setAmount("");
       onPaid();
+      if (bankTx) {
+        try {
+          await reconcileDebit(bankTx.id, { existingPaymentId: result.id });
+          toast.success("Linked to the bank transaction");
+          void queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? `Payment saved, but couldn't link the bank transaction: ${error.message}`
+              : "Payment saved, but couldn't link the bank transaction — link it from the Reconciliation Queue instead.",
+          );
+        }
+        setBankTx(null);
+      }
     },
     onError: (error) =>
       toast.error(
@@ -259,6 +284,13 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
                   ))}
                 </select>
               </label>
+              <div className="w-56">
+                <BankTransactionPicker
+                  selected={bankTx}
+                  onSelect={setBankTx}
+                  accountId={accountId === "" ? null : accountId}
+                />
+              </div>
               <Button type="submit" size="xs" disabled={pay.isPending}>
                 Save payment
               </Button>

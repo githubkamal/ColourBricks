@@ -58,7 +58,8 @@ export function applyVendorAdvance(
 
 export interface RecordVendorPaymentInput {
   vendorId: number;
-  projectId: number;
+  /** No project = the whole amount is carried as a vendor advance (BRD §25) — optional. */
+  projectId?: number | null;
   date: string;
   amount: number;
   paymentModeId: number;

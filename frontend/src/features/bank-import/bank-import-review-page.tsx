@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { listProjects } from "@/features/projects/api";
+import { ProjectPicker, type ProjectPickerSelection } from "@/features/projects/project-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -189,7 +190,7 @@ function Counts({ batch }: { batch: BankImportBatch }) {
 }
 
 type ProjectOption = { id: number; name: string };
-type Line = { projectId: number | ""; amount: string };
+type Line = { project: ProjectPickerSelection | null; amount: string };
 
 function RowLine({
   batchId,
@@ -209,8 +210,11 @@ function RowLine({
 
   const [lines, setLines] = useState<Line[]>(() =>
     row.allocations.length > 0
-      ? row.allocations.map((a) => ({ projectId: a.projectId, amount: String(a.amount) }))
-      : [{ projectId: "", amount: isCredit ? String(target) : "" }],
+      ? row.allocations.map((a) => ({
+          project: { id: a.projectId, name: projects.find((p) => p.id === a.projectId)?.name ?? "" },
+          amount: String(a.amount),
+        }))
+      : [{ project: null, amount: isCredit ? String(target) : "" }],
   );
 
   const save = useMutation({
@@ -219,8 +223,8 @@ function RowLine({
         batchId,
         row.id,
         lines
-          .filter((l) => l.projectId !== "")
-          .map((l) => ({ projectId: Number(l.projectId), amount: Number(l.amount) })),
+          .filter((l) => l.project !== null)
+          .map((l) => ({ projectId: l.project!.id, amount: Number(l.amount) })),
       ),
     onSuccess: () => {
       toast.success(`Line ${row.sourceLineNo} mapped`);
@@ -289,27 +293,18 @@ function RowLine({
             <div className="space-y-1">
               {lines.map((l, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <select
-                    className="bg-card text-foreground rounded border px-2 py-1 text-sm"
-                    aria-label={`Line ${row.sourceLineNo} project ${i + 1}`}
-                    value={l.projectId}
-                    onChange={(e) =>
+                  <ProjectPicker
+                    status="Ongoing"
+                    ariaLabel={`Line ${row.sourceLineNo} project ${i + 1}`}
+                    selected={l.project}
+                    onSelect={(p) =>
                       setLines((cur) =>
                         cur.map((x, xi) =>
-                          xi === i
-                            ? { ...x, projectId: e.target.value ? Number(e.target.value) : "" }
-                            : x,
+                          xi === i ? { ...x, project: p ? { id: p.id, name: p.name } : null } : x,
                         ),
                       )
                     }
-                  >
-                    <option value="">Select project…</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                   <AmountInput
                     className="w-28"
                     aria-label={`Line ${row.sourceLineNo} amount ${i + 1}`}
@@ -333,7 +328,7 @@ function RowLine({
                 <button
                   type="button"
                   className="text-xs underline"
-                  onClick={() => setLines((cur) => [...cur, { projectId: "", amount: "" }])}
+                  onClick={() => setLines((cur) => [...cur, { project: null, amount: "" }])}
                 >
                   + project
                 </button>
@@ -350,7 +345,7 @@ function RowLine({
               <Button
                 type="button"
                 className="h-7 px-2 text-xs"
-                disabled={!balanced || save.isPending || lines.some((l) => l.projectId === "")}
+                disabled={!balanced || save.isPending || lines.some((l) => l.project === null)}
                 onClick={() => save.mutate()}
               >
                 Save mapping

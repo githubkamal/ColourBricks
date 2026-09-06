@@ -23,6 +23,9 @@ public interface IItemService
     Task<ItemCategoryDto> CreateCategoryAsync(
         CreateItemCategoryRequest request, CancellationToken cancellationToken);
 
+    Task<ItemCategoryDto?> UpdateCategoryAsync(
+        long id, UpdateItemCategoryRequest request, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<UnitDto>> ListUnitsAsync(CancellationToken cancellationToken);
 
     Task<UnitDto> CreateUnitAsync(CreateUnitRequest request, CancellationToken cancellationToken);

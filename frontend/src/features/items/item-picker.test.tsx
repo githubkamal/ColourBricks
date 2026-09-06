@@ -19,6 +19,7 @@ const cement: ItemSearchItem = {
   unit: "Bag",
   defaultRate: 400,
   taxRate: 18,
+  isActive: true,
 };
 
 describe("ItemPicker", () => {

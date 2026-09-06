@@ -5,6 +5,7 @@ import type {
   PartyDto,
   PartySearchItem,
   PartyType,
+  UpdatePartyInput,
 } from "./types";
 
 export function searchParties(
@@ -15,6 +16,14 @@ export function searchParties(
   const params = new URLSearchParams({ q: query, limit: String(limit) });
   if (type) params.set("type", type);
   return apiClient.get<PartySearchItem[]>(`/parties/search?${params.toString()}`);
+}
+
+export function getParty(id: number): Promise<PartyDto> {
+  return apiClient.get<PartyDto>(`/parties/${id}`);
+}
+
+export function updateParty(id: number, input: UpdatePartyInput): Promise<PartyDto> {
+  return apiClient.put<PartyDto>(`/parties/${id}`, input);
 }
 
 export function listParties(

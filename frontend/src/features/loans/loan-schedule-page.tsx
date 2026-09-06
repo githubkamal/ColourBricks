@@ -7,9 +7,11 @@ import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { dataState } from "@/components/ui/data-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import { generateSchedule, getSchedule, listLoans, regenerateSchedule } from "./api";
 
@@ -24,6 +26,13 @@ export function LoanSchedulePage() {
     queryFn: () => getSchedule(loanId),
     enabled: loanId !== 0,
   });
+  const {
+    pageRows: pagedSchedule,
+    page,
+    setPage,
+    pageCount,
+    total,
+  } = usePagination(schedule, 20);
 
   const [emiAmount, setEmiAmount] = useState("");
   const [newRate, setNewRate] = useState("");
@@ -124,7 +133,7 @@ export function LoanSchedulePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {schedule.map((i) => (
+                  {pagedSchedule.map((i) => (
                     <tr key={i.id} className="border-b last:border-0">
                       <td className="p-2">{i.instalmentNo}</td>
                       <td className="p-2">{formatDate(i.dueDate)}</td>
@@ -140,6 +149,15 @@ export function LoanSchedulePage() {
                   ))}
                 </tbody>
               </table>
+              <div className="p-3">
+                <PaginationBar
+                  page={page}
+                  pageCount={pageCount}
+                  total={total}
+                  onPageChange={setPage}
+                  itemLabel="instalments"
+                />
+              </div>
             </div>
           )}
         </>

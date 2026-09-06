@@ -3,16 +3,21 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
+import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
+import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import {
   getSchedule,
@@ -41,8 +46,20 @@ export function LoanPaymentsPage() {
     queryFn: () => listEmiPayments(loanId),
     enabled: loanId !== 0,
   });
+  const {
+    pageRows: pagedPayments,
+    page: paymentsPage,
+    setPage: setPaymentsPage,
+    pageCount: paymentsPageCount,
+    total: paymentsTotal,
+  } = usePagination(payments, 20);
 
   const pendingInstalments = schedule.filter((i) => i.status !== "Paid");
+
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["accounts", { all: true }],
+    queryFn: () => listAccounts(),
+  });
 
   const [instalmentId, setInstalmentId] = useState<number | "">("");
   const [date, setDate] = useState("");
@@ -50,10 +67,13 @@ export function LoanPaymentsPage() {
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | null>(null);
   const [referenceNo, setReferenceNo] = useState("");
+  const [bankTx, setBankTx] = useState<ReconciliationRow | null>(null);
 
   const [prepayAmount, setPrepayAmount] = useState("");
   const [prepayDate, setPrepayDate] = useState("");
   const [prepayModeId, setPrepayModeId] = useState<number | null>(null);
+  const [prepayAccountId, setPrepayAccountId] = useState<number | null>(null);
+  const [prepayBankTx, setPrepayBankTx] = useState<ReconciliationRow | null>(null);
 
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["loan-schedule", loanId] });
@@ -71,7 +91,7 @@ export function LoanPaymentsPage() {
         accountId,
         referenceNo: referenceNo.trim() || null,
       }),
-    onSuccess: () => {
+    onSuccess: async (result) => {
       toast.success("EMI payment recorded");
       setInstalmentId("");
       setDate("");
@@ -80,6 +100,20 @@ export function LoanPaymentsPage() {
       setAccountId(null);
       setReferenceNo("");
       invalidate();
+      if (bankTx && result.settlementId) {
+        try {
+          await reconcileDebit(bankTx.id, { existingPaymentId: result.settlementId });
+          toast.success("Linked to the bank transaction");
+          void queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? `Payment saved, but couldn't link the bank transaction: ${error.message}`
+              : "Payment saved, but couldn't link the bank transaction — link it from the Reconciliation Queue instead.",
+          );
+        }
+      }
+      setBankTx(null);
     },
     onError: (error) =>
       toast.error(error instanceof ApiError ? error.message : "Could not record the payment"),
@@ -91,13 +125,29 @@ export function LoanPaymentsPage() {
         amount: Number(prepayAmount),
         date: prepayDate,
         paymentModeId: prepayModeId!,
+        accountId: prepayAccountId,
       }),
-    onSuccess: () => {
+    onSuccess: async (result) => {
       toast.success("Prepayment recorded — pending instalments re-amortised");
       setPrepayAmount("");
       setPrepayDate("");
       setPrepayModeId(null);
+      setPrepayAccountId(null);
       invalidate();
+      if (prepayBankTx && result.settlementId) {
+        try {
+          await reconcileDebit(prepayBankTx.id, { existingPaymentId: result.settlementId });
+          toast.success("Linked to the bank transaction");
+          void queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? `Payment saved, but couldn't link the bank transaction: ${error.message}`
+              : "Payment saved, but couldn't link the bank transaction — link it from the Reconciliation Queue instead.",
+          );
+        }
+      }
+      setPrepayBankTx(null);
     },
     onError: (error) =>
       toast.error(error instanceof ApiError ? error.message : "Could not record the prepayment"),
@@ -205,6 +255,25 @@ export function LoanPaymentsPage() {
                 />
               </label>
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-1">
+                <span className="text-sm font-medium">Account</span>
+                <select
+                  className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+                  value={accountId ?? ""}
+                  aria-label="Account"
+                  onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">None</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <BankTransactionPicker selected={bankTx} onSelect={setBankTx} accountId={accountId} />
+            </div>
             <Button type="submit" disabled={!payReady || pay.isPending}>
               Record payment
             </Button>
@@ -237,9 +306,32 @@ export function LoanPaymentsPage() {
                 />
               </label>
             </div>
-            <PaymentModeSelect
-              value={prepayModeId}
-              onChange={(m) => setPrepayModeId(m?.id ?? null)}
+            <div className="grid grid-cols-2 gap-3">
+              <PaymentModeSelect
+                value={prepayModeId}
+                onChange={(m) => setPrepayModeId(m?.id ?? null)}
+              />
+              <label className="space-y-1">
+                <span className="text-sm font-medium">Account</span>
+                <select
+                  className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+                  value={prepayAccountId ?? ""}
+                  aria-label="Prepayment account"
+                  onChange={(e) => setPrepayAccountId(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">None</option>
+                  {accounts.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <BankTransactionPicker
+              selected={prepayBankTx}
+              onSelect={setPrepayBankTx}
+              accountId={prepayAccountId}
             />
             <Button type="submit" variant="outline" disabled={!prepayReady || prepay.isPending}>
               Record prepayment
@@ -265,11 +357,20 @@ export function LoanPaymentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {payments.map((p) => (
+                  {pagedPayments.map((p) => (
                     <PaymentRow key={p.id} payment={p} onReverse={() => void handleReverse(p.id)} />
                   ))}
                 </tbody>
               </table>
+              <div className="p-3">
+                <PaginationBar
+                  page={paymentsPage}
+                  pageCount={paymentsPageCount}
+                  total={paymentsTotal}
+                  onPageChange={setPaymentsPage}
+                  itemLabel="payments"
+                />
+              </div>
             </div>
           )}
         </>

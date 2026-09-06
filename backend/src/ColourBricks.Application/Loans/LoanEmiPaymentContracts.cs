@@ -12,7 +12,15 @@ public sealed record LoanEmiPaymentDto(
     long? AccountId,
     string? ReferenceNo,
     bool IsPrepayment,
-    string Status);
+    string Status,
+    /// <summary>
+    /// A reconciliation-anchor Settlement id, present only when the payment moved
+    /// money through an account — lets the caller optionally link this payment to a
+    /// bank transaction (<c>reconcile-debit</c>'s <c>existingPaymentId</c>) without
+    /// this table itself needing to know anything about reconciliation (client
+    /// request, 2026-09-06).
+    /// </summary>
+    long? SettlementId = null);
 
 /// <summary>
 /// Settle a scheduled instalment. <see cref="Amount"/> null pays the whole EMI; a

@@ -4,7 +4,7 @@ export type ThemeMode = "light" | "dark";
 export type ThemeAccent =
   | "slate"
   | "blue"
-  | "emerald"
+  | "brick"
   | "amber"
   | "violet"
   | "teal"
@@ -32,7 +32,7 @@ export const ACCENTS: {
 }[] = [
   { id: "slate", label: "Slate", swatch: "#188ae2" },
   { id: "blue", label: "Blue", swatch: "#2563eb" },
-  { id: "emerald", label: "Emerald", swatch: "#059669" },
+  { id: "brick", label: "Brick", swatch: "#8a3f2e" },
   { id: "amber", label: "Amber", swatch: "#c9820a" },
   { id: "violet", label: "Violet", swatch: "#7c3aed" },
   { id: "teal", label: "Teal", swatch: "#0d9488" },

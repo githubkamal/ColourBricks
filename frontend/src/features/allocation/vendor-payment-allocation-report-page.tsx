@@ -24,7 +24,7 @@ export function VendorPaymentAllocationReportPage() {
   const [openSettlement, setOpenSettlement] = useState<number | null>(null);
 
   const vendor: PartySearchItem | null = vendorId
-    ? { id: Number(vendorId), name: vendorName, types: [], category: null }
+    ? { id: Number(vendorId), name: vendorName, types: [], category: null, isActive: true }
     : null;
 
   function setVendor(party: PartySearchItem | null) {

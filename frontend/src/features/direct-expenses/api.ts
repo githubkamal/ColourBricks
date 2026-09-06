@@ -21,6 +21,8 @@ export interface DirectExpense {
   paidImmediately: boolean;
   description: string | null;
   status: string;
+  /** Present only when paid immediately through an account — lets it be linked to a bank transaction. */
+  settlementId: number | null;
 }
 
 export interface RecordDirectExpenseInput {

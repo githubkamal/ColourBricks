@@ -1,7 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getProject, listProjects } from "@/features/projects/api";
+import { useState } from "react";
+import { getProject } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
 import { PageHeader } from "@/components/ui/page-header";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import { DonationOutstandingPanel } from "./donation-outstanding-panel";
@@ -9,39 +12,28 @@ import { ProjectDonationForm } from "./project-donation-form";
 
 export function DonationsPage() {
   const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
+  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(
+    undefined,
+  );
 
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forDonations: true }],
-    queryFn: () => listProjects({ pageSize: 100 }),
-  });
-
-  const { data: project } = useQuery({
+  const { data: restoredProject } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
     enabled: projectId !== 0,
   });
+  const project = manualProject !== undefined ? manualProject : (restoredProject ?? null);
+
+  function handleSelect(next: ProjectListItem | null) {
+    setManualProject(next);
+    setProjectId(next?.id ?? 0);
+  }
 
   return (
     <div className="max-w-xl space-y-6">
       <PageHeader title="Project Donations" />
 
       <div className="bg-card max-w-xs rounded border p-4">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Project</span>
-          <select
-            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
-            value={projectId || ""}
-            aria-label="Project"
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
-          >
-            <option value="">Select a project…</option>
-            {projects?.items.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ProjectPicker selected={project} onSelect={handleSelect} label="Project" />
       </div>
 
       {project && (

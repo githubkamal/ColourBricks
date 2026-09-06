@@ -5,48 +5,31 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
-import { listProjects } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import { listReceipts, projectIncomeTotal, recordReceipt, reverseReceipt } from "./api";
 import { INCOME_TYPES, INCOME_TYPE_LABELS, type IncomeType } from "./types";
 
 export function ProjectIncomePage() {
-  const [projectId, setProjectId] = useState<number | "">("");
-
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forIncome: true }],
-    queryFn: () => listProjects({ pageSize: 100 }),
-  });
+  const [project, setProject] = useState<ProjectListItem | null>(null);
 
   return (
     <div className="max-w-3xl space-y-6">
       <h1 className="text-lg font-semibold">Project Income</h1>
 
       <div className="bg-card max-w-xs rounded border p-4">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Project</span>
-          <select
-            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
-            value={projectId}
-            aria-label="Project"
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
-          >
-            <option value="">Select a project…</option>
-            {projects?.items.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ProjectPicker selected={project} onSelect={setProject} label="Project" />
       </div>
 
-      {projectId !== "" && <ProjectIncome projectId={projectId} />}
+      {project && <ProjectIncome projectId={project.id} />}
     </div>
   );
 }
@@ -70,6 +53,13 @@ function ProjectIncome({ projectId }: { projectId: number }) {
     queryKey: ["receipts", projectId],
     queryFn: () => listReceipts(projectId),
   });
+  const {
+    pageRows: pagedReceipts,
+    page: receiptsPage,
+    setPage: setReceiptsPage,
+    pageCount: receiptsPageCount,
+    total: receiptsTotal,
+  } = usePagination(receipts, 20);
   const { data: total } = useQuery({
     queryKey: ["income-total", projectId],
     queryFn: () => projectIncomeTotal(projectId),
@@ -232,7 +222,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
                 </td>
               </tr>
             )}
-            {receipts.map((r) => (
+            {pagedReceipts.map((r) => (
               <tr key={r.id} className="border-b last:border-0">
                 <td className="p-2">{formatDate(r.date)}</td>
                 <td className="text-muted-foreground p-2">{INCOME_TYPE_LABELS[r.type]}</td>
@@ -257,6 +247,14 @@ function ProjectIncome({ projectId }: { projectId: number }) {
           </tbody>
         </table>
       </div>
+
+      <PaginationBar
+        page={receiptsPage}
+        pageCount={receiptsPageCount}
+        total={receiptsTotal}
+        onPageChange={setReceiptsPage}
+        itemLabel="receipts"
+      />
     </div>
   );
 }

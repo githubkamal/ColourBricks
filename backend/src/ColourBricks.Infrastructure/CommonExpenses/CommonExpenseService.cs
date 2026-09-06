@@ -3,6 +3,7 @@ using ColourBricks.Application.Ledger;
 using ColourBricks.Application.Payments;
 using ColourBricks.Domain.CommonExpenses;
 using ColourBricks.Domain.Services;
+using ColourBricks.Domain.Settlements;
 using ColourBricks.Infrastructure.Persistence;
 using FluentValidation;
 using FluentValidation.Results;
@@ -60,6 +61,27 @@ public sealed class CommonExpenseService(
             Status = CommonExpenseStatus.Active,
         };
         db.Set<CommonExpense>().Add(expense);
+
+        // A reconciliation anchor only, no ledger legs of its own (client request,
+        // 2026-09-06) — lets this expense optionally be linked to a bank transaction
+        // via the existing reconcile-debit flow. The real posting below is unchanged.
+        Settlement? anchor = null;
+        if (request.AccountId is { } anchorAccountId)
+        {
+            anchor = new Settlement
+            {
+                Direction = SettlementDirection.Out,
+                Date = expense.Date,
+                Amount = expense.Amount,
+                PaymentModeId = expense.PaymentModeId,
+                AccountId = anchorAccountId,
+                ReferenceNo = expense.ReferenceNo,
+                Description = $"{type} expense (reconciliation anchor)",
+                Status = SettlementStatus.Active,
+            };
+            db.Settlements.Add(anchor);
+        }
+
         await db.SaveChangesAsync(ct);
 
         long category = await categories.RequireIdAsync(CategorySlug[type], ct);
@@ -76,7 +98,7 @@ public sealed class CommonExpenseService(
 
         await ledger.PostAsync(new LedgerPosting(SourceType, expense.Id, request.Date, legs), ct);
 
-        return ToDto(expense);
+        return ToDto(expense, anchor?.Id);
     }
 
     public async Task<IReadOnlyList<CommonExpenseDto>> ListAsync(CommonExpenseQuery q, CancellationToken ct)
@@ -102,7 +124,7 @@ public sealed class CommonExpenseService(
         List<CommonExpense> rows = await query
             .OrderByDescending(e => e.Date).ThenByDescending(e => e.Id)
             .ToListAsync(ct);
-        return rows.Select(ToDto).ToList();
+        return rows.Select(e => ToDto(e)).ToList();
     }
 
     public async Task<CommonExpenseSummaryDto> SummaryAsync(DateOnly? from, DateOnly? to, CancellationToken ct)
@@ -159,9 +181,9 @@ public sealed class CommonExpenseService(
         return true;
     }
 
-    private static CommonExpenseDto ToDto(CommonExpense e) => new(
+    private static CommonExpenseDto ToDto(CommonExpense e, long? settlementId = null) => new(
         e.Id, e.Type.ToString(), e.SubCategory, e.Date, e.Amount, e.PaymentModeId, e.AccountId,
-        e.ReferenceNo, e.Description, e.Status.ToString());
+        e.ReferenceNo, e.Description, e.Status.ToString(), settlementId);
 
     private static ValidationException Fail(string field, string message) =>
         new([new ValidationFailure(field, message)]);

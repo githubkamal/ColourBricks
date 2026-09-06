@@ -124,6 +124,7 @@ export function ItemPicker({
           unit: defaultUnit,
           defaultRate: 0,
           taxRate: 0,
+          isActive: true,
         });
       }
     } catch (error) {
@@ -154,6 +155,7 @@ export function ItemPicker({
           unit: defaultUnit,
           defaultRate: 0,
           taxRate: 0,
+          isActive: true,
         });
       }
       return;
@@ -168,6 +170,7 @@ export function ItemPicker({
           unit: defaultUnit,
           defaultRate: 0,
           taxRate: 0,
+          isActive: true,
         });
       return;
     }
@@ -272,6 +275,7 @@ export function ItemPicker({
                       unit: defaultUnit,
                       defaultRate: 0,
                       taxRate: 0,
+                      isActive: true,
                     })
                   }
                 >
@@ -320,6 +324,7 @@ export function ItemPicker({
                           unit: defaultUnit,
                           defaultRate: 0,
                           taxRate: 0,
+                          isActive: true,
                         })
                       }
                     >

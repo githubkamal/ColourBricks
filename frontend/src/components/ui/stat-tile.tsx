@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import type { LucideIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -20,14 +21,21 @@ export function StatTile({
   label,
   value,
   tone,
+  icon: Icon,
   className,
 }: {
   label: string;
   value: React.ReactNode;
+  icon?: LucideIcon;
 } & VariantProps<typeof statValueVariants> & { className?: string }) {
   return (
     <div className={cn("bg-card border-border rounded-xl border p-4 shadow-xs", className)}>
-      <p className="text-muted-foreground text-xs">{label}</p>
+      <div className="flex items-center gap-1.5">
+        {Icon && (
+          <Icon aria-hidden="true" className="text-muted-foreground size-3.5 shrink-0 stroke-[2.5]" />
+        )}
+        <p className="text-muted-foreground text-xs font-semibold">{label}</p>
+      </div>
       <p className={statValueVariants({ tone })}>{value}</p>
     </div>
   );

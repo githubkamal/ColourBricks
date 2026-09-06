@@ -106,6 +106,8 @@ export interface LoanEmiPayment {
   referenceNo: string | null;
   isPrepayment: boolean;
   status: string;
+  /** Present only when paid through an account — lets it be linked to a bank transaction. */
+  settlementId: number | null;
 }
 
 export interface PayEmiInput {

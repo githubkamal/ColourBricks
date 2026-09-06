@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -8,7 +8,8 @@ import { ItemPicker } from "@/features/items/item-picker";
 import type { ItemSearchItem } from "@/features/items/types";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
-import { listProjects } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,13 +17,13 @@ import { ApiError } from "@/lib/api";
 import { createPurchaseOrder, type PurchaseOrderLineInput } from "./api";
 
 interface Row {
-  projectId: number | "";
+  project: ProjectListItem | null;
   item: ItemSearchItem | null;
   quantity: string;
   unit: string;
 }
 
-const emptyRow = (): Row => ({ projectId: "", item: null, quantity: "", unit: "" });
+const emptyRow = (): Row => ({ project: null, item: null, quantity: "", unit: "" });
 
 export function PurchaseOrderFormPage() {
   const router = useRouter();
@@ -31,11 +32,6 @@ export function PurchaseOrderFormPage() {
   const [notes, setNotes] = useState("");
   const [rows, setRows] = useState<Row[]>([emptyRow()]);
 
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forPurchaseOrders: true }],
-    queryFn: () => listProjects({ pageSize: 200 }),
-  });
-
   const create = useMutation({
     mutationFn: () =>
       createPurchaseOrder({
@@ -43,7 +39,7 @@ export function PurchaseOrderFormPage() {
         orderDate,
         notes: notes.trim() || null,
         lines: rows.map<PurchaseOrderLineInput>((r) => ({
-          projectId: Number(r.projectId),
+          projectId: r.project!.id,
           itemId: r.item?.id ?? null,
           itemName: r.item!.name,
           quantity: Number(r.quantity),
@@ -66,7 +62,7 @@ export function PurchaseOrderFormPage() {
     vendor !== null &&
     orderDate !== "" &&
     rows.every(
-      (r) => r.projectId !== "" && r.item !== null && Number(r.quantity) > 0 && r.unit.trim(),
+      (r) => r.project !== null && r.item !== null && Number(r.quantity) > 0 && r.unit.trim(),
     );
 
   return (
@@ -117,38 +113,20 @@ export function PurchaseOrderFormPage() {
             {rows.map((row, i) => (
               <tr key={i}>
                 <td className="py-1 pr-2">
-                  <select
-                    className="bg-card w-full rounded border px-2 py-1.5 text-sm"
-                    aria-label={`Project ${i + 1}`}
-                    value={row.projectId}
-                    onChange={(e) =>
-                      setRows((rs) =>
-                        rs.map((r, j) =>
-                          j === i
-                            ? { ...r, projectId: e.target.value ? Number(e.target.value) : "" }
-                            : r,
-                        ),
-                      )
+                  <ProjectPicker
+                    selected={row.project}
+                    ariaLabel={`Project ${i + 1}`}
+                    onSelect={(project) =>
+                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, project } : r)))
                     }
-                  >
-                    <option value="">Select…</option>
-                    {projects?.items.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} — {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </td>
                 <td className="py-1 pr-2">
                   <ItemPicker
                     selected={row.item}
                     ariaLabel={`itemName ${i + 1}`}
                     onSelect={(item) =>
-                      setRows((rs) =>
-                        rs.map((r, j) =>
-                          j === i ? { ...r, item, unit: r.unit || (item?.unit ?? "") } : r,
-                        ),
-                      )
+                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, item } : r)))
                     }
                   />
                 </td>

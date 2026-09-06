@@ -7,7 +7,10 @@ import { listProjects } from "@/features/projects/api";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { usePagination } from "@/lib/use-pagination";
 import {
   assignProjects,
   createUser,
@@ -33,6 +36,7 @@ export function UsersPage() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["users"] });
 
   const { data: users, isPending } = useQuery({ queryKey: ["users"], queryFn: () => listUsers() });
+  const { pageRows: pagedUsers, page, setPage, pageCount, total } = usePagination(users, 20);
   const { data: roles = [] } = useQuery({ queryKey: ["user-roles"], queryFn: listRoles });
   const [editingId, setEditingId] = useState<number | null>(null);
   const { confirm, dialog } = useConfirmDialog();
@@ -95,7 +99,7 @@ export function UsersPage() {
                 </td>
               </tr>
             )}
-            {users?.map((user) => (
+            {pagedUsers.map((user) => (
               <Fragment key={user.id}>
                 <tr className="border-b last:border-0">
                   <td className="p-2">{user.name}</td>
@@ -187,6 +191,14 @@ export function UsersPage() {
           </tbody>
         </table>
       </div>
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="users"
+      />
     </div>
   );
 }
@@ -291,10 +303,15 @@ function UserEditor({
   const [mobile, setMobile] = useState(user.mobile ?? "");
   const [roleId, setRoleId] = useState<number | "">(user.roleId ?? "");
   const [projectIds, setProjectIds] = useState<number[]>(user.assignedProjectIds);
+  const [projectSearch, setProjectSearch] = useState("");
+  const debouncedProjectSearch = useDebouncedValue(projectSearch, 200);
 
+  // Search-as-you-type rather than fetching every project up front (client
+  // request, 2026-09-07) — a flat checkbox list of hundreds/thousands of
+  // projects is unusable either way.
   const { data: projects } = useQuery({
-    queryKey: ["projects", { forUserAssignment: true }],
-    queryFn: () => listProjects({ pageSize: 200 }),
+    queryKey: ["projects", { forUserAssignment: true, search: debouncedProjectSearch }],
+    queryFn: () => listProjects({ search: debouncedProjectSearch || undefined, pageSize: 50 }),
   });
 
   const save = useMutation({
@@ -375,6 +392,18 @@ function UserEditor({
         <legend className="text-sm font-medium">
           Project access <span className="text-muted-foreground">(none = all projects)</span>
         </legend>
+        {projectIds.length > 0 && (
+          <p className="text-muted-foreground text-xs">
+            {projectIds.length} project{projectIds.length === 1 ? "" : "s"} selected
+          </p>
+        )}
+        <Input
+          value={projectSearch}
+          onChange={(e) => setProjectSearch(e.target.value)}
+          placeholder="Search projects by code or name…"
+          aria-label="Search projects"
+          className="h-8"
+        />
         <div className="bg-card grid max-h-40 grid-cols-2 gap-1 overflow-auto rounded border p-2">
           {projects?.items.map((project) => (
             <label key={project.id} className="flex items-center gap-2 text-sm">

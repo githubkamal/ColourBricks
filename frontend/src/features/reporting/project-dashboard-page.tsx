@@ -2,11 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { dataState } from "@/components/ui/data-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/format";
 import { projectDashboard } from "./api";
+import { tileIcon } from "./tile-icon";
+import { tileTone } from "./tile-tone";
+import { TotalRevenueChart } from "./total-revenue-chart";
 
 const PERCENT_KEYS = new Set(["profitPercent", "budgetUtilisationPercent"]);
 
@@ -34,22 +38,22 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
     <div className="max-w-5xl space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader title={`${data.projectName} — dashboard`} />
-        <nav className="text-muted-foreground flex gap-3 text-sm">
+        <nav className="flex flex-wrap gap-2">
           <Link
-            className="hover:text-foreground hover:underline"
             href={`/projects/${projectId}/budget-vs-actual`}
+            className={buttonVariants({ variant: "default", size: "sm" })}
           >
             Budget vs actual
           </Link>
           <Link
-            className="hover:text-foreground hover:underline"
             href={`/projects/${projectId}/financial-ledger`}
+            className={buttonVariants({ variant: "default", size: "sm" })}
           >
             Ledger
           </Link>
           <Link
-            className="hover:text-foreground hover:underline"
             href={`/projects/${projectId}/pnl`}
+            className={buttonVariants({ variant: "default", size: "sm" })}
           >
             P&amp;L
           </Link>
@@ -65,10 +69,13 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
             key={t.key}
             label={t.label}
             value={PERCENT_KEYS.has(t.key) ? `${t.value.toFixed(2)}%` : formatINR(t.value)}
-            tone={t.key === "profitPercent" ? (t.value < 0 ? "negative" : "positive") : undefined}
+            tone={tileTone(t.key, t.value)}
+            icon={tileIcon(t.key)}
           />
         ))}
       </div>
+
+      <TotalRevenueChart data={data.monthlyFlow} />
 
       <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
         <table className="w-full text-sm">

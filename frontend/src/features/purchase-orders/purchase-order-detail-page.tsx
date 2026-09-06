@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import { listProjects } from "@/features/projects/api";
+import { ProjectPicker, type ProjectPickerSelection } from "@/features/projects/project-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -23,7 +23,7 @@ import {
 
 interface DraftRow {
   id?: number;
-  projectId: number | "";
+  project: ProjectPickerSelection | null;
   itemName: string;
   quantity: string;
   unit: string;
@@ -116,18 +116,13 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
   const [rows, setRows] = useState<DraftRow[]>(
     po.lines.map((l) => ({
       id: l.id,
-      projectId: l.projectId,
+      project: { id: l.projectId, name: l.projectName },
       itemName: l.itemName,
       quantity: String(l.quantity),
       unit: l.unit,
     })),
   );
   const [submitting, setSubmitting] = useState(false);
-
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forPurchaseOrders: true }],
-    queryFn: () => listProjects({ pageSize: 200 }),
-  });
 
   const save = useMutation({
     mutationFn: () =>
@@ -136,7 +131,7 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
         notes: po.notes,
         concurrencyStamp: po.concurrencyStamp,
         lines: rows.map<PurchaseOrderLineInput>((r) => ({
-          projectId: Number(r.projectId),
+          projectId: r.project!.id,
           itemName: r.itemName.trim(),
           quantity: Number(r.quantity),
           unit: r.unit.trim(),
@@ -150,7 +145,7 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
   });
 
   const linesReady = rows.every(
-    (r) => r.projectId !== "" && r.itemName.trim() && Number(r.quantity) > 0 && r.unit.trim(),
+    (r) => r.project !== null && r.itemName.trim() && Number(r.quantity) > 0 && r.unit.trim(),
   );
 
   return (
@@ -170,27 +165,13 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
             {rows.map((row, i) => (
               <tr key={i}>
                 <td className="py-1 pr-2">
-                  <select
-                    className="bg-card w-full rounded border px-2 py-1.5 text-sm"
-                    aria-label={`Project ${i + 1}`}
-                    value={row.projectId}
-                    onChange={(e) =>
-                      setRows((rs) =>
-                        rs.map((r, j) =>
-                          j === i
-                            ? { ...r, projectId: e.target.value ? Number(e.target.value) : "" }
-                            : r,
-                        ),
-                      )
+                  <ProjectPicker
+                    selected={row.project}
+                    ariaLabel={`Project ${i + 1}`}
+                    onSelect={(project) =>
+                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, project } : r)))
                     }
-                  >
-                    <option value="">Select…</option>
-                    {projects?.items.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.code} — {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </td>
                 {(["itemName", "quantity", "unit"] as const).map((field) =>
                   field === "quantity" ? (
@@ -240,7 +221,7 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
             variant="ghost"
             size="xs"
             onClick={() =>
-              setRows((rs) => [...rs, { projectId: "", itemName: "", quantity: "", unit: "" }])
+              setRows((rs) => [...rs, { project: null, itemName: "", quantity: "", unit: "" }])
             }
           >
             + Add line

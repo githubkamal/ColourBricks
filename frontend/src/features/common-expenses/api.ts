@@ -28,6 +28,8 @@ export interface CommonExpense {
   referenceNo: string | null;
   description: string | null;
   status: string;
+  /** Present only when paid through an account — lets it be linked to a bank transaction. */
+  settlementId: number | null;
 }
 
 export interface CommonExpenseSummary {

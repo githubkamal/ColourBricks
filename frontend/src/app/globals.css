@@ -167,21 +167,24 @@
   --sidebar-ring: #60a5fa;
 }
 
-:root[data-accent="emerald"] {
-  --primary: #059669;
+/* Brick — the same terracotta used on the login page's brand panel (client
+   request, 2026-09-06: replaces "Emerald" so the accent list doesn't carry
+   two greens alongside "Teal"). */
+:root[data-accent="brick"] {
+  --primary: #8a3f2e;
   --primary-foreground: #ffffff;
-  --ring: #6ee7b7;
-  --sidebar-primary: #059669;
+  --ring: #e0a08f;
+  --sidebar-primary: #8a3f2e;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-ring: #6ee7b7;
+  --sidebar-ring: #e0a08f;
 }
-:root.dark[data-accent="emerald"] {
-  --primary: #10b981;
+:root.dark[data-accent="brick"] {
+  --primary: #c2694f;
   --primary-foreground: #ffffff;
-  --ring: #34d399;
-  --sidebar-primary: #10b981;
+  --ring: #e0a08f;
+  --sidebar-primary: #c2694f;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-ring: #34d399;
+  --sidebar-ring: #e0a08f;
 }
 
 :root[data-accent="amber"] {
@@ -363,6 +366,20 @@
   html {
     @apply font-sans;
   }
+}
+
+/* Hover lift for content cards and grid/table containers app-wide — the shared
+   `bg-card … rounded-xl border` recipe used by every feature page's cards and
+   grids (client request, 2026-09-07). A plain selector on the existing utility
+   classes rather than a new one, so no page has to opt in individually. */
+.bg-card.rounded-xl.border {
+  transition:
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+.bg-card.rounded-xl.border:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 /* P8-T07 — print stylesheet for on-screen reports. Hide the app chrome and report

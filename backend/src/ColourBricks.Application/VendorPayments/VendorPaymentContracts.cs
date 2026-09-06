@@ -15,7 +15,7 @@ public sealed record VendorPaymentDto(
 
 public sealed record RecordVendorPaymentRequest(
     long VendorId,
-    long ProjectId,
+    long? ProjectId,
     DateOnly Date,
     decimal Amount,
     long PaymentModeId,

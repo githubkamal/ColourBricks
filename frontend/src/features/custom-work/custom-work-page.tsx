@@ -7,7 +7,10 @@ import { listAccounts } from "@/features/accounts/api";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
-import { listProjects } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
+import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
+import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -15,8 +18,10 @@ import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
+import { usePagination } from "@/lib/use-pagination";
 import { formatDate, formatINR } from "@/lib/format";
 import {
   listCustomWork,
@@ -27,37 +32,17 @@ import {
 } from "./api";
 
 export function CustomWorkPage() {
-  const [projectId, setProjectId] = useState<number | "">("");
-
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forCustomWork: true }],
-    queryFn: () => listProjects({ pageSize: 100 }),
-  });
+  const [project, setProject] = useState<ProjectListItem | null>(null);
 
   return (
     <div className="max-w-3xl space-y-6">
       <PageHeader title="Customized / Ad-hoc Work" />
 
       <div className="bg-card max-w-xs rounded border p-4">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Project</span>
-          <select
-            className="bg-card text-foreground w-full rounded border px-3 py-1.5 text-sm"
-            value={projectId}
-            aria-label="Project"
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
-          >
-            <option value="">Select a project…</option>
-            {projects?.items.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ProjectPicker selected={project} onSelect={setProject} label="Project" />
       </div>
 
-      {projectId !== "" && <CustomWorkForm projectId={projectId} />}
+      {project && <CustomWorkForm projectId={project.id} />}
     </div>
   );
 }
@@ -77,6 +62,7 @@ function CustomWorkForm({ projectId }: { projectId: number }) {
     queryKey: ["custom-work", projectId],
     queryFn: () => listCustomWork(projectId),
   });
+  const { pageRows: pagedEntries, page, setPage, pageCount, total } = usePagination(entries, 20);
 
   const record = useMutation({
     mutationFn: () =>
@@ -198,13 +184,21 @@ function CustomWorkForm({ projectId }: { projectId: number }) {
               </tr>
             </thead>
             <tbody>
-              {entries.map((w) => (
+              {pagedEntries.map((w) => (
                 <CustomWorkRow key={w.id} work={w} projectId={projectId} />
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="entries"
+      />
     </div>
   );
 }
@@ -311,10 +305,12 @@ function CustomWorkPaymentForm({
   customWorkId: number;
   onDone: () => void;
 }) {
+  const queryClient = useQueryClient();
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | "">("");
+  const [bankTx, setBankTx] = useState<ReconciliationRow | null>(null);
   const [touchedDate, setTouchedDate] = useState(false);
   const [touchedAmount, setTouchedAmount] = useState(false);
 
@@ -334,8 +330,21 @@ function CustomWorkPaymentForm({
         paymentModeId: paymentModeId!,
         accountId: accountId === "" ? null : accountId,
       }),
-    onSuccess: (result) => {
+    onSuccess: async (result) => {
       toast.success(`Paid ${formatINR(result.amount)}`);
+      if (bankTx) {
+        try {
+          await reconcileDebit(bankTx.id, { existingPaymentId: result.id });
+          toast.success("Linked to the bank transaction");
+          void queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? `Payment saved, but couldn't link the bank transaction: ${error.message}`
+              : "Payment saved, but couldn't link the bank transaction — link it from the Reconciliation Queue instead.",
+          );
+        }
+      }
       onDone();
     },
     onError: (error) =>
@@ -394,6 +403,13 @@ function CustomWorkPaymentForm({
           ))}
         </select>
       </label>
+      <div className="w-56">
+        <BankTransactionPicker
+          selected={bankTx}
+          onSelect={setBankTx}
+          accountId={accountId === "" ? null : accountId}
+        />
+      </div>
       <Button type="button" disabled={!ready || pay.isPending} onClick={() => pay.mutate()}>
         Record payment
       </Button>

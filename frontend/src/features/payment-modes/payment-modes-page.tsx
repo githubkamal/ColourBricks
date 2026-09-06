@@ -5,7 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
+import { usePagination } from "@/lib/use-pagination";
 import { createPaymentMode, listPaymentModes, updatePaymentMode } from "./api";
 import type { PaymentModeDto } from "./types";
 
@@ -17,6 +19,7 @@ export function PaymentModesPage() {
     queryKey: ["payment-modes", { includeInactive: true }],
     queryFn: () => listPaymentModes(true),
   });
+  const { pageRows, page, setPage, pageCount, total } = usePagination(data, 20);
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["payment-modes"] });
 
@@ -90,7 +93,7 @@ export function PaymentModesPage() {
                 </td>
               </tr>
             )}
-            {data?.map((mode) => (
+            {pageRows.map((mode) => (
               <tr key={mode.id} className="border-b last:border-0">
                 <td className="p-2">{mode.name}</td>
                 <td className="text-muted-foreground p-2">
@@ -118,6 +121,14 @@ export function PaymentModesPage() {
           </tbody>
         </table>
       </div>
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="payment modes"
+      />
     </div>
   );
 }

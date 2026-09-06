@@ -85,7 +85,10 @@ public sealed record ProjectDashboardDto(
     string ProjectName,
     IReadOnlyList<DashboardTileDto> Summary,
     IReadOnlyList<ExpenseBreakdownRowDto> ExpenseBreakdown,
-    decimal TotalExpenses);
+    decimal TotalExpenses,
+    /// <summary>Month-by-month income vs expense for this project (client request,
+    /// 2026-09-07) — same shape as the company dashboard's trend chart.</summary>
+    IReadOnlyList<MonthlyFlowDto> MonthlyFlow);
 
 // ── P5-T06 company dashboard ───────────────────────────────────────────────
 
@@ -116,5 +119,16 @@ public interface IReportingService
 
     Task<ProjectDashboardDto> ProjectDashboardAsync(long projectId, CancellationToken cancellationToken);
 
-    Task<CompanyDashboardDto> CompanyDashboardAsync(CancellationToken cancellationToken);
+    /// <summary>
+    /// <paramref name="period"/> is one of "Weekly", "Monthly" (default), "Yearly",
+    /// "Entire" (all time) or "Custom" — scopes the dashboard's flow figures (income,
+    /// expenses, profit, project profitability, the trend chart). Point-in-time
+    /// balances elsewhere on the dashboard are never date-scoped. When
+    /// <paramref name="period"/> is "Custom", <paramref name="dateFrom"/> and
+    /// <paramref name="dateTo"/> are used directly instead of being derived from the
+    /// period name (client request, 2026-09-07); they're ignored for every other
+    /// period value.
+    /// </summary>
+    Task<CompanyDashboardDto> CompanyDashboardAsync(
+        string period, DateOnly? dateFrom, DateOnly? dateTo, CancellationToken cancellationToken);
 }

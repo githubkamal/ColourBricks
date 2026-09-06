@@ -29,10 +29,24 @@ export function donationOutstanding(projectId: number): Promise<DonationTempleOu
   return apiClient.get<DonationTempleOutstanding[]>(`/projects/${projectId}/donation/outstanding`);
 }
 
+export interface DonationPayment {
+  id: number;
+  projectId: number;
+  templeId: number;
+  date: string;
+  amount: number;
+  paymentModeId: number;
+  accountId: number | null;
+  referenceNo: string | null;
+}
+
 export function payDonationTemple(
   projectId: number,
   templeId: number,
   input: { date: string; amount: number; paymentModeId: number; accountId?: number | null },
-): Promise<unknown> {
-  return apiClient.post(`/projects/${projectId}/donation/temples/${templeId}/payments`, input);
+): Promise<DonationPayment> {
+  return apiClient.post<DonationPayment>(
+    `/projects/${projectId}/donation/temples/${templeId}/payments`,
+    input,
+  );
 }

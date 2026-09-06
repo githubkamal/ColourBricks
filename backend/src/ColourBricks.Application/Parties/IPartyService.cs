@@ -16,4 +16,6 @@ public interface IPartyService
 
     Task<CreatePartyResult> CreateAsync(
         CreatePartyRequest request, bool confirmed, CancellationToken cancellationToken);
+
+    Task<PartyDto?> UpdateAsync(long id, UpdatePartyRequest request, CancellationToken cancellationToken);
 }

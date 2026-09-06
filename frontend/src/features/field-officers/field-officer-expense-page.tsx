@@ -14,9 +14,11 @@ import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import {
   listFieldOfficerExpenses,
@@ -69,6 +71,7 @@ export function FieldOfficerExpensePage() {
     queryFn: () => listFieldOfficerExpenses(officer!.id),
     enabled: officer !== null,
   });
+  const { pageRows: pagedBills, page, setPage, pageCount, total } = usePagination(bills, 20);
 
   const record = useMutation({
     mutationFn: () =>
@@ -266,7 +269,7 @@ export function FieldOfficerExpensePage() {
                 </tr>
               </thead>
               <tbody>
-                {bills.map((b) => (
+                {pagedBills.map((b) => (
                   <tr key={b.id} className="border-b last:border-0">
                     <td className="p-2">{formatDate(b.date)}</td>
                     <td className="p-2">{b.type}</td>
@@ -292,6 +295,16 @@ export function FieldOfficerExpensePage() {
             </table>
           </div>
         ))}
+
+      {officer && bills.length > 0 && (
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          onPageChange={setPage}
+          itemLabel="bills"
+        />
+      )}
     </div>
   );
 }

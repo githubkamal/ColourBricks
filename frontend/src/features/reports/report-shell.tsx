@@ -1,14 +1,16 @@
 "use client";
 
+import { ArrowDown, ArrowUp, ArrowUpDown, Download, FileText, Save } from "lucide-react";
 import { Fragment, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { getSystemSettings } from "@/features/admin/system-settings-api";
 import { attachmentPreviewUrl } from "@/features/attachments/api";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { formatINR } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   DATE_PRESETS,
   emptyFilter,
@@ -363,14 +365,18 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
           </label>
         )}
 
-        <Button type="button" variant="secondary" onClick={reset}>
+        <Button type="button" variant="reset" onClick={reset}>
           Reset filters
         </Button>
       </div>
 
       <div className="flex flex-wrap items-center gap-3 text-sm" data-report-controls>
         <details className="relative">
-          <summary className="cursor-pointer rounded border px-3 py-1.5">Columns</summary>
+          <summary
+            className={cn(buttonVariants({ variant: "filter" }), "list-none [&::-webkit-details-marker]:hidden")}
+          >
+            Columns
+          </summary>
           <div className="bg-background absolute z-10 mt-1 space-y-1 rounded border p-2 shadow">
             {columns.map((c) => (
               <label key={c.key} className="flex items-center gap-2 whitespace-nowrap">
@@ -402,25 +408,28 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
           </select>
         </label>
 
-        <button
+        <Button
           type="button"
-          className="rounded border px-3 py-1.5"
+          variant="export"
           title="Downloads a .csv file — opens directly in Excel, Google Sheets, etc."
           onClick={exportCsv}
         >
+          <Download />
           Export as CSV
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="rounded border px-3 py-1.5"
+          variant="export"
           title="Opens the print dialog — choose “Save as PDF” as the destination to export a PDF"
           onClick={() => window.print()}
         >
+          <FileText />
           Print / Export to PDF
-        </button>
-        <button type="button" className="rounded border px-3 py-1.5" onClick={saveView}>
+        </Button>
+        <Button type="button" variant="saveView" onClick={saveView}>
+          <Save />
           Save view
-        </button>
+        </Button>
         {views.length > 0 && (
           <select
             className="bg-card rounded border px-2 py-1"
@@ -452,7 +461,7 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
                     key={c.key}
                     className={
                       sortable
-                        ? "cursor-pointer p-2 font-medium select-none"
+                        ? "hover:text-violet-600 dark:hover:text-violet-400 cursor-pointer p-2 font-medium select-none transition-colors"
                         : "p-2 font-medium select-none"
                     }
                     onClick={sortable ? () => sortByColumn(c.key) : undefined}
@@ -476,8 +485,19 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
                     }
                     title={sortable ? undefined : "This column can't be sorted"}
                   >
-                    {c.header}
-                    {filter.sortBy === c.key ? (filter.sortDir === "desc" ? " ▼" : " ▲") : ""}
+                    <span className="inline-flex items-center gap-1">
+                      {c.header}
+                      {sortable &&
+                        (filter.sortBy === c.key ? (
+                          filter.sortDir === "desc" ? (
+                            <ArrowDown className="size-3.5 text-violet-600 dark:text-violet-400" />
+                          ) : (
+                            <ArrowUp className="size-3.5 text-violet-600 dark:text-violet-400" />
+                          )
+                        ) : (
+                          <ArrowUpDown className="text-muted-foreground/50 size-3.5" />
+                        ))}
+                    </span>
                   </th>
                 );
               })}

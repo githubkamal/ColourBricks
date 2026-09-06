@@ -8,17 +8,23 @@ import { ItemPicker } from "@/features/items/item-picker";
 import type { ItemSearchItem } from "@/features/items/types";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem, PartyType } from "@/features/parties/types";
-import { listProjects } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import {
   listVendorPurchases,
   recordVendorPurchase,
+  reverseVendorPurchase,
   vendorOutstanding,
   type PurchaseLineInput,
 } from "./api";
@@ -36,16 +42,11 @@ interface Row {
 const emptyRow = (): Row => ({ item: null, quantity: "", unit: "", rate: "", taxAmount: "" });
 
 export function VendorPurchasePage() {
-  const [projectId, setProjectId] = useState<number | "">("");
+  const [project, setProject] = useState<ProjectListItem | null>(null);
   // A field officer's project purchase posts through this exact same screen — he's
   // billed directly, no draft/PO stage, since he's already bought the item (client
   // request, 2026-09-04). "vendorId" throughout stays the party id either way.
   const [partyType, setPartyType] = useState<PartyType>("Vendor");
-
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forPurchases: true }],
-    queryFn: () => listProjects({ pageSize: 100 }),
-  });
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -64,28 +65,15 @@ export function VendorPurchasePage() {
             <option value="FieldOfficer">Field officer</option>
           </select>
         </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Project</span>
-          <select
-            className="bg-card text-foreground w-full rounded border px-3 py-1.5 text-sm"
-            value={projectId}
-            aria-label="Project"
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
-          >
-            <option value="">Select a project…</option>
-            {projects?.items.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <div className="min-w-56 flex-1">
+          <ProjectPicker selected={project} onSelect={setProject} label="Project" />
+        </div>
       </div>
 
-      {projectId !== "" && (
+      {project && (
         <PurchaseForm
-          key={`${projectId}-${partyType}`}
-          projectId={projectId}
+          key={`${project.id}-${partyType}`}
+          projectId={project.id}
           partyType={partyType}
         />
       )}
@@ -95,6 +83,7 @@ export function VendorPurchasePage() {
 
 function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: PartyType }) {
   const queryClient = useQueryClient();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [vendor, setVendor] = useState<PartySearchItem | null>(null);
   const [date, setDate] = useState("");
   const [invoiceNumber, setInvoiceNumber] = useState("");
@@ -104,6 +93,13 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
     queryKey: ["vendor-purchases", projectId],
     queryFn: () => listVendorPurchases(projectId),
   });
+  const {
+    pageRows: pagedPurchases,
+    page: purchasesPage,
+    setPage: setPurchasesPage,
+    pageCount: purchasesPageCount,
+    total: purchasesTotal,
+  } = usePagination(purchases, 20);
   const { data: outstanding } = useQuery({
     queryKey: ["vendor-outstanding", vendor?.id],
     queryFn: () => vendorOutstanding(vendor!.id),
@@ -148,6 +144,30 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
           : "Could not record",
       ),
   });
+
+  const reverse = useMutation({
+    mutationFn: (input: { id: number; reason: string }) =>
+      reverseVendorPurchase(input.id, input.reason),
+    onSuccess: () => {
+      toast.success("Purchase reversed");
+      void queryClient.invalidateQueries({ queryKey: ["vendor-purchases", projectId] });
+      void queryClient.invalidateQueries({ queryKey: ["vendor-outstanding", vendor?.id] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not reverse the purchase"),
+  });
+
+  async function handleReverse(id: number) {
+    const result = await confirm({
+      title: "Reverse this purchase?",
+      description: "This posts a reversing entry — the original record stays for the audit trail.",
+      inputLabel: "Reason",
+      inputPlaceholder: "e.g. Entered against the wrong project",
+      confirmLabel: "Reverse",
+      destructive: true,
+    });
+    if (result.confirmed && result.value) reverse.mutate({ id, reason: result.value });
+  }
 
   const ready =
     vendor !== null &&
@@ -232,18 +252,7 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
                     selected={row.item}
                     ariaLabel={`itemName ${i + 1}`}
                     onSelect={(item) =>
-                      setRows((rs) =>
-                        rs.map((r, j) =>
-                          j === i
-                            ? {
-                                ...r,
-                                item,
-                                unit: r.unit || (item?.unit ?? ""),
-                                rate: r.rate || (item ? String(item.defaultRate) : ""),
-                              }
-                            : r,
-                        ),
-                      )
+                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, item } : r)))
                     }
                   />
                 </td>
@@ -313,27 +322,51 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
 
       <div className="space-y-3">
         {dataState({ isEmpty: purchases.length === 0, emptyLabel: "No purchases yet." })}
-        {purchases.map((p) => (
+        {pagedPurchases.map((p) => (
           <div
             key={p.id}
             className="bg-card border-border space-y-2 rounded-xl border p-3 text-sm shadow-xs"
           >
-            <div className="flex justify-between">
+            <div className="flex items-center justify-between">
               <span>
                 {formatDate(p.date)} · {p.vendorName}
                 {p.invoiceNumber && (
                   <span className="text-muted-foreground"> · {p.invoiceNumber}</span>
                 )}
+                <span className="ml-2">
+                  <StatusBadge status={p.status} />
+                </span>
               </span>
-              <span>
+              <span className="flex items-center gap-2">
                 {formatINR(p.total)}
                 <span className="text-muted-foreground"> · paid {formatINR(p.partPaid)}</span>
+                {p.status.toLowerCase() === "active" && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="xs"
+                    disabled={reverse.isPending}
+                    onClick={() => void handleReverse(p.id)}
+                  >
+                    Reverse
+                  </Button>
+                )}
               </span>
             </div>
             <AttachmentPanel ownerType="VendorPurchase" ownerId={p.id} />
           </div>
         ))}
       </div>
+
+      <PaginationBar
+        page={purchasesPage}
+        pageCount={purchasesPageCount}
+        total={purchasesTotal}
+        onPageChange={setPurchasesPage}
+        itemLabel="purchases"
+      />
+
+      {confirmDialog}
     </div>
   );
 }

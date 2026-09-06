@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
+import { usePagination } from "@/lib/use-pagination";
 import { createAccount, listAccounts } from "./api";
 import type { AccountType } from "./types";
 
@@ -21,6 +23,7 @@ export function AccountsPage({ type }: { type: AccountType }) {
     queryKey: ["accounts", { type }],
     queryFn: () => listAccounts(type, true),
   });
+  const { pageRows, page, setPage, pageCount, total } = usePagination(data, 20);
 
   const add = useMutation({
     mutationFn: () =>
@@ -82,7 +85,7 @@ export function AccountsPage({ type }: { type: AccountType }) {
               </tr>
             </thead>
             <tbody>
-              {data?.map((account) => (
+              {pageRows.map((account) => (
                 <tr key={account.id} className="border-b last:border-0">
                   <td className="p-2">{account.name}</td>
                   {type === "Bank" && (
@@ -105,6 +108,14 @@ export function AccountsPage({ type }: { type: AccountType }) {
           </table>
         </div>
       )}
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="accounts"
+      />
     </div>
   );
 }

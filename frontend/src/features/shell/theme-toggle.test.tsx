@@ -42,10 +42,10 @@ describe("ThemeToggle", () => {
     renderToggle();
 
     fireEvent.click(screen.getByRole("button", { name: "Choose accent colour" }));
-    fireEvent.click(screen.getByRole("button", { name: "Emerald" }));
+    fireEvent.click(screen.getByRole("button", { name: "Brick" }));
 
-    expect(document.documentElement.getAttribute("data-accent")).toBe("emerald");
-    expect(window.localStorage.getItem("cb.themeAccent")).toBe("emerald");
+    expect(document.documentElement.getAttribute("data-accent")).toBe("brick");
+    expect(window.localStorage.getItem("cb.themeAccent")).toBe("brick");
   });
 
   it("ThemeToggle_DefaultsToLightAndSlate_WhenNothingStored", () => {

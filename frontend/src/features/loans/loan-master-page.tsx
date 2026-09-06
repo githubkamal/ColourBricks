@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
-import { listProjects } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -14,9 +15,11 @@ import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import { listLoans, recordLoan, reverseLoan, type Loan } from "./api";
 
 /** Loan Master (BRD §48): record a loan and see every loan on file. */
@@ -24,17 +27,14 @@ export function LoanMasterPage() {
   const queryClient = useQueryClient();
   const { confirm, dialog } = useConfirmDialog();
   const { data: accounts } = useQuery({ queryKey: ["accounts"], queryFn: () => listAccounts() });
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forLoans: true }],
-    queryFn: () => listProjects({ pageSize: 100 }),
-  });
   const { data: loans = [], isPending } = useQuery({
     queryKey: ["loans"],
     queryFn: () => listLoans(),
   });
+  const { pageRows: pagedLoans, page, setPage, pageCount, total } = usePagination(loans, 20);
 
   const [lender, setLender] = useState<PartySearchItem | null>(null);
-  const [projectId, setProjectId] = useState<number | "">("");
+  const [project, setProject] = useState<ProjectListItem | null>(null);
   const [principal, setPrincipal] = useState("");
   const [rate, setRate] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -88,7 +88,7 @@ export function LoanMasterPage() {
         emiStartDate,
         disbursementAccountId: Number(disbursementAccountId),
         disbursementDate,
-        projectId: projectId === "" ? null : projectId,
+        projectId: project?.id ?? null,
         emiAmount: emiAmount ? Number(emiAmount) : null,
         reference: reference.trim() || null,
         notes: notes.trim() || null,
@@ -96,7 +96,7 @@ export function LoanMasterPage() {
     onSuccess: (loan) => {
       toast.success(`Loan recorded: ${formatINR(loan.principalAmount)} from ${loan.lenderName}`);
       setLender(null);
-      setProjectId("");
+      setProject(null);
       setPrincipal("");
       setRate("");
       setStartDate("");
@@ -183,22 +183,11 @@ export function LoanMasterPage() {
       >
         <PartyPicker type="Lender" label="Lender" selected={lender} onSelect={setLender} />
 
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Project (optional)</span>
-          <select
-            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
-            value={projectId}
-            aria-label="Project"
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
-          >
-            <option value="">Company-wide (no project)</option>
-            {projects?.items.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ProjectPicker
+          selected={project}
+          onSelect={setProject}
+          label="Project (optional — leave blank for a company-wide loan)"
+        />
 
         <div className="grid grid-cols-2 gap-3">
           <label className="space-y-1">
@@ -360,13 +349,21 @@ export function LoanMasterPage() {
               </tr>
             </thead>
             <tbody>
-              {loans.map((loan) => (
+              {pagedLoans.map((loan) => (
                 <LoanRow key={loan.id} loan={loan} onReverse={() => void handleReverse(loan)} />
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="loans"
+      />
     </div>
   );
 }

@@ -10,7 +10,13 @@ public sealed record CommonExpenseDto(
     long? AccountId,
     string? ReferenceNo,
     string? Description,
-    string Status);
+    string Status,
+    /// <summary>
+    /// A reconciliation-anchor Settlement id, present only when the expense moved
+    /// money through an account — lets the caller optionally link it to a bank
+    /// transaction (client request, 2026-09-06).
+    /// </summary>
+    long? SettlementId = null);
 
 public sealed record RecordCommonExpenseRequest(
     string Type,

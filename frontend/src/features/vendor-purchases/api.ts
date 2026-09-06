@@ -68,3 +68,7 @@ export function vendorOutstanding(
 ): Promise<{ vendorId: number; outstanding: number }> {
   return apiClient.get(`/vendors/${vendorId}/outstanding`);
 }
+
+export function reverseVendorPurchase(id: number, reason: string): Promise<void> {
+  return apiClient.post(`/vendor-purchases/${id}/reverse`, { reason });
+}

@@ -53,11 +53,19 @@ export const navigation: NavSection[] = [
         permission: "projects.view",
       },
       { label: "Project Master", href: "/projects", permission: "projects.view" },
-      { label: "Project Ledger", href: "/projects", permission: "projects.view" },
+      {
+        label: "Project Ledger",
+        href: "/projects?intent=ledger",
+        permission: "projects.view",
+      },
       { label: "Project Income", href: "/project-income", permission: "project_income.view" },
       { label: "Project Expenses", href: "/project-expenses", permission: "project_expenses.view" },
-      { label: "Project Budget", href: "/projects", permission: "budget.view" },
-      { label: "Project Profit/Loss", href: "/projects", permission: "profit_loss.view" },
+      { label: "Project Budget", href: "/projects?intent=budget", permission: "budget.view" },
+      {
+        label: "Project Profit/Loss",
+        href: "/projects?intent=pnl",
+        permission: "profit_loss.view",
+      },
     ],
   },
   {
@@ -297,11 +305,19 @@ export const navigation: NavSection[] = [
   },
 ];
 
+/** Whether a granted permission set includes the given permission — "*" (an
+ * Administrator's role) always does, same rule everywhere a permission gates
+ * something in the UI. */
+export function hasPermission(granted: readonly string[], permission: string): boolean {
+  return granted.includes("*") || granted.includes(permission);
+}
+
 /** The sections and items the given permission set can see. */
 export function visibleNavigation(granted: readonly string[]): NavSection[] {
-  const canSee = (permission: string) => granted.includes("*") || granted.includes(permission);
-
   return navigation
-    .map((section) => ({ ...section, items: section.items.filter((i) => canSee(i.permission)) }))
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((i) => hasPermission(granted, i.permission)),
+    }))
     .filter((section) => section.items.length > 0);
 }

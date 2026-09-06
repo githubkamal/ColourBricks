@@ -5,12 +5,16 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
+import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
+import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import {
   SUB_CATEGORIES,
   commonExpenseSummary,
@@ -26,6 +30,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
   const [amount, setAmount] = useState("");
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | "">("");
+  const [bankTx, setBankTx] = useState<ReconciliationRow | null>(null);
   const [touchedDate, setTouchedDate] = useState(false);
   const [touchedAmount, setTouchedAmount] = useState(false);
 
@@ -37,6 +42,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
     queryKey: ["common-expenses", type],
     queryFn: () => listCommonExpenses(type),
   });
+  const { pageRows, page, setPage, pageCount, total } = usePagination(rows, 20);
   const { data: summary } = useQuery({
     queryKey: ["common-expense-summary"],
     queryFn: () => commonExpenseSummary(),
@@ -52,13 +58,27 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
         paymentModeId: paymentModeId!,
         accountId: accountId === "" ? null : accountId,
       }),
-    onSuccess: () => {
+    onSuccess: async (result) => {
       toast.success(`${type} expense recorded`);
       setAmount("");
       setTouchedDate(false);
       setTouchedAmount(false);
       void queryClient.invalidateQueries({ queryKey: ["common-expenses", type] });
       void queryClient.invalidateQueries({ queryKey: ["common-expense-summary"] });
+      if (bankTx && result.settlementId) {
+        try {
+          await reconcileDebit(bankTx.id, { existingPaymentId: result.settlementId });
+          toast.success("Linked to the bank transaction");
+          void queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? `Expense saved, but couldn't link the bank transaction: ${error.message}`
+              : "Expense saved, but couldn't link the bank transaction — link it from the Reconciliation Queue instead.",
+          );
+        }
+      }
+      setBankTx(null);
     },
     onError: (e) => toast.error(e instanceof ApiError ? e.message : "Could not save"),
   });
@@ -139,6 +159,11 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
             ))}
           </select>
         </label>
+        <BankTransactionPicker
+          selected={bankTx}
+          onSelect={setBankTx}
+          accountId={accountId === "" ? null : accountId}
+        />
         <Button type="button" disabled={!canSave || save.isPending} onClick={() => save.mutate()}>
           Record
         </Button>
@@ -161,7 +186,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
                 </td>
               </tr>
             )}
-            {rows.map((r) => (
+            {pageRows.map((r) => (
               <tr key={r.id} className="border-b last:border-0">
                 <td className="p-2">{formatDate(r.date)}</td>
                 <td className="p-2">{r.subCategory}</td>
@@ -171,6 +196,14 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
           </tbody>
         </table>
       </div>
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="expenses"
+      />
     </div>
   );
 }

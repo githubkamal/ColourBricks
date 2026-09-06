@@ -6,8 +6,10 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import {
   commitAllocation,
   listAllocationRuns,
@@ -33,6 +35,7 @@ export function AllocationRunPage() {
     queryKey: ["allocation-runs"],
     queryFn: listAllocationRuns,
   });
+  const { pageRows: pagedRuns, page, setPage, pageCount, total } = usePagination(runs, 20);
 
   const req = () => ({ periodFrom, periodTo, types, method });
 
@@ -181,7 +184,7 @@ export function AllocationRunPage() {
             </tr>
           </thead>
           <tbody>
-            {runs.map((r) => (
+            {pagedRuns.map((r) => (
               <tr key={r.id} className="border-b last:border-0">
                 <td className="p-2">
                   {formatDate(r.periodFrom)} – {formatDate(r.periodTo)}
@@ -215,6 +218,14 @@ export function AllocationRunPage() {
           </tbody>
         </table>
       </div>
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="runs"
+      />
     </div>
   );
 }

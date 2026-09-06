@@ -10,8 +10,14 @@ public sealed class ProjectBudgetsController(IProjectBudgetService budgets) : Co
 {
     [HttpGet]
     [HasPermission("budget.view")]
-    public Task<ProjectBudgetDto?> GetCurrent(long projectId, CancellationToken cancellationToken) =>
-        budgets.GetCurrentAsync(projectId, cancellationToken);
+    public async Task<IActionResult> GetCurrent(long projectId, CancellationToken cancellationToken)
+    {
+        // No revision yet is a normal, empty state (not 404) — return it as an
+        // explicit 200 with a JSON null body rather than a bare nullable return,
+        // whose serialization is otherwise ambiguous between frameworks/clients.
+        ProjectBudgetDto? dto = await budgets.GetCurrentAsync(projectId, cancellationToken);
+        return Ok(dto);
+    }
 
     [HttpGet("revisions")]
     [HasPermission("budget.view")]

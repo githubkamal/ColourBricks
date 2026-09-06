@@ -7,12 +7,14 @@ import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
-import { listProjects } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { formatDate, formatINR } from "@/lib/format";
@@ -53,21 +55,35 @@ export function ReconciliationPage() {
   const [accountId, setAccountId] = useState<number | "">("");
   // Deep-linkable via `?status=` (e.g. the Reconciled/Excluded Transactions nav
   // items) so a link can drop the user straight onto a filtered view of this
-  // same queue instead of always defaulting to Pending.
-  const [status, setStatus] = useState(() => searchParams?.get("status") || "Pending");
+  // same queue instead of always defaulting to Pending. The nav items all
+  // target this same route, so clicking between them (e.g. from "Reconciled
+  // Transactions" to "Excluded Transactions") is a same-route client
+  // navigation that doesn't remount this component — a plain `useState`
+  // initializer would only apply once and silently stop tracking the URL
+  // after that. Re-sync from the URL during render (not an effect) whenever
+  // it changes, while still letting the in-page Status select override it
+  // freely in between.
+  const urlStatus = searchParams?.get("status") || "Pending";
+  const [status, setStatus] = useState(urlStatus);
+  const [syncedUrlStatus, setSyncedUrlStatus] = useState(urlStatus);
+  if (urlStatus !== syncedUrlStatus) {
+    setSyncedUrlStatus(urlStatus);
+    setStatus(urlStatus);
+  }
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [mapRow, setMapRow] = useState<ReconciliationRow | null>(null);
+  const [page, setPage] = useState(1);
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", "recon"],
     queryFn: () => listAccounts(),
   });
   const { data: queue } = useQuery({
-    queryKey: ["reconciliation", accountId, status, dateFrom, dateTo, debouncedSearch],
+    queryKey: ["reconciliation", accountId, status, dateFrom, dateTo, debouncedSearch, page],
     queryFn: () =>
       reconciliationQueue({
         accountId: accountId || null,
@@ -75,6 +91,7 @@ export function ReconciliationPage() {
         dateFrom: dateFrom || null,
         dateTo: dateTo || null,
         search: debouncedSearch || null,
+        page,
       }),
   });
   const { data: transfers = [] } = useQuery({
@@ -157,7 +174,10 @@ export function ReconciliationPage() {
             className="bg-card block rounded border px-3 py-1.5 text-sm"
             aria-label="Account"
             value={accountId}
-            onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
+            onChange={(e) => {
+              setAccountId(e.target.value ? Number(e.target.value) : "");
+              setPage(1);
+            }}
           >
             <option value="">All accounts</option>
             {accounts.map((a) => (
@@ -173,7 +193,10 @@ export function ReconciliationPage() {
             className="bg-card block rounded border px-3 py-1.5 text-sm"
             aria-label="Status"
             value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
           >
             {["", "Pending", "InReview", "Reconciled", "Excluded", "InternalTransfer"].map((s) => (
               <option key={s} value={s}>
@@ -188,7 +211,10 @@ export function ReconciliationPage() {
             type="date"
             aria-label="From"
             value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
+            onChange={(e) => {
+              setDateFrom(e.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label className="space-y-1">
@@ -197,12 +223,22 @@ export function ReconciliationPage() {
             type="date"
             aria-label="To"
             value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
+            onChange={(e) => {
+              setDateTo(e.target.value);
+              setPage(1);
+            }}
           />
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Search</span>
-          <Input aria-label="Search" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input
+            aria-label="Search"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+          />
         </label>
       </div>
 
@@ -292,6 +328,16 @@ export function ReconciliationPage() {
           </tbody>
         </table>
       </div>
+
+      {queue && (
+        <PaginationBar
+          page={queue.page}
+          pageCount={queue.totalPages}
+          total={queue.totalCount}
+          onPageChange={setPage}
+          itemLabel="transactions"
+        />
+      )}
 
       <Dialog open={mapRow !== null} onOpenChange={(open) => !open && setMapRow(null)}>
         <DialogContent>
@@ -450,16 +496,10 @@ function MapPanel({ row, onDone }: { row: ReconciliationRow; onDone: () => void 
 
 function CreditMapForm({ row, onDone }: { row: ReconciliationRow; onDone: () => void }) {
   const [client, setClient] = useState<PartySearchItem | null>(null);
-  const [projectId, setProjectId] = useState<number | "">("");
-
-  const { data: projects } = useQuery({
-    queryKey: ["projects", "recon-panel"],
-    queryFn: () => listProjects({ status: "Ongoing", pageSize: 200 }),
-  });
+  const [project, setProject] = useState<ProjectListItem | null>(null);
 
   const creditMut = useMutation({
-    mutationFn: () =>
-      reconcileCredit(row.id, { clientId: client!.id, projectId: Number(projectId) }),
+    mutationFn: () => reconcileCredit(row.id, { clientId: client!.id, projectId: project!.id }),
     onSuccess: () => {
       toast.success("Reconciled");
       onDone();
@@ -470,25 +510,10 @@ function CreditMapForm({ row, onDone }: { row: ReconciliationRow; onDone: () => 
   return (
     <div className="flex flex-wrap items-end gap-3">
       <PartyPicker type="Client" label="Client" selected={client} onSelect={setClient} />
-      <label className="space-y-1">
-        <span className="text-sm font-medium">Project</span>
-        <select
-          className="bg-card block rounded border px-3 py-1.5 text-sm"
-          aria-label="Project"
-          value={projectId}
-          onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
-        >
-          <option value="">Select…</option>
-          {(projects?.items ?? []).map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      <ProjectPicker status="Ongoing" selected={project} onSelect={setProject} label="Project" />
       <Button
         type="button"
-        disabled={!client || projectId === "" || creditMut.isPending}
+        disabled={!client || !project || creditMut.isPending}
         onClick={() => creditMut.mutate()}
       >
         Reconcile {formatINR(row.credit)}
@@ -537,11 +562,6 @@ function DebitSplitForm({ row, onDone }: { row: ReconciliationRow; onDone: () =>
         }))
       : [emptyLine()],
   );
-
-  const { data: projects } = useQuery({
-    queryKey: ["projects", "recon-panel"],
-    queryFn: () => listProjects({ status: "Ongoing", pageSize: 200 }),
-  });
 
   const update = (i: number, patch: Partial<SplitLine>) =>
     setLines((cur) => cur.map((l, li) => (li === i ? { ...l, ...patch } : l)));
@@ -647,31 +667,13 @@ function DebitSplitForm({ row, onDone }: { row: ReconciliationRow; onDone: () =>
                 />
               )}
               {showsProjectPicker(l.target) && (
-                <label className="space-y-1">
-                  <span className="text-sm font-medium">
-                    {projectRequired(l.target) ? "Project" : "Project (optional — none = advance)"}
-                  </span>
-                  <select
-                    className="bg-card block rounded border px-3 py-1.5 text-sm"
-                    aria-label={`Project ${i + 1}`}
-                    value={l.project?.id ?? ""}
-                    onChange={(e) => {
-                      const p = (projects?.items ?? []).find(
-                        (x) => x.id === Number(e.target.value),
-                      );
-                      update(i, { project: p ? { id: p.id, name: p.name } : null });
-                    }}
-                  >
-                    <option value="">
-                      {projectRequired(l.target) ? "Select…" : "No project (advance)"}
-                    </option>
-                    {(projects?.items ?? []).map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <ProjectPicker
+                  status="Ongoing"
+                  label={projectRequired(l.target) ? "Project" : "Project (optional — none = advance)"}
+                  ariaLabel={`Project ${i + 1}`}
+                  selected={l.project}
+                  onSelect={(p) => update(i, { project: p ? { id: p.id, name: p.name } : null })}
+                />
               )}
             </div>
           )}

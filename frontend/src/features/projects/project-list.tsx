@@ -3,6 +3,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowDownAZ, ArrowUpAZ, CalendarRange, Plus } from "lucide-react";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -44,6 +45,27 @@ const STATUS_BAR: Record<ProjectStatus, string> = {
   Cancelled: "bg-negative",
 };
 
+/**
+ * The nav has separate "Project Ledger" / "Project Budget" / "Project
+ * Profit/Loss" entries, but each of those is a per-project sub-page (see
+ * TABS in project-detail.tsx) — there's no list-level ledger/budget/P&L
+ * view. So those nav links land here with an `intent` query param: it swaps
+ * in a hint banner and sends the card click straight to that sub-tab
+ * instead of the Overview tab, so the three links actually do something
+ * different from "Project Master" instead of rendering an identical list.
+ */
+const INTENTS = {
+  ledger: { label: "Financial Ledger", path: "financial-ledger" },
+  budget: { label: "Budget", path: "budget" },
+  pnl: { label: "Profit/Loss", path: "pnl" },
+} satisfies Record<string, { label: string; path: string }>;
+
+type Intent = keyof typeof INTENTS;
+
+function isIntent(value: string | null): value is Intent {
+  return value !== null && value in INTENTS;
+}
+
 /** Share of the timeline elapsed between start and expected end, clamped to [0, 100]. */
 function timelineProgress(project: ProjectListItem): number | null {
   if (project.status === "Completed") return 100;
@@ -59,7 +81,21 @@ function timelineProgress(project: ProjectListItem): number | null {
 }
 
 export function ProjectList() {
-  const [status, setStatus] = useState<ProjectStatus | undefined>(undefined);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // "status" and "intent" are driven by the URL, not local state — the nav's
+  // Ongoing/Completed/Ledger/Budget/Profit-Loss entries all link here with a
+  // query param, and since they're client-side navigations to the same route
+  // they don't remount this component, so reading them straight from the URL
+  // (rather than seeding a useState once) is what makes clicking between them
+  // actually change what's shown.
+  const statusParam = searchParams.get("status");
+  const status = PROJECT_STATUSES.find((s) => s.toLowerCase() === statusParam?.toLowerCase());
+  const intentParam = searchParams.get("intent");
+  const intent = isIntent(intentParam) ? intentParam : undefined;
+
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = useState(1);
@@ -72,13 +108,29 @@ export function ProjectList() {
     placeholderData: keepPreviousData,
   });
 
+  function setStatus(next: ProjectStatus | undefined) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next) {
+      params.set("status", next.toLowerCase());
+    } else {
+      params.delete("status");
+    }
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+    setPage(1);
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="font-heading text-2xl font-semibold">Projects</h1>
+          <h1 className="font-heading text-2xl font-semibold">
+            {intent ? `Projects — ${INTENTS[intent].label}` : "Projects"}
+          </h1>
           <p className="text-muted-foreground mt-0.5 text-sm">
-            Contract value, timeline and status across every build on the books.
+            {intent
+              ? `Pick a project to open its ${INTENTS[intent].label}.`
+              : "Contract value, timeline and status across every build on the books."}
           </p>
         </div>
         <Link href="/projects/new" className={buttonVariants({ size: "sm" })}>
@@ -90,22 +142,12 @@ export function ProjectList() {
       <div className="flex flex-wrap items-center gap-2">
         <StatusTab
           active={status === undefined}
-          onClick={() => {
-            setStatus(undefined);
-            setPage(1);
-          }}
+          onClick={() => setStatus(undefined)}
         >
           All{data ? ` (${data.totalCount})` : ""}
         </StatusTab>
         {PROJECT_STATUSES.map((s) => (
-          <StatusTab
-            key={s}
-            active={status === s}
-            onClick={() => {
-              setStatus(s);
-              setPage(1);
-            }}
-          >
+          <StatusTab key={s} active={status === s} onClick={() => setStatus(s)}>
             {PROJECT_STATUS_LABELS[s]}
           </StatusTab>
         ))}
@@ -170,7 +212,7 @@ export function ProjectList() {
       {data && data.items.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {data.items.map((project) => (
-            <ProjectCard key={project.id} project={project} />
+            <ProjectCard key={project.id} project={project} intent={intent} />
           ))}
         </div>
       )}
@@ -205,12 +247,15 @@ export function ProjectList() {
   );
 }
 
-function ProjectCard({ project }: { project: ProjectListItem }) {
+function ProjectCard({ project, intent }: { project: ProjectListItem; intent?: Intent }) {
   const progress = timelineProgress(project);
+  const href = intent
+    ? `/projects/${project.id}/${INTENTS[intent].path}`
+    : `/projects/${project.id}`;
 
   return (
     <Link
-      href={`/projects/${project.id}`}
+      href={href}
       className="bg-card border-border group flex flex-col gap-3 rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md"
     >
       <div className="flex items-start justify-between gap-2">

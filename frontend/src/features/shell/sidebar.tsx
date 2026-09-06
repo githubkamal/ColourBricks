@@ -120,13 +120,19 @@ function SidebarSection({
         />
       </button>
 
+      {/* A plain max-height collapse, not the grid-template-rows 0fr/1fr trick —
+          that relies on a grid row's minimum size respecting the item's
+          `min-height: 0`, and in practice left a sliver of the first item's
+          background visible after collapsing (reported by the client,
+          2026-09-07). `max-height: 0` has no such min-content interaction:
+          it's an unconditional clip, so nothing can bleed through. */}
       <div
         className={cn(
-          "grid transition-[grid-template-rows] duration-200 ease-out",
-          open ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+          "overflow-hidden transition-[max-height] duration-200 ease-out",
+          open ? "max-h-[600px]" : "max-h-0",
         )}
       >
-        <ul aria-hidden={!open} className="mt-0.5 min-h-0 space-y-0.5 overflow-hidden pb-2">
+        <ul aria-hidden={!open} className="mt-0.5 space-y-0.5 pb-2">
           {section.items.map((item) => {
             const itemActive = item.href === activeHref;
             return (

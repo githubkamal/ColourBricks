@@ -7,8 +7,10 @@ import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { dataState } from "@/components/ui/data-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import { listPurchaseOrders } from "./api";
 
 const STATUSES = ["Draft", "Submitted", "Cancelled"] as const;
@@ -21,6 +23,7 @@ export function PurchaseOrderListPage() {
     queryKey: ["purchase-orders", vendor?.id, status],
     queryFn: () => listPurchaseOrders(vendor?.id, status || undefined),
   });
+  const { pageRows: pagedOrders, page, setPage, pageCount, total } = usePagination(orders, 20);
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -67,7 +70,7 @@ export function PurchaseOrderListPage() {
               </tr>
             </thead>
             <tbody>
-              {orders.map((po) => (
+              {pagedOrders.map((po) => (
                 <tr key={po.id} className="border-b last:border-0">
                   <td className="p-2">
                     <Link
@@ -90,6 +93,14 @@ export function PurchaseOrderListPage() {
           </table>
         </div>
       )}
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="purchase orders"
+      />
     </div>
   );
 }

@@ -5,48 +5,51 @@ import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
-import { listProjects } from "@/features/projects/api";
+import { getProject } from "@/features/projects/api";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
+import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
+import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import { listExpenseCategories, listProjectExpenses, recordDirectExpense } from "./api";
 
 export function ProjectExpensesPage() {
   const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
-
-  const { data: projects } = useQuery({
-    queryKey: ["projects", { forExpenses: true }],
-    queryFn: () => listProjects({ pageSize: 100 }),
+  // `undefined` = the user hasn't picked in this session yet, so a deep-linked
+  // `?projectId=` still needs restoring (just the id survives a URL, not the
+  // project's code/name the picker displays).
+  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(
+    undefined,
+  );
+  const { data: restoredProject } = useQuery({
+    queryKey: ["project", projectId],
+    queryFn: () => getProject(projectId),
+    enabled: projectId > 0 && manualProject === undefined,
   });
+  const project = manualProject !== undefined ? manualProject : (restoredProject ?? null);
+
+  function handleSelect(next: ProjectListItem | null) {
+    setManualProject(next);
+    setProjectId(next?.id ?? 0);
+  }
 
   return (
     <div className="max-w-3xl space-y-6">
       <h1 className="text-lg font-semibold">Project Expenses</h1>
 
       <div className="bg-card max-w-xs rounded border p-4">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Project</span>
-          <select
-            className="bg-card w-full rounded border px-3 py-1.5 text-sm"
-            value={projectId || ""}
-            aria-label="Project"
-            onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : 0)}
-          >
-            <option value="">Select a project…</option>
-            {projects?.items.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.code} — {p.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <ProjectPicker selected={project} onSelect={handleSelect} label="Project" />
       </div>
 
-      {projectId !== 0 && <ExpenseForm projectId={projectId} />}
+      {project && <ExpenseForm projectId={project.id} />}
     </div>
   );
 }
@@ -60,6 +63,7 @@ function ExpenseForm({ projectId }: { projectId: number }) {
   const [paidImmediately, setPaidImmediately] = useState(false);
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | "">("");
+  const [bankTx, setBankTx] = useState<ReconciliationRow | null>(null);
   const [touchedDate, setTouchedDate] = useState(false);
   const [touchedAmount, setTouchedAmount] = useState(false);
   const categoryRef = useRef<HTMLSelectElement>(null);
@@ -78,6 +82,13 @@ function ExpenseForm({ projectId }: { projectId: number }) {
     queryKey: ["project-expenses", projectId],
     queryFn: () => listProjectExpenses(projectId),
   });
+  const {
+    pageRows: pagedExpenses,
+    page: expensesPage,
+    setPage: setExpensesPage,
+    pageCount: expensesPageCount,
+    total: expensesTotal,
+  } = usePagination(expenses, 20);
 
   const record = useMutation({
     mutationFn: () =>
@@ -91,13 +102,27 @@ function ExpenseForm({ projectId }: { projectId: number }) {
         accountId: paidImmediately && accountId !== "" ? accountId : null,
         description: description.trim() || null,
       }),
-    onSuccess: () => {
+    onSuccess: async (result) => {
       toast.success("Expense recorded");
       setAmount("");
       setDescription("");
       setTouchedDate(false);
       setTouchedAmount(false);
       void queryClient.invalidateQueries({ queryKey: ["project-expenses", projectId] });
+      if (bankTx && result.settlementId) {
+        try {
+          await reconcileDebit(bankTx.id, { existingPaymentId: result.settlementId });
+          toast.success("Linked to the bank transaction");
+          void queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? `Expense saved, but couldn't link the bank transaction: ${error.message}`
+              : "Expense saved, but couldn't link the bank transaction — link it from the Reconciliation Queue instead.",
+          );
+        }
+      }
+      setBankTx(null);
     },
     onError: (error) =>
       toast.error(error instanceof ApiError ? error.message : "Could not record the expense"),
@@ -219,6 +244,13 @@ function ExpenseForm({ projectId }: { projectId: number }) {
                 ))}
               </select>
             </label>
+            <div className="col-span-2">
+              <BankTransactionPicker
+                selected={bankTx}
+                onSelect={setBankTx}
+                accountId={accountId === "" ? null : accountId}
+              />
+            </div>
           </>
         )}
         <div className="col-span-2">
@@ -247,7 +279,7 @@ function ExpenseForm({ projectId }: { projectId: number }) {
                 </td>
               </tr>
             )}
-            {expenses.map((x) => (
+            {pagedExpenses.map((x) => (
               <tr key={x.id} className="border-b last:border-0">
                 <td className="p-2">{formatDate(x.date)}</td>
                 <td className="p-2">{x.categoryName}</td>
@@ -261,6 +293,14 @@ function ExpenseForm({ projectId }: { projectId: number }) {
           </tbody>
         </table>
       </div>
+
+      <PaginationBar
+        page={expensesPage}
+        pageCount={expensesPageCount}
+        total={expensesTotal}
+        onPageChange={setExpensesPage}
+        itemLabel="expenses"
+      />
     </div>
   );
 }

@@ -7,15 +7,19 @@ import { listAccounts } from "@/features/accounts/api";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
+import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
+import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { usePagination } from "@/lib/use-pagination";
 import {
   listVendorPayments,
   recordVendorPayment,
@@ -52,6 +56,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
   const [date, setDate] = useState("");
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | "">("");
+  const [bankTx, setBankTx] = useState<ReconciliationRow | null>(null);
   const { confirm, dialog } = useConfirmDialog();
 
   const { data: summary } = useQuery({
@@ -66,6 +71,13 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
     queryKey: ["vendor-payments", vendorId],
     queryFn: () => listVendorPayments(vendorId),
   });
+  const {
+    pageRows: pagedPayments,
+    page: paymentsPage,
+    setPage: setPaymentsPage,
+    pageCount: paymentsPageCount,
+    total: paymentsTotal,
+  } = usePagination(payments, 20);
 
   // Default to the vendor's first outstanding project without a state-in-effect.
   const projectId: number | "" =
@@ -81,16 +93,30 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
     mutationFn: () =>
       recordVendorPayment({
         vendorId,
-        projectId: Number(projectId),
+        projectId: projectId === "" ? null : Number(projectId),
         date,
         amount: Number(amount),
         paymentModeId: paymentModeId!,
         accountId: accountId === "" ? null : accountId,
       }),
-    onSuccess: () => {
+    onSuccess: async (result) => {
       toast.success("Payment recorded");
       setAmount("");
       invalidate();
+      if (bankTx) {
+        try {
+          await reconcileDebit(bankTx.id, { existingPaymentId: result.id });
+          toast.success("Linked to the bank transaction");
+          void queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? `Payment saved, but couldn't link the bank transaction: ${error.message}`
+              : "Payment saved, but couldn't link the bank transaction — link it from the Reconciliation Queue instead.",
+          );
+        }
+        setBankTx(null);
+      }
     },
     onError: (error) =>
       toast.error(
@@ -108,7 +134,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
       toast.error(error instanceof ApiError ? error.message : "Could not reverse the payment"),
   });
 
-  const ready = projectId !== "" && date !== "" && Number(amount) > 0 && paymentModeId !== null;
+  const ready = date !== "" && Number(amount) > 0 && paymentModeId !== null;
 
   return (
     <div className="space-y-6">
@@ -141,7 +167,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
             aria-label="Project"
             onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
           >
-            <option value="">Select…</option>
+            <option value="">No project (advance)</option>
             {summary?.byProject.map((line) => (
               <option key={line.projectId} value={line.projectId}>
                 {line.projectName} ({formatINR(line.outstanding)})
@@ -183,6 +209,13 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
           </select>
         </label>
         <div className="col-span-2">
+          <BankTransactionPicker
+            selected={bankTx}
+            onSelect={setBankTx}
+            accountId={accountId === "" ? null : accountId}
+          />
+        </div>
+        <div className="col-span-2">
           <Button type="submit" disabled={!ready || pay.isPending}>
             Record payment
           </Button>
@@ -201,7 +234,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
               </tr>
             </thead>
             <tbody>
-              {payments.map((p) => (
+              {pagedPayments.map((p) => (
                 <tr key={p.id} className="border-b last:border-0">
                   <td className="p-2">{formatDate(p.date)}</td>
                   <td className="p-2">{formatINR(p.amount)}</td>
@@ -236,6 +269,14 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
           </table>
         </div>
       )}
+
+      <PaginationBar
+        page={paymentsPage}
+        pageCount={paymentsPageCount}
+        total={paymentsTotal}
+        onPageChange={setPaymentsPage}
+        itemLabel="payments"
+      />
     </div>
   );
 }

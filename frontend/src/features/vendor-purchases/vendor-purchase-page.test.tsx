@@ -14,6 +14,7 @@ const cement: ItemSearchItem = {
   unit: "Bag",
   defaultRate: 400,
   taxRate: 18,
+  isActive: true,
 };
 const sand: ItemSearchItem = {
   id: 43,
@@ -22,11 +23,18 @@ const sand: ItemSearchItem = {
   unit: "Load",
   defaultRate: 15000,
   taxRate: 0,
+  isActive: true,
 };
 
 async function pickItem(label: string, item: ItemSearchItem) {
   fireEvent.change(screen.getByLabelText(label), { target: { value: item.name } });
   const option = await screen.findByRole("button", { name: new RegExp(`^${item.name} ·`) });
+  fireEvent.click(option);
+}
+
+async function pickProject(code: string, name: string) {
+  fireEvent.change(screen.getByLabelText("Project"), { target: { value: name } });
+  const option = await screen.findByRole("button", { name: `${code} — ${name}` });
   fireEvent.click(option);
 }
 
@@ -56,8 +64,7 @@ describe("VendorPurchasePage", () => {
 
     renderWithClient(<VendorPurchasePage />);
 
-    await screen.findByRole("option", { name: "CB-2026-016 — Section 16" });
-    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "3" } });
+    await pickProject("CB-2026-016", "Section 16");
 
     // BRD §16: 100 bags cement @ ₹400 + 2 loads sand @ ₹15,000 = ₹70,000.
     await pickItem("itemName 1", cement);
@@ -87,8 +94,7 @@ describe("VendorPurchasePage", () => {
     );
 
     renderWithClient(<VendorPurchasePage />);
-    await screen.findByRole("option", { name: "CB-2026-016 — Section 16" });
-    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "3" } });
+    await pickProject("CB-2026-016", "Section 16");
     expect(await screen.findByLabelText("Vendor")).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText("Bought by"), { target: { value: "FieldOfficer" } });

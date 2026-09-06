@@ -31,14 +31,19 @@ public sealed class VendorPaymentService(
             throw Fail("vendorId", "The vendor does not exist.");
         }
 
-        if (!await db.Projects.AnyAsync(p => p.Id == request.ProjectId, cancellationToken))
+        if (request.ProjectId is { } requestedProjectId
+            && !await db.Projects.AnyAsync(p => p.Id == requestedProjectId, cancellationToken))
         {
             throw Fail("projectId", "The project does not exist.");
         }
 
         long payableCategory = await categories.RequireIdAsync("vendor_payable", cancellationToken);
-        decimal projectOutstanding = await ledgerQuery.GetPartyPayableBalanceForProjectAsync(
-            request.VendorId, request.ProjectId, payableCategory, cancellationToken);
+        // No project chosen = nothing to settle against — the whole amount becomes an
+        // advance below, same as any amount that overshoots a chosen project's outstanding.
+        decimal projectOutstanding = request.ProjectId is { } pid
+            ? await ledgerQuery.GetPartyPayableBalanceForProjectAsync(
+                request.VendorId, pid, payableCategory, cancellationToken)
+            : 0m;
 
         // Anything over the project's outstanding is a vendor advance (BRD §25): it
         // settles the outstanding and the remainder is carried as a project-less credit.
@@ -104,8 +109,10 @@ public sealed class VendorPaymentService(
         await ledger.PostAsync(
             new LedgerPosting(SourceType, settlement.Id, request.Date, legs), cancellationToken);
 
-        decimal after = await ledgerQuery.GetPartyPayableBalanceForProjectAsync(
-            request.VendorId, request.ProjectId, payableCategory, cancellationToken);
+        decimal after = request.ProjectId is { } afterProjectId
+            ? await ledgerQuery.GetPartyPayableBalanceForProjectAsync(
+                request.VendorId, afterProjectId, payableCategory, cancellationToken)
+            : 0m;
 
         return ToDto(settlement, after, advancePortion);
     }

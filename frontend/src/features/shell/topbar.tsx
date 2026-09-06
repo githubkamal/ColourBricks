@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { logout } from "@/lib/auth";
+import { hasPermission } from "@/lib/navigation";
 import { NotificationBell } from "./notification-bell";
 import { ThemeToggle } from "./theme-toggle";
 import { useCurrentUser } from "./user-context";
@@ -67,7 +68,7 @@ export function Topbar({
       <span className="font-heading hidden font-semibold lg:inline">Colour Bricks</span>
 
       <div className="ml-auto flex min-w-0 items-center gap-3">
-        {user.permissions.includes("dashboard.view") && <NotificationBell />}
+        {hasPermission(user.permissions, "dashboard.view") && <NotificationBell />}
         <ThemeToggle />
         <span className="bg-border hidden h-5 w-px sm:block" aria-hidden="true" />
         <span className="text-muted-foreground hidden min-w-0 truncate text-sm sm:inline">

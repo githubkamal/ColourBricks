@@ -96,9 +96,10 @@ describe("BankImportReviewPage", () => {
     expect(screen.getByText(/1 row\(s\) still need a project mapping/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Commit 1 transaction/ })).toBeDisabled();
 
-    // The credit row offers a single project slot — no "+ project".
-    const creditProjectSelects = screen.getAllByLabelText(/Line 2 project/);
-    expect(creditProjectSelects).toHaveLength(1);
+    // The credit row offers a single project slot — no "+ project" — and it's
+    // already mapped to Project A, shown as one picked chip (not a labelled
+    // search input, since a value is already selected).
+    expect(await screen.findAllByText("Project A")).toHaveLength(1);
   });
 
   it("BankImportReview_EnablesCommit_WhenAllRowsReady", async () => {

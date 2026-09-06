@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiBaseUrl } from "@/lib/config";
+import { CurrentUserProvider } from "@/features/shell/user-context";
 import { server } from "@/test/msw/server";
 import { resetNavigationMock } from "@/test/next-navigation-mock";
 import { BudgetVsActualPage } from "./budget-vs-actual-page";
@@ -13,9 +14,23 @@ import { ProjectPnlPage } from "./project-pnl-page";
 
 vi.mock("next/navigation", () => import("@/test/next-navigation-mock"));
 
+const mockUser = {
+  id: 1,
+  name: "Test Admin",
+  email: "admin@colourbricks.local",
+  mobile: null,
+  roleId: 1,
+  departmentId: null,
+  permissions: ["*"],
+};
+
 function rc(ui: React.ReactElement) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+  return render(
+    <QueryClientProvider client={client}>
+      <CurrentUserProvider value={mockUser}>{ui}</CurrentUserProvider>
+    </QueryClientProvider>,
+  );
 }
 
 describe("reporting pages", () => {
@@ -38,6 +53,7 @@ describe("reporting pages", () => {
             { bucket: "Electrical", amount: 300000 },
           ],
           totalExpenses: 1500000,
+          monthlyFlow: [],
         }),
       ),
     );
@@ -63,7 +79,7 @@ describe("reporting pages", () => {
     );
     rc(<CompanyDashboardPage />);
     expect(await screen.findByText("Overall Income")).toBeInTheDocument();
-    expect(screen.getByText("Ongoing Projects").nextSibling).toHaveTextContent("3");
+    expect(screen.getByText("Ongoing Projects").parentElement?.nextSibling).toHaveTextContent("3");
   });
 
   it("BudgetVsActual_MarksOverAndOverrun", async () => {

@@ -58,8 +58,19 @@ export function listWork(projectId?: number, teamId?: number): Promise<WorkEntry
   return apiClient.get<WorkEntry[]>(`/labour/work${q ? `?${q}` : ""}`);
 }
 
-export function payWork(workId: number, input: PayWorkInput): Promise<unknown> {
-  return apiClient.post(`/labour/work/${workId}/payments`, input);
+export interface WorkPayment {
+  id: number;
+  workEntryId: number;
+  date: string;
+  amount: number;
+  frequency: PaymentFrequency;
+  paymentModeId: number;
+  accountId: number | null;
+  referenceNo: string | null;
+}
+
+export function payWork(workId: number, input: PayWorkInput): Promise<WorkPayment> {
+  return apiClient.post<WorkPayment>(`/labour/work/${workId}/payments`, input);
 }
 
 export function teamStatement(teamId: number): Promise<TeamStatementRow[]> {

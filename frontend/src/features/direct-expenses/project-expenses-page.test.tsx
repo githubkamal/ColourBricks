@@ -62,8 +62,8 @@ describe("ProjectExpensesPage", () => {
     );
 
     renderWithClient(<ProjectExpensesPage />);
-    await screen.findByRole("option", { name: "CB-2026-007 — Proj" });
-    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "7" } });
+    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "Proj" } });
+    fireEvent.click(await screen.findByRole("button", { name: "CB-2026-007 — Proj" }));
 
     // Category cell + Bucket cell both read "Electrical".
     expect(await screen.findAllByRole("cell", { name: "Electrical" })).toHaveLength(2);

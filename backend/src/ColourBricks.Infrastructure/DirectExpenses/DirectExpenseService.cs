@@ -2,6 +2,7 @@ using ColourBricks.Application.DirectExpenses;
 using ColourBricks.Application.Ledger;
 using ColourBricks.Application.Payments;
 using ColourBricks.Domain.Obligations;
+using ColourBricks.Domain.Settlements;
 using ColourBricks.Infrastructure.Persistence;
 using FluentValidation;
 using FluentValidation.Results;
@@ -50,6 +51,30 @@ public sealed class DirectExpenseService(
             Status = ObligationStatus.Active,
         };
         db.Obligations.Add(obligation);
+
+        // A reconciliation anchor only, no ledger legs of its own (client request,
+        // 2026-09-06) — lets an immediately-paid expense optionally be linked to a
+        // bank transaction via the existing reconcile-debit flow. The real posting
+        // below is unchanged; Project stays required for a Direct Expense either way.
+        Settlement? anchor = null;
+        if (request.PaidImmediately && request.AccountId is { } anchorAccountId)
+        {
+            anchor = new Settlement
+            {
+                Direction = SettlementDirection.Out,
+                ProjectId = request.ProjectId,
+                PartyId = request.PartyId,
+                Date = request.Date,
+                Amount = request.Amount,
+                PaymentModeId = request.PaymentModeId!.Value,
+                AccountId = anchorAccountId,
+                ReferenceNo = request.ReferenceNo,
+                Description = "Direct expense (reconciliation anchor)",
+                Status = SettlementStatus.Active,
+            };
+            db.Settlements.Add(anchor);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
         var legs = new List<LedgerLeg>
@@ -66,7 +91,9 @@ public sealed class DirectExpenseService(
         await ledger.PostAsync(
             new LedgerPosting(SourceType, obligation.Id, request.Date, legs), cancellationToken);
 
-        return (await ListAsync(request.ProjectId, cancellationToken)).First(e => e.Id == obligation.Id);
+        DirectExpenseDto dto = (await ListAsync(request.ProjectId, cancellationToken))
+            .First(e => e.Id == obligation.Id);
+        return dto with { SettlementId = anchor?.Id };
     }
 
     public async Task<IReadOnlyList<DirectExpenseDto>> ListAsync(

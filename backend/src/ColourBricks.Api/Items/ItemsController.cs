@@ -97,6 +97,22 @@ public sealed class ItemsController(IItemService items) : ControllerBase
         }
     }
 
+    [HttpPut("categories/{id:long}")]
+    [HasPermission("materials.edit")]
+    public async Task<ActionResult<ItemCategoryDto>> UpdateCategory(
+        long id, [FromBody] UpdateItemCategoryRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            ItemCategoryDto? updated = await items.UpdateCategoryAsync(id, request, cancellationToken);
+            return updated is null ? NotFound() : Ok(updated);
+        }
+        catch (ItemCategoryExactDuplicateException ex)
+        {
+            return Conflict409(ex.Message, ex.ExistingId);
+        }
+    }
+
     [HttpGet("units")]
     [HasPermission("materials.view")]
     public Task<IReadOnlyList<UnitDto>> Units(CancellationToken cancellationToken) =>

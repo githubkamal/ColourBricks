@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useQueryParam, useQueryParamNumber } from "@/lib/use-query-param";
 import { listAuditLogs, type AuditLogQuery } from "./audit-logs-api";
@@ -126,9 +127,9 @@ export function AuditLogsPage() {
             }}
           />
         </label>
-        <button type="button" className="rounded border px-3 py-1.5 text-sm" onClick={resetFilters}>
+        <Button type="button" variant="reset" onClick={resetFilters}>
           Reset filters
-        </button>
+        </Button>
       </div>
 
       <div className="bg-card overflow-x-auto rounded border">

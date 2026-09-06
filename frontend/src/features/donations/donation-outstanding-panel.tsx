@@ -5,6 +5,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
+import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
+import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Input } from "@/components/ui/input";
@@ -74,11 +76,13 @@ function TempleRow({
   outstanding: number;
   onPaid: () => void;
 }) {
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [date, setDate] = useState("");
   const [amount, setAmount] = useState("");
   const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
   const [accountId, setAccountId] = useState<number | "">("");
+  const [bankTx, setBankTx] = useState<ReconciliationRow | null>(null);
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", { all: true }],
@@ -93,10 +97,23 @@ function TempleRow({
         paymentModeId: paymentModeId!,
         accountId: accountId === "" ? null : accountId,
       }),
-    onSuccess: () => {
+    onSuccess: async (result) => {
       toast.success("Donation payment recorded");
       setOpen(false);
       setAmount("");
+      if (bankTx) {
+        try {
+          await reconcileDebit(bankTx.id, { existingPaymentId: result.id });
+          toast.success("Linked to the bank transaction");
+          void queryClient.invalidateQueries({ queryKey: ["reconciliation"] });
+        } catch (error) {
+          toast.error(
+            error instanceof ApiError
+              ? `Payment saved, but couldn't link the bank transaction: ${error.message}`
+              : "Payment saved, but couldn't link the bank transaction — link it from the Reconciliation Queue instead.",
+          );
+        }
+      }
       onPaid();
     },
     onError: (error) =>
@@ -173,6 +190,13 @@ function TempleRow({
                   ))}
                 </select>
               </label>
+              <div className="w-56">
+                <BankTransactionPicker
+                  selected={bankTx}
+                  onSelect={setBankTx}
+                  accountId={accountId === "" ? null : accountId}
+                />
+              </div>
               <Button type="submit" size="xs" disabled={pay.isPending}>
                 Save payment
               </Button>

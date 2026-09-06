@@ -6,6 +6,8 @@ import type {
   ItemNearDuplicate,
   ItemSearchItem,
   UnitDto,
+  UpdateItemCategoryInput,
+  UpdateItemInput,
 } from "./types";
 
 export function searchItems(query: string, limit = 20): Promise<ItemSearchItem[]> {
@@ -24,12 +26,31 @@ export function listItems(
   return apiClient.list<ItemSearchItem>(`/items?${params.toString()}`);
 }
 
+export function getItem(id: number): Promise<ItemDto> {
+  return apiClient.get<ItemDto>(`/items/${id}`);
+}
+
 export function listUnits(): Promise<UnitDto[]> {
   return apiClient.get<UnitDto[]>("/items/units");
 }
 
 export function listItemCategories(): Promise<ItemCategoryDto[]> {
   return apiClient.get<ItemCategoryDto[]>("/items/categories");
+}
+
+export function createItemCategory(name: string): Promise<ItemCategoryDto> {
+  return apiClient.post<ItemCategoryDto>("/items/categories", { name });
+}
+
+export function updateItemCategory(
+  id: number,
+  input: UpdateItemCategoryInput,
+): Promise<ItemCategoryDto> {
+  return apiClient.put<ItemCategoryDto>(`/items/categories/${id}`, input);
+}
+
+export function updateItem(id: number, input: UpdateItemInput): Promise<ItemDto> {
+  return apiClient.put<ItemDto>(`/items/${id}`, input);
 }
 
 export type CreateItemOutcome =

@@ -5,6 +5,7 @@ export interface ItemSearchItem {
   unit: string;
   defaultRate: number;
   taxRate: number;
+  isActive: boolean;
 }
 
 export interface ItemDto extends ItemSearchItem {
@@ -25,6 +26,22 @@ export interface CreateItemInput {
   defaultRate: number;
   taxRate: number;
   categoryId?: number | null;
+}
+
+export interface UpdateItemInput {
+  name: string;
+  unit: string;
+  defaultRate: number;
+  taxRate: number;
+  isActive: boolean;
+  concurrencyStamp: string;
+  categoryId?: number | null;
+}
+
+export interface UpdateItemCategoryInput {
+  name: string;
+  isActive: boolean;
+  concurrencyStamp: string;
 }
 
 export interface UnitDto {

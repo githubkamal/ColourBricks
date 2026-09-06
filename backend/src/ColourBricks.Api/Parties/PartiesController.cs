@@ -77,4 +77,36 @@ public sealed class PartiesController(IPartyService parties) : ControllerBase
             };
         }
     }
+
+    [HttpPut("{id:long}")]
+    [HasPermission("vendors.edit")]
+    public async Task<ActionResult<PartyDto>> Update(
+        long id, [FromBody] UpdatePartyRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            PartyDto? party = await parties.UpdateAsync(id, request, cancellationToken);
+            return party is null ? NotFound() : Ok(party);
+        }
+        catch (PartyExactDuplicateException ex)
+        {
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "A party with this name already exists.",
+                Detail = ex.Message,
+                Type = "https://datatracker.ietf.org/doc/html/rfc9457",
+                Extensions =
+                {
+                    ["existingId"] = ex.ExistingId,
+                    ["traceId"] = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+                },
+            };
+            return new ObjectResult(problem)
+            {
+                StatusCode = StatusCodes.Status409Conflict,
+                ContentTypes = { "application/problem+json" },
+            };
+        }
+    }
 }

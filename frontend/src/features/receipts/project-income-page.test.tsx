@@ -51,8 +51,8 @@ describe("ProjectIncomePage", () => {
 
     renderWithClient(<ProjectIncomePage />);
 
-    await screen.findByRole("option", { name: "CB-2026-001 — Riverside" });
-    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "5" } });
+    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "Riverside" } });
+    fireEvent.click(await screen.findByRole("button", { name: "CB-2026-001 — Riverside" }));
 
     await waitFor(() =>
       expect(screen.getByTestId("income-total")).toHaveTextContent("₹10,00,000.00"),

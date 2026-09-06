@@ -18,7 +18,8 @@ public sealed record PartyDto(
     bool IsActive,
     string ConcurrencyStamp);
 
-public sealed record PartySearchItem(long Id, string Name, IReadOnlyList<string> Types, string? Category);
+public sealed record PartySearchItem(
+    long Id, string Name, IReadOnlyList<string> Types, string? Category, bool IsActive = true);
 
 /// <summary>A party close enough to a new name to warrant a warning (plan.md §6).</summary>
 public sealed record NearDuplicate(long Id, string Name, IReadOnlyList<string> Types);
@@ -26,6 +27,21 @@ public sealed record NearDuplicate(long Id, string Name, IReadOnlyList<string> T
 public sealed record CreatePartyRequest(
     string Name,
     IReadOnlyList<PartyType> Types,
+    string? Category = null,
+    string? ContactPerson = null,
+    string? Phone = null,
+    string? Email = null,
+    string? Address = null,
+    string? GstNumber = null,
+    string? BankDetails = null,
+    string? PaymentTerms = null,
+    long? DepartmentId = null);
+
+public sealed record UpdatePartyRequest(
+    string Name,
+    IReadOnlyList<PartyType> Types,
+    bool IsActive,
+    string ConcurrencyStamp,
     string? Category = null,
     string? ContactPerson = null,
     string? Phone = null,

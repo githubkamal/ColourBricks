@@ -2,6 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { PaginationBar } from "@/components/ui/pagination-bar";
+import { usePagination } from "@/lib/use-pagination";
 import { useQueryParam } from "@/lib/use-query-param";
 import {
   listNotifications,
@@ -29,6 +31,13 @@ export function NotificationsPage() {
     queryKey: ["notifications", { unreadOnly }],
     queryFn: () => listNotifications(unreadOnly),
   });
+  const {
+    pageRows: pagedNotifications,
+    page,
+    setPage,
+    pageCount,
+    total,
+  } = usePagination(notifications, 20);
 
   const markRead = useMutation({
     mutationFn: (id: number) => markNotificationRead(id),
@@ -72,7 +81,7 @@ export function NotificationsPage() {
             {unreadOnly ? "No unread notifications." : "No notifications yet."}
           </p>
         )}
-        {notifications.map((n: NotificationItem) => (
+        {pagedNotifications.map((n: NotificationItem) => (
           <div
             key={n.id}
             className={`flex gap-3 border-b p-4 text-sm last:border-0 ${n.read ? "" : "bg-secondary/40"}`}
@@ -111,6 +120,16 @@ export function NotificationsPage() {
           </div>
         ))}
       </div>
+
+      {notifications.length > 0 && (
+        <PaginationBar
+          page={page}
+          pageCount={pageCount}
+          total={total}
+          onPageChange={setPage}
+          itemLabel="notifications"
+        />
+      )}
 
       {muted.length > 0 && (
         <div className="bg-card rounded border p-4">

@@ -18,7 +18,8 @@ public sealed class ReportingService(
     ILedgerQueryService ledger,
     IProjectBudgetService budgets,
     IOutstandingService outstanding,
-    IProjectScopeFilter scopeFilter) : IReportingService
+    IProjectScopeFilter scopeFilter,
+    TimeProvider clock) : IReportingService
 {
     private static readonly string[] DashboardBuckets =
     [
@@ -163,7 +164,7 @@ public sealed class ReportingService(
         // spend that hasn't been allocated to a project yet, or it silently understates
         // true spend versus the dashboard's "Overall Expenses" tile (client request,
         // 2026-09-04 — product validation found these two figures used to disagree).
-        decimal unallocated = await CompanyWideUnallocatedExpenseAsync(ct);
+        decimal unallocated = await CompanyWideUnallocatedExpenseAsync(null, null, ct);
         decimal actual = rows.Sum(r => r.ActualCost) + unallocated;
         decimal gross = revenue - actual;
         return new CompanyPnlDto(
@@ -226,13 +227,22 @@ public sealed class ReportingService(
             .Select(b => new ExpenseBreakdownRowDto(b, Money.Round(byBucket.GetValueOrDefault(b, 0m))))
             .ToList();
 
+        List<RangedLedgerRow> rows = await db.LedgerEntries.AsNoTracking()
+            .Where(e => e.ProjectId == projectId)
+            .Join(db.ExpenseCategories.AsNoTracking(), e => e.CategoryId, c => c.Id,
+                (e, c) => new RangedLedgerRow(e.ProjectId!.Value, e.EntryDate, c.Bucket, c.IsCost, e.Debit, e.Credit))
+            .Where(x => x.IsCost || x.Bucket == "Income")
+            .ToListAsync(ct);
+        List<MonthlyFlowDto> monthly = BuildMonthlyFlow(rows);
+
         return new ProjectDashboardDto(
-            projectId, project.Name, summary, breakdown, Money.Round(breakdown.Sum(r => r.Amount)));
+            projectId, project.Name, summary, breakdown, Money.Round(breakdown.Sum(r => r.Amount)), monthly);
     }
 
     // ── P5-T06 ───────────────────────────────────────────────────────────────
 
-    public async Task<CompanyDashboardDto> CompanyDashboardAsync(CancellationToken ct)
+    public async Task<CompanyDashboardDto> CompanyDashboardAsync(
+        string period, DateOnly? dateFrom, DateOnly? dateTo, CancellationToken ct)
     {
         ProjectScope scope = await scopeFilter.GetScopeAsync(ct);
         List<Project> projects = await db.Projects.AsNoTracking()
@@ -240,16 +250,33 @@ public sealed class ReportingService(
             .ToListAsync(ct);
         List<long> projectIds = projects.Select(p => p.Id).ToList();
 
+        // Weekly/Monthly/Yearly/Entire (default Monthly = the current month), client
+        // request 2026-09-07 — scopes the *flow* figures below (income, cost, profit,
+        // company expenses, savings, the trend chart). Point-in-time balances further
+        // down (cash/bank position, outstanding, pending reconciliation, project counts)
+        // are never date-scoped — "vendor outstanding this week" isn't a meaningful figure.
+        (DateOnly? from, DateOnly? to) = period == "Custom"
+            ? (dateFrom, dateTo)
+            : DashboardRange(period);
+
+        List<RangedLedgerRow> rangedRows = await db.LedgerEntries.AsNoTracking()
+            .Where(e => e.ProjectId != null && projectIds.Contains(e.ProjectId.Value))
+            .Where(e => (from == null || e.EntryDate >= from.Value) && (to == null || e.EntryDate <= to.Value))
+            .Join(db.ExpenseCategories.AsNoTracking(), e => e.CategoryId, c => c.Id,
+                (e, c) => new RangedLedgerRow(e.ProjectId!.Value, e.EntryDate, c.Bucket, c.IsCost, e.Debit, e.Credit))
+            .Where(x => x.IsCost || x.Bucket == "Income")
+            .ToListAsync(ct);
+
         decimal income = 0m, actualCost = 0m;
         var profitRows = new List<CompanyProjectProfitRowDto>();
         foreach (Project p in projects)
         {
-            decimal pi = await ledger.GetProjectIncomeAsync(p.Id, ct);
-            decimal pc = await ledger.GetProjectActualCostAsync(p.Id, ct);
+            List<RangedLedgerRow> rows = rangedRows.Where(r => r.ProjectId == p.Id).ToList();
+            decimal pi = Money.Round(rows.Where(r => r.Bucket == "Income").Sum(r => r.Debit - r.Credit));
+            decimal pc = Money.Round(rows.Where(r => r.IsCost).Sum(r => r.Debit - r.Credit));
             income += pi;
             actualCost += pc;
-            profitRows.Add(new CompanyProjectProfitRowDto(
-                p.Id, p.Name, Money.Round(pi), Money.Round(pc), Money.Round(pi - pc)));
+            profitRows.Add(new CompanyProjectProfitRowDto(p.Id, p.Name, pi, pc, Money.Round(pi - pc)));
         }
 
         decimal cashBank = scope.IsUnrestricted
@@ -266,12 +293,11 @@ public sealed class ReportingService(
             t => t.Status == Domain.Banking.BankTransactionStatus.Pending, ct);
 
         // Company-level Personal/Office/Custom expenses, unallocated to any project (BRD
-        // §44) — same helper CompanyPnlAsync uses, so these two "total expenses" figures
-        // can never diverge again (client request, 2026-09-04 — product validation found
-        // they previously did: this used to omit Custom entirely and CompanyPnlAsync
-        // didn't include this bucket at all).
-        decimal companyExpense = await CompanyWideUnallocatedExpenseAsync(ct);
-        decimal savings = await CompanyLevelCostAsync(new List<string> { "savings_allocation" }, ct);
+        // §44) — same helper CompanyPnlAsync uses (all-time, via the default null range),
+        // so the two "total expenses" figures can never diverge again (client request,
+        // 2026-09-04 — product validation found they previously did).
+        decimal companyExpense = await CompanyWideUnallocatedExpenseAsync(from, to, ct);
+        decimal savings = await CompanyLevelCostAsync(["savings_allocation"], from, to, ct);
         decimal totalExpense = actualCost + companyExpense;
 
         var tiles = new List<DashboardTileDto>
@@ -288,9 +314,39 @@ public sealed class ReportingService(
             Tile("pendingReconciliation", "Pending Reconciliation", pendingRecon, "/api/v1/reconciliation?status=Pending"),
         };
 
-        List<MonthlyFlowDto> monthly = await MonthlyFlowAsync(projectIds, ct);
+        List<MonthlyFlowDto> monthly = BuildMonthlyFlow(rangedRows);
 
         return new CompanyDashboardDto(tiles, profitRows.OrderBy(r => r.ProjectName).ToList(), monthly);
+    }
+
+    private static List<MonthlyFlowDto> BuildMonthlyFlow(List<RangedLedgerRow> rows) =>
+        rows
+            .GroupBy(x => new { x.EntryDate.Year, x.EntryDate.Month })
+            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+            .Select(g => new MonthlyFlowDto(
+                $"{g.Key.Year:D4}-{g.Key.Month:D2}",
+                Money.Round(g.Where(x => x.Bucket == "Income").Sum(x => x.Debit - x.Credit)),
+                Money.Round(g.Where(x => x.IsCost).Sum(x => x.Debit - x.Credit))))
+            .ToList();
+
+    private sealed record RangedLedgerRow(
+        long ProjectId, DateOnly EntryDate, string Bucket, bool IsCost, decimal Debit, decimal Credit);
+
+    /// <summary>
+    /// "Weekly" = the last 7 days, "Yearly" = year-to-date, "Entire" = all time,
+    /// anything else (including the default) = month-to-date (client request,
+    /// 2026-09-07 — the dashboard opens on "this month" unless changed).
+    /// </summary>
+    private (DateOnly? From, DateOnly? To) DashboardRange(string period)
+    {
+        DateOnly today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
+        return period switch
+        {
+            "Weekly" => (today.AddDays(-6), today),
+            "Yearly" => (new DateOnly(today.Year, 1, 1), today),
+            "Entire" => (null, null),
+            _ => (new DateOnly(today.Year, today.Month, 1), today),
+        };
     }
 
     // ── helpers ──────────────────────────────────────────────────────────────
@@ -347,16 +403,19 @@ public sealed class ReportingService(
     /// "total company expenses" is computed exactly once, not twice in a way that can
     /// silently drift apart (client request, 2026-09-04).
     /// </summary>
-    private Task<decimal> CompanyWideUnallocatedExpenseAsync(CancellationToken ct) =>
-        CompanyLevelCostAsync(["personal_common", "office_common", "custom_common"], ct);
+    private Task<decimal> CompanyWideUnallocatedExpenseAsync(
+        DateOnly? from, DateOnly? to, CancellationToken ct) =>
+        CompanyLevelCostAsync(["personal_common", "office_common", "custom_common"], from, to, ct);
 
-    private async Task<decimal> CompanyLevelCostAsync(List<string> slugs, CancellationToken ct)
+    private async Task<decimal> CompanyLevelCostAsync(
+        List<string> slugs, DateOnly? from, DateOnly? to, CancellationToken ct)
     {
         List<long> categoryIds = await db.ExpenseCategories.AsNoTracking()
             .Where(c => slugs.Contains(c.Slug)).Select(c => c.Id).ToListAsync(ct);
         // Only the expense leg — the mirrored account-scoped leg (AccountId set) is the cash movement.
         return await db.LedgerEntries.AsNoTracking()
             .Where(e => e.ProjectId == null && e.AccountId == null && categoryIds.Contains(e.CategoryId))
+            .Where(e => (from == null || e.EntryDate >= from.Value) && (to == null || e.EntryDate <= to.Value))
             .SumAsync(e => (decimal?)(e.Debit - e.Credit), ct) ?? 0m;
     }
 
@@ -367,25 +426,6 @@ public sealed class ReportingService(
         return await db.LedgerEntries.AsNoTracking()
             .Where(e => e.CategoryId == category && e.ProjectId != null && projectIds.Contains(e.ProjectId.Value))
             .SumAsync(e => (decimal?)(e.Credit - e.Debit), ct) ?? 0m;
-    }
-
-    private async Task<List<MonthlyFlowDto>> MonthlyFlowAsync(List<long> projectIds, CancellationToken ct)
-    {
-        var rows = await db.LedgerEntries.AsNoTracking()
-            .Where(e => e.ProjectId != null && projectIds.Contains(e.ProjectId.Value))
-            .Join(db.ExpenseCategories.AsNoTracking(), e => e.CategoryId, c => c.Id,
-                (e, c) => new { e.EntryDate, c.Bucket, c.IsCost, e.Debit, e.Credit })
-            .Where(x => x.IsCost || x.Bucket == "Income")
-            .ToListAsync(ct);
-
-        return rows
-            .GroupBy(x => new { x.EntryDate.Year, x.EntryDate.Month })
-            .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
-            .Select(g => new MonthlyFlowDto(
-                $"{g.Key.Year:D4}-{g.Key.Month:D2}",
-                Money.Round(g.Where(x => x.Bucket == "Income").Sum(x => x.Debit - x.Credit)),
-                Money.Round(g.Where(x => x.IsCost).Sum(x => x.Debit - x.Credit))))
-            .ToList();
     }
 
     private static DashboardTileDto Tile(string key, string label, decimal value, string? drill) =>

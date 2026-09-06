@@ -45,8 +45,8 @@ describe("CustomWorkPage", () => {
     );
 
     renderWithClient(<CustomWorkPage />);
-    await screen.findByRole("option", { name: "CB-2026-027 — Extras" });
-    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "Extras" } });
+    fireEvent.click(await screen.findByRole("button", { name: "CB-2026-027 — Extras" }));
 
     // Recorded variance in the list.
     expect(await screen.findByRole("cell", { name: "₹15,000.000" })).toBeInTheDocument();
@@ -92,8 +92,8 @@ describe("CustomWorkPage", () => {
     );
 
     renderWithClient(<CustomWorkPage />);
-    await screen.findByRole("option", { name: "CB-2026-027 — Extras" });
-    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "2" } });
+    fireEvent.change(screen.getByLabelText("Project"), { target: { value: "Extras" } });
+    fireEvent.click(await screen.findByRole("button", { name: "CB-2026-027 — Extras" }));
 
     expect(await screen.findByRole("cell", { name: "Contractor Co" })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Pay" }));

@@ -42,6 +42,10 @@ public sealed class ReportingController(IReportingService reporting) : Controlle
 
     [HttpGet("dashboard")]
     [HasPermission("dashboard.view")]
-    public Task<CompanyDashboardDto> CompanyDashboard(CancellationToken cancellationToken) =>
-        reporting.CompanyDashboardAsync(cancellationToken);
+    public Task<CompanyDashboardDto> CompanyDashboard(
+        [FromQuery] string period = "Monthly",
+        [FromQuery] DateOnly? dateFrom = null,
+        [FromQuery] DateOnly? dateTo = null,
+        CancellationToken cancellationToken = default) =>
+        reporting.CompanyDashboardAsync(period, dateFrom, dateTo, cancellationToken);
 }

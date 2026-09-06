@@ -8,7 +8,9 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { PaginationBar } from "@/components/ui/pagination-bar";
 import { ApiError } from "@/lib/api";
+import { usePagination } from "@/lib/use-pagination";
 import { createTemple, listTemples } from "./api";
 
 export function TemplesPage() {
@@ -17,6 +19,7 @@ export function TemplesPage() {
   const { confirm, dialog } = useConfirmDialog();
 
   const { data, isPending } = useQuery({ queryKey: ["temples"], queryFn: () => listTemples() });
+  const { pageRows, page, setPage, pageCount, total } = usePagination(data, 20);
 
   const add = useMutation({
     mutationFn: (confirm: boolean) => createTemple(name.trim(), confirm),
@@ -77,7 +80,7 @@ export function TemplesPage() {
               </tr>
             </thead>
             <tbody>
-              {data?.map((temple) => (
+              {pageRows.map((temple) => (
                 <tr key={temple.id} className="border-b last:border-0">
                   <td className="p-2">{temple.name}</td>
                 </tr>
@@ -86,6 +89,14 @@ export function TemplesPage() {
           </table>
         </div>
       )}
+
+      <PaginationBar
+        page={page}
+        pageCount={pageCount}
+        total={total}
+        onPageChange={setPage}
+        itemLabel="temples"
+      />
     </div>
   );
 }

@@ -18,6 +18,24 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+
+        // Fixed, theme-independent action colours for the toolbar verbs that
+        // recur across every list/report screen (export, reset, filter, save,
+        // save view) — client request, 2026-09-06: these should read as
+        // "premium", not the same flat gray/outline button repeated five times.
+        // Solid dark fill + white text (client follow-up) rather than a soft
+        // tint, same rationale as StatusBadge otherwise: a distinct hue per
+        // verb, independent of the accent picker, so "Export" always looks
+        // like Export.
+        export:
+          "bg-teal-700 text-white border-teal-800 shadow-sm hover:bg-teal-800 dark:bg-teal-600 dark:border-teal-700 dark:hover:bg-teal-700",
+        reset:
+          "bg-amber-700 text-white border-amber-800 shadow-sm hover:bg-amber-800 dark:bg-amber-600 dark:border-amber-700 dark:hover:bg-amber-700",
+        filter:
+          "bg-violet-700 text-white border-violet-800 shadow-sm hover:bg-violet-800 dark:bg-violet-600 dark:border-violet-700 dark:hover:bg-violet-700",
+        save: "bg-sky-700 text-white border-sky-800 shadow-sm hover:bg-sky-800 dark:bg-sky-600 dark:border-sky-700 dark:hover:bg-sky-700",
+        saveView:
+          "bg-indigo-700 text-white border-indigo-800 shadow-sm hover:bg-indigo-800 dark:bg-indigo-600 dark:border-indigo-700 dark:hover:bg-indigo-700",
       },
       size: {
         default:
