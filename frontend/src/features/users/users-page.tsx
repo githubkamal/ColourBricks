@@ -18,6 +18,15 @@ import {
 } from "./api";
 import type { RoleOption, UserListItem } from "./types";
 
+const MIN_PASSWORD_LENGTH = 10;
+
+/** FluentValidation's problem+json has no `detail`, just field-keyed `errors` — surface those. */
+function apiErrorMessage(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) return fallback;
+  const fieldMessages = Object.values(error.fieldErrors).flat();
+  return fieldMessages.length > 0 ? fieldMessages.join(" ") : error.message;
+}
+
 export function UsersPage() {
   const queryClient = useQueryClient();
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -54,8 +63,7 @@ export function UsersPage() {
   const reset = useMutation({
     mutationFn: ({ id, password }: { id: number; password: string }) => resetPassword(id, password),
     onSuccess: () => toast.success("Password reset; the user must sign in again"),
-    onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : "Could not reset the password"),
+    onError: (error) => toast.error(apiErrorMessage(error, "Could not reset the password")),
   });
 
   return (
@@ -121,8 +129,15 @@ export function UsersPage() {
                       variant="ghost"
                       size="xs"
                       onClick={() => {
-                        const password = window.prompt(`New password for ${user.name}`);
-                        if (password) reset.mutate({ id: user.id, password });
+                        const password = window.prompt(
+                          `New password for ${user.name} (at least ${MIN_PASSWORD_LENGTH} characters)`,
+                        );
+                        if (!password) return;
+                        if (password.length < MIN_PASSWORD_LENGTH) {
+                          toast.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+                          return;
+                        }
+                        reset.mutate({ id: user.id, password });
                       }}
                     >
                       Reset password

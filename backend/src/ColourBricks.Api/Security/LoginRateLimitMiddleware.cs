@@ -8,6 +8,14 @@ namespace ColourBricks.Api.Security;
 /// (client IP, submitted email) so repeated attempts against one account are
 /// throttled without affecting unrelated logins. Returns 429 once the window is
 /// exhausted.
+///
+/// Only failed attempts (401 — invalid credentials or locked out) count against the
+/// limit; a successful login clears it. Counting successes too was a bug: any client
+/// that legitimately logs in/out often (the Playwright e2e suite signs in once per
+/// spec file, ~28 times in one run) would trip the limiter on volume alone, then
+/// keep re-tripping it via Playwright's own retries — every login for the rest of
+/// the run failed, with no actual brute-force attempt involved. Found by reproducing
+/// the CI e2e failures locally and tracing the network log.
 /// </summary>
 public sealed class LoginRateLimitMiddleware(RequestDelegate next, TimeProvider clock)
 {
@@ -27,12 +35,9 @@ public sealed class LoginRateLimitMiddleware(RequestDelegate next, TimeProvider 
         string key = await BuildKeyAsync(context);
         DateTimeOffset now = clock.GetUtcNow();
 
-        (int Count, DateTimeOffset WindowStart) state = Attempts.AddOrUpdate(
-            key,
-            _ => (1, now),
-            (_, current) => now - current.WindowStart > Window ? (1, now) : (current.Count + 1, current.WindowStart));
-
-        if (state.Count > Limit)
+        if (Attempts.TryGetValue(key, out (int Count, DateTimeOffset WindowStart) existing)
+            && now - existing.WindowStart <= Window
+            && existing.Count >= Limit)
         {
             context.Response.StatusCode = StatusCodes.Status429TooManyRequests;
             context.Response.Headers.RetryAfter = ((int)Window.TotalSeconds).ToString();
@@ -46,6 +51,18 @@ public sealed class LoginRateLimitMiddleware(RequestDelegate next, TimeProvider 
         }
 
         await next(context);
+
+        if (context.Response.StatusCode == StatusCodes.Status401Unauthorized)
+        {
+            Attempts.AddOrUpdate(
+                key,
+                _ => (1, now),
+                (_, current) => now - current.WindowStart > Window ? (1, now) : (current.Count + 1, current.WindowStart));
+        }
+        else if (context.Response.StatusCode == StatusCodes.Status200OK)
+        {
+            Attempts.TryRemove(key, out _);
+        }
     }
 
     private static bool IsLogin(HttpRequest request) =>
