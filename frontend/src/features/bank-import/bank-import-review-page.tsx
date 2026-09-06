@@ -139,7 +139,8 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
             onClick={async () => {
               const { confirmed } = await confirm({
                 title: "Discard this import?",
-                description: "The staged rows and any mappings will be lost. This cannot be undone.",
+                description:
+                  "The staged rows and any mappings will be lost. This cannot be undone.",
                 destructive: true,
                 confirmLabel: "Discard import",
               });
@@ -265,125 +266,127 @@ function RowLine({
             : "border-b last:border-0"
         }
       >
-      <td className="p-2 align-top">{row.sourceLineNo}</td>
-      <td className="p-2 align-top">{row.valueDate ? formatDate(row.valueDate) : "—"}</td>
-      <td className="p-2 align-top max-w-xs">
-        <div className="truncate break-words">{row.narration}</div>
-        <div className="text-muted-foreground text-xs">
-          {statusChip}
-          {row.parseError ? ` — ${row.parseError}` : ""}
-          {row.bankReference ? ` · ref ${row.bankReference}` : ""}
-        </div>
-      </td>
-      <td className="p-2 align-top tabular-nums">{row.debit > 0 ? formatINR(row.debit) : "—"}</td>
-      <td className="p-2 align-top tabular-nums">{row.credit > 0 ? formatINR(row.credit) : "—"}</td>
-      <td className="p-2 align-top">
-        {row.isRemoved ||
-        row.parseState === "Error" ||
-        row.duplicateOfBankTransactionId !== null ? (
-          <span className="text-muted-foreground text-xs">not applicable</span>
-        ) : editable ? (
-          <div className="space-y-1">
-            {lines.map((l, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <select
-                  className="rounded border bg-background text-foreground px-2 py-1 text-sm"
-                  aria-label={`Line ${row.sourceLineNo} project ${i + 1}`}
-                  value={l.projectId}
-                  onChange={(e) =>
-                    setLines((cur) =>
-                      cur.map((x, xi) =>
-                        xi === i
-                          ? { ...x, projectId: e.target.value ? Number(e.target.value) : "" }
-                          : x,
-                      ),
-                    )
-                  }
-                >
-                  <option value="">Select project…</option>
-                  {projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <AmountInput
-                  className="w-28"
-                  aria-label={`Line ${row.sourceLineNo} amount ${i + 1}`}
-                  value={l.amount}
-                  onChange={(v) =>
-                    setLines((cur) => cur.map((x, xi) => (xi === i ? { ...x, amount: v } : x)))
-                  }
-                />
-                {!isCredit && lines.length > 1 && (
-                  <button
-                    type="button"
-                    className="text-muted-foreground text-xs"
-                    onClick={() => setLines((cur) => cur.filter((_, xi) => xi !== i))}
-                  >
-                    remove
-                  </button>
-                )}
-              </div>
-            ))}
-            {!isCredit && (
-              <button
-                type="button"
-                className="text-xs underline"
-                onClick={() => setLines((cur) => [...cur, { projectId: "", amount: "" }])}
-              >
-                + project
-              </button>
-            )}
-            <div
-              className={
-                balanced
-                  ? "text-muted-foreground text-xs tabular-nums"
-                  : "text-attention text-xs tabular-nums"
-              }
-            >
-              allocated {formatINR(allocated)} of {formatINR(target)}
-            </div>
-            <Button
-              type="button"
-              className="h-7 px-2 text-xs"
-              disabled={!balanced || save.isPending || lines.some((l) => l.projectId === "")}
-              onClick={() => save.mutate()}
-            >
-              Save mapping
-            </Button>
+        <td className="p-2 align-top">{row.sourceLineNo}</td>
+        <td className="p-2 align-top">{row.valueDate ? formatDate(row.valueDate) : "—"}</td>
+        <td className="max-w-xs p-2 align-top">
+          <div className="truncate break-words">{row.narration}</div>
+          <div className="text-muted-foreground text-xs">
+            {statusChip}
+            {row.parseError ? ` — ${row.parseError}` : ""}
+            {row.bankReference ? ` · ref ${row.bankReference}` : ""}
           </div>
-        ) : (
-          <ul className="text-xs">
-            {row.allocations.map((a, i) => (
-              <li key={i} className="tabular-nums">
-                {a.projectName}: {formatINR(a.amount)}
-              </li>
-            ))}
-          </ul>
-        )}
-      </td>
-      <td className="p-2 align-top">
-        {editable && !row.isRemoved && (
-          <button
-            type="button"
-            className="text-negative text-xs"
-            disabled={remove.isPending}
-            onClick={async () => {
-              const { confirmed, value: reason } = await confirmRemove({
-                title: "Remove this row?",
-                description: "It will be excluded from the commit.",
-                inputLabel: "Reason",
-                destructive: true,
-                confirmLabel: "Remove",
-              });
-              if (confirmed && reason?.trim()) remove.mutate(reason.trim());
-            }}
-          >
-            Remove
-          </button>
-        )}
-      </td>
+        </td>
+        <td className="p-2 align-top tabular-nums">{row.debit > 0 ? formatINR(row.debit) : "—"}</td>
+        <td className="p-2 align-top tabular-nums">
+          {row.credit > 0 ? formatINR(row.credit) : "—"}
+        </td>
+        <td className="p-2 align-top">
+          {row.isRemoved ||
+          row.parseState === "Error" ||
+          row.duplicateOfBankTransactionId !== null ? (
+            <span className="text-muted-foreground text-xs">not applicable</span>
+          ) : editable ? (
+            <div className="space-y-1">
+              {lines.map((l, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <select
+                    className="bg-background text-foreground rounded border px-2 py-1 text-sm"
+                    aria-label={`Line ${row.sourceLineNo} project ${i + 1}`}
+                    value={l.projectId}
+                    onChange={(e) =>
+                      setLines((cur) =>
+                        cur.map((x, xi) =>
+                          xi === i
+                            ? { ...x, projectId: e.target.value ? Number(e.target.value) : "" }
+                            : x,
+                        ),
+                      )
+                    }
+                  >
+                    <option value="">Select project…</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                  <AmountInput
+                    className="w-28"
+                    aria-label={`Line ${row.sourceLineNo} amount ${i + 1}`}
+                    value={l.amount}
+                    onChange={(v) =>
+                      setLines((cur) => cur.map((x, xi) => (xi === i ? { ...x, amount: v } : x)))
+                    }
+                  />
+                  {!isCredit && lines.length > 1 && (
+                    <button
+                      type="button"
+                      className="text-muted-foreground text-xs"
+                      onClick={() => setLines((cur) => cur.filter((_, xi) => xi !== i))}
+                    >
+                      remove
+                    </button>
+                  )}
+                </div>
+              ))}
+              {!isCredit && (
+                <button
+                  type="button"
+                  className="text-xs underline"
+                  onClick={() => setLines((cur) => [...cur, { projectId: "", amount: "" }])}
+                >
+                  + project
+                </button>
+              )}
+              <div
+                className={
+                  balanced
+                    ? "text-muted-foreground text-xs tabular-nums"
+                    : "text-attention text-xs tabular-nums"
+                }
+              >
+                allocated {formatINR(allocated)} of {formatINR(target)}
+              </div>
+              <Button
+                type="button"
+                className="h-7 px-2 text-xs"
+                disabled={!balanced || save.isPending || lines.some((l) => l.projectId === "")}
+                onClick={() => save.mutate()}
+              >
+                Save mapping
+              </Button>
+            </div>
+          ) : (
+            <ul className="text-xs">
+              {row.allocations.map((a, i) => (
+                <li key={i} className="tabular-nums">
+                  {a.projectName}: {formatINR(a.amount)}
+                </li>
+              ))}
+            </ul>
+          )}
+        </td>
+        <td className="p-2 align-top">
+          {editable && !row.isRemoved && (
+            <button
+              type="button"
+              className="text-negative text-xs"
+              disabled={remove.isPending}
+              onClick={async () => {
+                const { confirmed, value: reason } = await confirmRemove({
+                  title: "Remove this row?",
+                  description: "It will be excluded from the commit.",
+                  inputLabel: "Reason",
+                  destructive: true,
+                  confirmLabel: "Remove",
+                });
+                if (confirmed && reason?.trim()) remove.mutate(reason.trim());
+              }}
+            >
+              Remove
+            </button>
+          )}
+        </td>
       </tr>
     </Fragment>
   );

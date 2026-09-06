@@ -64,7 +64,11 @@ export function TemplesPage() {
         </Button>
       </form>
 
-      {dataState({ isPending, isEmpty: !isPending && data?.length === 0, emptyLabel: "No temples yet." }) ?? (
+      {dataState({
+        isPending,
+        isEmpty: !isPending && data?.length === 0,
+        emptyLabel: "No temples yet.",
+      }) ?? (
         <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">

@@ -63,7 +63,11 @@ function DonationEditor({
   );
   const [rows, setRows] = useState<SplitRow[]>(
     existing && existing.temples.length > 0
-      ? existing.temples.map((t) => ({ id: newRowId(), templeId: t.templeId, amount: String(t.amount) }))
+      ? existing.temples.map((t) => ({
+          id: newRowId(),
+          templeId: t.templeId,
+          amount: String(t.amount),
+        }))
       : [{ id: newRowId(), templeId: "", amount: "" }],
   );
 

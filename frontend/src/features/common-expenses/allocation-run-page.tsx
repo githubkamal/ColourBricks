@@ -107,7 +107,7 @@ export function AllocationRunPage() {
         <label className="space-y-1">
           <span className="text-sm font-medium">Method</span>
           <select
-            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
             aria-label="Method"
             value={method}
             onChange={(e) => setMethod(e.target.value as AllocationMethod)}

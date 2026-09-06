@@ -23,7 +23,11 @@ export function BudgetVsActualPage({ projectId }: { projectId: number }) {
     return (
       <div className="max-w-4xl space-y-4">
         <PageHeader title="Budget vs actual" />
-        {dataState({ isPending: isLoading, isError: isError || !data, errorLabel: "Could not load budget vs actual." })}
+        {dataState({
+          isPending: isLoading,
+          isError: isError || !data,
+          errorLabel: "Could not load budget vs actual.",
+        })}
       </div>
     );
   }

@@ -257,7 +257,7 @@ function AddUserForm({ roles, onAdded }: { roles: RoleOption[]; onAdded: () => v
       <label className="space-y-1">
         <span className="text-sm font-medium">Role</span>
         <select
-          className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+          className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
           value={roleId}
           aria-label="Role"
           onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}
@@ -356,7 +356,7 @@ function UserEditor({
         <label className="space-y-1">
           <span className="text-sm font-medium">Role</span>
           <select
-            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
             value={roleId}
             aria-label="Edit role"
             onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}

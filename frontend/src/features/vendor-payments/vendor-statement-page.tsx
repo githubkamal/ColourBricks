@@ -122,7 +122,7 @@ export function VendorStatementPage({
             <label className="space-y-1">
               <span className="text-sm font-medium">Apply to purchase</span>
               <select
-                className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+                className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
                 value={purchaseId}
                 aria-label="Apply to purchase"
                 onChange={(e) => setPurchaseId(e.target.value ? Number(e.target.value) : "")}

@@ -218,7 +218,9 @@ function ProjectCard({ project }: { project: ProjectListItem }) {
             {project.name}
           </h2>
         </div>
-        <Badge variant={STATUS_BADGE[project.status]}>{PROJECT_STATUS_LABELS[project.status]}</Badge>
+        <Badge variant={STATUS_BADGE[project.status]}>
+          {PROJECT_STATUS_LABELS[project.status]}
+        </Badge>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">

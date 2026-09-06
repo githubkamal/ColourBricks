@@ -80,7 +80,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
         <label className="space-y-1">
           <span className="text-sm font-medium">Sub-category</span>
           <select
-            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
             aria-label="Sub-category"
             value={subCategory}
             onChange={(e) => setSubCategory(e.target.value)}
@@ -126,7 +126,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="block rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+            className="bg-background text-foreground block rounded border px-3 py-1.5 text-sm"
             aria-label="Account"
             value={accountId}
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}

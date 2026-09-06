@@ -341,7 +341,11 @@ export function LoanMasterPage() {
         </Button>
       </form>
 
-      {dataState({ isPending, isEmpty: !isPending && loans.length === 0, emptyLabel: "No loans recorded yet." }) ?? (
+      {dataState({
+        isPending,
+        isEmpty: !isPending && loans.length === 0,
+        emptyLabel: "No loans recorded yet.",
+      }) ?? (
         <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
@@ -383,12 +387,7 @@ function LoanRow({ loan, onReverse }: { loan: Loan; onReverse: () => void }) {
       </td>
       <td className="p-2">
         {loan.status !== "Reversed" && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={onReverse}
-          >
+          <Button type="button" variant="ghost" size="xs" onClick={onReverse}>
             Reverse
           </Button>
         )}

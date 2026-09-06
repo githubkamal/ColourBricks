@@ -128,7 +128,8 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
   const recentCount = showRecent ? recent.length : 0;
   const showAddNew = term.trim().length > 0;
   const addNewIndex = recentCount + results.length;
-  const optionCount = nearDuplicates.length > 0 ? nearDuplicates.length : addNewIndex + (showAddNew ? 1 : 0);
+  const optionCount =
+    nearDuplicates.length > 0 ? nearDuplicates.length : addNewIndex + (showAddNew ? 1 : 0);
 
   function selectByIndex(index: number) {
     if (nearDuplicates.length > 0) {
@@ -147,7 +148,15 @@ export function ItemPicker({ selected, onSelect, defaultUnit = "Nos", label }: I
     }
     if (index < recentCount) {
       const r = recent[index];
-      if (r) choose({ id: r.id, name: r.name, categoryName: null, unit: defaultUnit, defaultRate: 0, taxRate: 0 });
+      if (r)
+        choose({
+          id: r.id,
+          name: r.name,
+          categoryName: null,
+          unit: defaultUnit,
+          defaultRate: 0,
+          taxRate: 0,
+        });
       return;
     }
     if (index < addNewIndex) {

@@ -35,13 +35,22 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <PageHeader title={`${data.projectName} — dashboard`} />
         <nav className="text-muted-foreground flex gap-3 text-sm">
-          <Link className="hover:text-foreground hover:underline" href={`/projects/${projectId}/budget-vs-actual`}>
+          <Link
+            className="hover:text-foreground hover:underline"
+            href={`/projects/${projectId}/budget-vs-actual`}
+          >
             Budget vs actual
           </Link>
-          <Link className="hover:text-foreground hover:underline" href={`/projects/${projectId}/financial-ledger`}>
+          <Link
+            className="hover:text-foreground hover:underline"
+            href={`/projects/${projectId}/financial-ledger`}
+          >
             Ledger
           </Link>
-          <Link className="hover:text-foreground hover:underline" href={`/projects/${projectId}/pnl`}>
+          <Link
+            className="hover:text-foreground hover:underline"
+            href={`/projects/${projectId}/pnl`}
+          >
             P&amp;L
           </Link>
         </nav>
@@ -56,9 +65,7 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
             key={t.key}
             label={t.label}
             value={PERCENT_KEYS.has(t.key) ? `${t.value.toFixed(2)}%` : formatINR(t.value)}
-            tone={
-              t.key === "profitPercent" ? (t.value < 0 ? "negative" : "positive") : undefined
-            }
+            tone={t.key === "profitPercent" ? (t.value < 0 ? "negative" : "positive") : undefined}
           />
         ))}
       </div>

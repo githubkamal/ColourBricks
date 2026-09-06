@@ -41,7 +41,7 @@ export function CustomWorkPage() {
       <label className="block space-y-1">
         <span className="text-sm font-medium">Project</span>
         <select
-          className="w-full rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+          className="bg-background text-foreground w-full rounded border px-3 py-1.5 text-sm"
           value={projectId}
           aria-label="Project"
           onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -237,7 +237,9 @@ function CustomWorkRow({ work: w, projectId }: { work: CustomWork; projectId: nu
         <td className="p-2 tabular-nums">{formatINR(w.actualCost)}</td>
         <td
           className={
-            w.variance > 0 ? "text-attention p-2 tabular-nums" : "text-muted-foreground p-2 tabular-nums"
+            w.variance > 0
+              ? "text-attention p-2 tabular-nums"
+              : "text-muted-foreground p-2 tabular-nums"
           }
         >
           {formatINR(w.variance)}

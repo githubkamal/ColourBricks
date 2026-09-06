@@ -278,13 +278,7 @@ export function LoanPaymentsPage() {
   );
 }
 
-function PaymentRow({
-  payment,
-  onReverse,
-}: {
-  payment: LoanEmiPayment;
-  onReverse: () => void;
-}) {
+function PaymentRow({ payment, onReverse }: { payment: LoanEmiPayment; onReverse: () => void }) {
   return (
     <tr className="border-b last:border-0">
       <td className="p-2">{formatDate(payment.date)}</td>
@@ -297,12 +291,7 @@ function PaymentRow({
       </td>
       <td className="p-2">
         {payment.status !== "Reversed" && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="xs"
-            onClick={onReverse}
-          >
+          <Button type="button" variant="ghost" size="xs" onClick={onReverse}>
             Reverse
           </Button>
         )}

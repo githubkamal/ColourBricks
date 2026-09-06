@@ -32,7 +32,10 @@ export function useQueryParam(key: string, defaultValue = ""): [string, (value: 
 }
 
 /** Same as {@link useQueryParam}, but for a numeric param (e.g. a page index). */
-export function useQueryParamNumber(key: string, defaultValue: number): [number, (value: number) => void] {
+export function useQueryParamNumber(
+  key: string,
+  defaultValue: number,
+): [number, (value: number) => void] {
   const [raw, setRaw] = useQueryParam(key, String(defaultValue));
   const value = Number.isFinite(Number(raw)) ? Number(raw) : defaultValue;
   const setValue = useCallback((next: number) => setRaw(String(next)), [setRaw]);

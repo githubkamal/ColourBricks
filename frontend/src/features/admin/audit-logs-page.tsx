@@ -126,11 +126,7 @@ export function AuditLogsPage() {
             }}
           />
         </label>
-        <button
-          type="button"
-          className="rounded border px-3 py-1.5 text-sm"
-          onClick={resetFilters}
-        >
+        <button type="button" className="rounded border px-3 py-1.5 text-sm" onClick={resetFilters}>
           Reset filters
         </button>
       </div>

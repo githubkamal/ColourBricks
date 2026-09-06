@@ -153,7 +153,10 @@ export function FieldOfficerExpensePage() {
       {officer && summary && (
         <div className="bg-card border-border rounded-xl border p-3 shadow-xs">
           <p className="text-muted-foreground text-xs">Total outstanding (owed to him)</p>
-          <p className="text-2xl font-semibold tabular-nums" data-testid="field-officer-outstanding">
+          <p
+            className="text-2xl font-semibold tabular-nums"
+            data-testid="field-officer-outstanding"
+          >
             {formatINR(summary.total)}
           </p>
           {summary.advance > 0 && (

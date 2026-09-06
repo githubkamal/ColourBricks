@@ -126,7 +126,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
         <label className="space-y-1">
           <span className="text-sm font-medium">Project</span>
           <select
-            className="block w-full rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+            className="bg-background text-foreground block w-full rounded border px-3 py-1.5 text-sm"
             value={projectId}
             aria-label="Project"
             onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -159,7 +159,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <select
-            className="block w-full rounded border bg-background text-foreground px-3 py-1.5 text-sm"
+            className="bg-background text-foreground block w-full rounded border px-3 py-1.5 text-sm"
             value={accountId}
             aria-label="Account"
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}

@@ -42,7 +42,11 @@ export function VendorsPage({
         )}
       </div>
 
-      {dataState({ isPending, isEmpty: data?.items.length === 0, emptyLabel: "No vendors yet." }) ?? (
+      {dataState({
+        isPending,
+        isEmpty: data?.items.length === 0,
+        emptyLabel: "No vendors yet.",
+      }) ?? (
         <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
