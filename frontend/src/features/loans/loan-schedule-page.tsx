@@ -5,6 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParamNumber } from "@/lib/use-query-param";
@@ -51,7 +54,7 @@ export function LoanSchedulePage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <h1 className="text-lg font-semibold">EMI Schedule</h1>
+      <PageHeader title="EMI Schedule" />
 
       <label className="block max-w-sm space-y-1">
         <span className="text-sm font-medium">Loan</span>
@@ -102,51 +105,43 @@ export function LoanSchedulePage() {
             </Button>
           </div>
 
-          <div className="rounded border">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/60 text-muted-foreground">
-                <tr className="border-b text-left">
-                  <th className="p-2 font-medium">#</th>
-                  <th className="p-2 font-medium">Due date</th>
-                  <th className="p-2 font-medium">EMI</th>
-                  <th className="p-2 font-medium">Principal</th>
-                  <th className="p-2 font-medium">Interest</th>
-                  <th className="p-2 font-medium">Closing principal</th>
-                  <th className="p-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {isPending && (
-                  <tr>
-                    <td colSpan={7} className="text-muted-foreground p-3 text-center">
-                      Loading…
-                    </td>
+          {dataState({
+            isPending,
+            isEmpty: !isPending && schedule.length === 0,
+            emptyLabel: "No schedule generated yet.",
+          }) ?? (
+            <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/60 text-muted-foreground">
+                  <tr className="border-b text-left">
+                    <th className="p-2 font-medium">#</th>
+                    <th className="p-2 font-medium">Due date</th>
+                    <th className="p-2 font-medium">EMI</th>
+                    <th className="p-2 font-medium">Principal</th>
+                    <th className="p-2 font-medium">Interest</th>
+                    <th className="p-2 font-medium">Closing principal</th>
+                    <th className="p-2 font-medium">Status</th>
                   </tr>
-                )}
-                {!isPending && schedule.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="text-muted-foreground p-3 text-center">
-                      No schedule generated yet.
-                    </td>
-                  </tr>
-                )}
-                {schedule.map((i) => (
-                  <tr key={i.id} className="border-b last:border-0">
-                    <td className="p-2">{i.instalmentNo}</td>
-                    <td className="p-2">{formatDate(i.dueDate)}</td>
-                    <td className="p-2 tabular-nums">{formatINR(i.emiAmount)}</td>
-                    <td className="p-2 tabular-nums">{formatINR(i.principalComponent)}</td>
-                    <td className="p-2 tabular-nums">{formatINR(i.interestComponent)}</td>
-                    <td className="p-2 tabular-nums">{formatINR(i.closingPrincipal)}</td>
-                    <td className="p-2">
-                      {i.status}
-                      {i.overdue && <span className="text-negative"> · overdue</span>}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {schedule.map((i) => (
+                    <tr key={i.id} className="border-b last:border-0">
+                      <td className="p-2">{i.instalmentNo}</td>
+                      <td className="p-2">{formatDate(i.dueDate)}</td>
+                      <td className="p-2 tabular-nums">{formatINR(i.emiAmount)}</td>
+                      <td className="p-2 tabular-nums">{formatINR(i.principalComponent)}</td>
+                      <td className="p-2 tabular-nums">{formatINR(i.interestComponent)}</td>
+                      <td className="p-2 tabular-nums">{formatINR(i.closingPrincipal)}</td>
+                      <td className="p-2">
+                        <StatusBadge status={i.status} />
+                        {i.overdue && <span className="text-negative"> · overdue</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </div>

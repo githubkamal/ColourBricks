@@ -6,7 +6,9 @@ import { toast } from "sonner";
 import { listExpenseCategories } from "@/features/direct-expenses/api";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 import { getProjectBudget, listBudgetRevisions, saveProjectBudget } from "./api";
@@ -28,9 +30,9 @@ export function ProjectBudgetPage({ projectId }: { projectId: number }) {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-lg font-semibold">Project budget</h1>
+      <PageHeader title="Project budget" />
       {isLoading ? (
-        <p className="text-sm">Loading…</p>
+        dataState({ isPending: true })
       ) : (
         <Editor
           key={budget?.revisionNumber ?? 0}
@@ -97,37 +99,39 @@ function Editor({
         {formatINR(budget?.estimatedCost ?? 0)}
       </p>
 
-      <table className="w-full text-sm">
-        <thead className="text-muted-foreground text-left">
-          <tr>
-            <th className="py-1 font-medium">Category</th>
-            <th className="py-1 font-medium">Budget</th>
-          </tr>
-        </thead>
-        <tbody>
-          {costCategories.map((c) => (
-            <tr key={c.id} className="border-b last:border-0">
-              <td className="py-1">{c.name}</td>
-              <td className="py-1 tabular-nums">
-                <AmountInput
-                  className="w-40"
-                  aria-label={`Budget ${c.name}`}
-                  value={rows[c.id] ?? ""}
-                  onChange={(v) => setRows((r) => ({ ...r, [c.id]: v }))}
-                />
+      <div className="bg-card border-border overflow-x-auto rounded-xl border p-4 shadow-xs">
+        <table className="w-full text-sm">
+          <thead className="text-muted-foreground text-left">
+            <tr>
+              <th className="py-1 font-medium">Category</th>
+              <th className="py-1 font-medium">Budget</th>
+            </tr>
+          </thead>
+          <tbody>
+            {costCategories.map((c) => (
+              <tr key={c.id} className="border-b last:border-0">
+                <td className="py-1">{c.name}</td>
+                <td className="py-1 tabular-nums">
+                  <AmountInput
+                    className="w-40"
+                    aria-label={`Budget ${c.name}`}
+                    value={rows[c.id] ?? ""}
+                    onChange={(v) => setRows((r) => ({ ...r, [c.id]: v }))}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td className="py-1 font-medium">Total</td>
+              <td className="py-1 font-semibold tabular-nums" data-testid="budget-total">
+                {formatINR(total)}
               </td>
             </tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td className="py-1 font-medium">Total</td>
-            <td className="py-1 font-semibold tabular-nums" data-testid="budget-total">
-              {formatINR(total)}
-            </td>
-          </tr>
-        </tfoot>
-      </table>
+          </tfoot>
+        </table>
+      </div>
 
       <p
         className={

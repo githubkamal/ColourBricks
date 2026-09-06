@@ -7,7 +7,10 @@ import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select"
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParamNumber } from "@/lib/use-query-param";
@@ -128,7 +131,7 @@ export function LoanPaymentsPage() {
   return (
     <div className="max-w-4xl space-y-6">
       {dialog}
-      <h1 className="text-lg font-semibold">EMI Payments</h1>
+      <PageHeader title="EMI Payments" />
 
       <label className="block max-w-sm space-y-1">
         <span className="text-sm font-medium">Loan</span>
@@ -243,40 +246,32 @@ export function LoanPaymentsPage() {
             </Button>
           </form>
 
-          <div className="rounded border">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/60 text-muted-foreground">
-                <tr className="border-b text-left">
-                  <th className="p-2 font-medium">Date</th>
-                  <th className="p-2 font-medium">Amount</th>
-                  <th className="p-2 font-medium">Principal</th>
-                  <th className="p-2 font-medium">Interest</th>
-                  <th className="p-2 font-medium">Type</th>
-                  <th className="p-2 font-medium">Status</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {isPending && (
-                  <tr>
-                    <td colSpan={7} className="text-muted-foreground p-3 text-center">
-                      Loading…
-                    </td>
+          {dataState({
+            isPending,
+            isEmpty: !isPending && payments.length === 0,
+            emptyLabel: "No payments recorded yet.",
+          }) ?? (
+            <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+              <table className="w-full text-sm">
+                <thead className="bg-secondary/60 text-muted-foreground">
+                  <tr className="border-b text-left">
+                    <th className="p-2 font-medium">Date</th>
+                    <th className="p-2 font-medium">Amount</th>
+                    <th className="p-2 font-medium">Principal</th>
+                    <th className="p-2 font-medium">Interest</th>
+                    <th className="p-2 font-medium">Type</th>
+                    <th className="p-2 font-medium">Status</th>
+                    <th />
                   </tr>
-                )}
-                {!isPending && payments.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="text-muted-foreground p-3 text-center">
-                      No payments recorded yet.
-                    </td>
-                  </tr>
-                )}
-                {payments.map((p) => (
-                  <PaymentRow key={p.id} payment={p} onReverse={() => void handleReverse(p.id)} />
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {payments.map((p) => (
+                    <PaymentRow key={p.id} payment={p} onReverse={() => void handleReverse(p.id)} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -297,7 +292,9 @@ function PaymentRow({
       <td className="p-2 tabular-nums">{formatINR(payment.principalPaid)}</td>
       <td className="p-2 tabular-nums">{formatINR(payment.interestPaid)}</td>
       <td className="p-2">{payment.isPrepayment ? "Prepayment" : "EMI"}</td>
-      <td className="p-2">{payment.status}</td>
+      <td className="p-2">
+        <StatusBadge status={payment.status} />
+      </td>
       <td className="p-2">
         {payment.status !== "Reversed" && (
           <Button

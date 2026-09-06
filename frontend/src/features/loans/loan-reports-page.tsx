@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { listLoans } from "./api";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParam, useQueryParamNumber } from "@/lib/use-query-param";
 import { cn } from "@/lib/utils";
@@ -181,7 +182,7 @@ export function LoanReportsPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-lg font-semibold">Loan Reports</h1>
+      <PageHeader title="Loan Reports" />
 
       <div className="flex flex-wrap items-end gap-3 rounded border p-3">
         <label className="space-y-1">
@@ -256,7 +257,7 @@ export function LoanReportsPage() {
         )}
       </div>
 
-      <div className="overflow-x-auto rounded border">
+      <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

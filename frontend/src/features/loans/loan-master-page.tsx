@@ -10,8 +10,11 @@ import { listProjects } from "@/features/projects/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 import { listLoans, recordLoan, reverseLoan, type Loan } from "./api";
@@ -164,7 +167,7 @@ export function LoanMasterPage() {
   return (
     <div className="max-w-4xl space-y-6">
       {dialog}
-      <h1 className="text-lg font-semibold">Loan Master</h1>
+      <PageHeader title="Loan Master" />
 
       <form
         className="space-y-3 rounded border p-4"
@@ -338,40 +341,28 @@ export function LoanMasterPage() {
         </Button>
       </form>
 
-      <div className="rounded border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr className="border-b text-left">
-              <th className="p-2 font-medium">Lender</th>
-              <th className="p-2 font-medium">Project</th>
-              <th className="p-2 font-medium">Principal</th>
-              <th className="p-2 font-medium">Rate</th>
-              <th className="p-2 font-medium">Outstanding</th>
-              <th className="p-2 font-medium">Status</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {isPending && (
-              <tr>
-                <td colSpan={7} className="text-muted-foreground p-3 text-center">
-                  Loading…
-                </td>
+      {dataState({ isPending, isEmpty: !isPending && loans.length === 0, emptyLabel: "No loans recorded yet." }) ?? (
+        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/60 text-muted-foreground">
+              <tr className="border-b text-left">
+                <th className="p-2 font-medium">Lender</th>
+                <th className="p-2 font-medium">Project</th>
+                <th className="p-2 font-medium">Principal</th>
+                <th className="p-2 font-medium">Rate</th>
+                <th className="p-2 font-medium">Outstanding</th>
+                <th className="p-2 font-medium">Status</th>
+                <th />
               </tr>
-            )}
-            {!isPending && loans.length === 0 && (
-              <tr>
-                <td colSpan={7} className="text-muted-foreground p-3 text-center">
-                  No loans recorded yet.
-                </td>
-              </tr>
-            )}
-            {loans.map((loan) => (
-              <LoanRow key={loan.id} loan={loan} onReverse={() => void handleReverse(loan)} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {loans.map((loan) => (
+                <LoanRow key={loan.id} loan={loan} onReverse={() => void handleReverse(loan)} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -387,7 +378,9 @@ function LoanRow({ loan, onReverse }: { loan: Loan; onReverse: () => void }) {
       <td className="p-2 tabular-nums">{formatINR(loan.principalAmount)}</td>
       <td className="p-2 tabular-nums">{loan.annualInterestRatePercent}%</td>
       <td className="p-2 tabular-nums">{formatINR(loan.outstandingPrincipal)}</td>
-      <td className="p-2">{loan.status}</td>
+      <td className="p-2">
+        <StatusBadge status={loan.status} />
+      </td>
       <td className="p-2">
         {loan.status !== "Reversed" && (
           <Button

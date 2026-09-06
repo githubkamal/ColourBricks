@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/features/shell/user-context";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 import { hasPermission } from "@/lib/permissions";
@@ -108,7 +109,7 @@ export function MultiProjectVendorPaymentPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-lg font-semibold">Multi-project Vendor Payment</h1>
+      <PageHeader title="Multi-project Vendor Payment" />
 
       <PartyPicker type="Vendor" label="Vendor" selected={vendor} onSelect={setVendor} />
 
@@ -132,7 +133,7 @@ export function MultiProjectVendorPaymentPage() {
 
           {proposal && (
             <div className="space-y-3">
-              <div className="overflow-x-auto rounded border">
+              <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/60 text-muted-foreground">
                     <tr className="border-b text-left">

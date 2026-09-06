@@ -2,6 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatTile } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/format";
 import { projectDashboard } from "./api";
 
@@ -13,24 +16,32 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
     queryFn: () => projectDashboard(projectId),
   });
 
-  if (isLoading) return <p className="p-4 text-sm">Loading dashboard…</p>;
-  if (isError || !data)
-    return <p className="text-negative p-4 text-sm">Could not load the dashboard.</p>;
+  if (isLoading || isError || !data) {
+    return (
+      <div className="max-w-5xl space-y-6">
+        <PageHeader title="Project dashboard" />
+        {dataState({
+          isPending: isLoading,
+          isError: isError || !data,
+          loadingLabel: "Loading dashboard…",
+          errorLabel: "Could not load the dashboard.",
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">{data.projectName} — dashboard</h1>
-        <nav className="text-sm">
-          <Link className="underline" href={`/projects/${projectId}/budget-vs-actual`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <PageHeader title={`${data.projectName} — dashboard`} />
+        <nav className="text-muted-foreground flex gap-3 text-sm">
+          <Link className="hover:text-foreground hover:underline" href={`/projects/${projectId}/budget-vs-actual`}>
             Budget vs actual
-          </Link>{" "}
-          ·{" "}
-          <Link className="underline" href={`/projects/${projectId}/financial-ledger`}>
+          </Link>
+          <Link className="hover:text-foreground hover:underline" href={`/projects/${projectId}/financial-ledger`}>
             Ledger
-          </Link>{" "}
-          ·{" "}
-          <Link className="underline" href={`/projects/${projectId}/pnl`}>
+          </Link>
+          <Link className="hover:text-foreground hover:underline" href={`/projects/${projectId}/pnl`}>
             P&amp;L
           </Link>
         </nav>
@@ -41,16 +52,18 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
         data-testid="summary-tiles"
       >
         {data.summary.map((t) => (
-          <div key={t.key} className="rounded border p-3">
-            <div className="text-muted-foreground text-xs">{t.label}</div>
-            <div className="text-base font-semibold">
-              {PERCENT_KEYS.has(t.key) ? `${t.value.toFixed(2)}%` : formatINR(t.value)}
-            </div>
-          </div>
+          <StatTile
+            key={t.key}
+            label={t.label}
+            value={PERCENT_KEYS.has(t.key) ? `${t.value.toFixed(2)}%` : formatINR(t.value)}
+            tone={
+              t.key === "profitPercent" ? (t.value < 0 ? "negative" : "positive") : undefined
+            }
+          />
         ))}
       </div>
 
-      <div className="rounded border">
+      <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

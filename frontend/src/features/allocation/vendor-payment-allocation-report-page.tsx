@@ -4,7 +4,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParam } from "@/lib/use-query-param";
 import {
@@ -47,7 +50,7 @@ export function VendorPaymentAllocationReportPage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <h1 className="text-lg font-semibold">Vendor Payment Allocation Report</h1>
+      <PageHeader title="Vendor Payment Allocation Report" />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-64">
@@ -73,70 +76,67 @@ export function VendorPaymentAllocationReportPage() {
         </label>
       </div>
 
-      <div className="overflow-x-auto rounded border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr className="border-b text-left">
-              <th className="p-2 font-medium">Date</th>
-              <th className="p-2 font-medium">Vendor</th>
-              <th className="p-2 font-medium">Total payment</th>
-              <th className="p-2 font-medium">Project</th>
-              <th className="p-2 font-medium">Allocated</th>
-              <th className="p-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-muted-foreground p-3 text-center">
-                  No allocations match the filters.
-                </td>
+      {dataState({
+        isEmpty: rows.length === 0,
+        emptyLabel: "No allocations match the filters.",
+      }) ?? (
+        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/60 text-muted-foreground">
+              <tr className="border-b text-left">
+                <th className="p-2 font-medium">Date</th>
+                <th className="p-2 font-medium">Vendor</th>
+                <th className="p-2 font-medium">Total payment</th>
+                <th className="p-2 font-medium">Project</th>
+                <th className="p-2 font-medium">Allocated</th>
+                <th className="p-2 font-medium">Status</th>
               </tr>
-            )}
-            {rows.map((r: VendorPaymentAllocationReportRow, i) => {
-              const firstOfGroup = i === 0 || rows[i - 1].settlementId !== r.settlementId;
-              return (
-                <tr
-                  key={`${r.settlementId}-${r.projectId ?? "adv"}-${i}`}
-                  className={firstOfGroup ? "border-t" : "border-b-0"}
-                >
-                  <td className="p-2">{firstOfGroup ? formatDate(r.date) : ""}</td>
-                  <td className="p-2">{firstOfGroup ? r.vendorName : ""}</td>
-                  <td className="p-2 tabular-nums">
-                    {firstOfGroup ? (
-                      <button
-                        type="button"
-                        className="underline underline-offset-2"
-                        onClick={() =>
-                          setOpenSettlement((cur) =>
-                            cur === r.settlementId ? null : r.settlementId,
-                          )
-                        }
-                      >
-                        {formatINR(r.totalPayment)}
-                      </button>
-                    ) : (
-                      ""
-                    )}
-                  </td>
-                  <td className="p-2">{r.projectName}</td>
-                  <td className="p-2 font-medium tabular-nums">{formatINR(r.allocated)}</td>
-                  <td className="p-2">
-                    {r.status === "Reversed" ? (
-                      <span className="text-negative">Reversed</span>
-                    ) : (
-                      r.status
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((r: VendorPaymentAllocationReportRow, i) => {
+                const firstOfGroup = i === 0 || rows[i - 1].settlementId !== r.settlementId;
+                return (
+                  <tr
+                    key={`${r.settlementId}-${r.projectId ?? "adv"}-${i}`}
+                    className={firstOfGroup ? "border-t" : "border-b-0"}
+                  >
+                    <td className="p-2">{firstOfGroup ? formatDate(r.date) : ""}</td>
+                    <td className="p-2">{firstOfGroup ? r.vendorName : ""}</td>
+                    <td className="p-2 tabular-nums">
+                      {firstOfGroup ? (
+                        <button
+                          type="button"
+                          className="underline underline-offset-2"
+                          onClick={() =>
+                            setOpenSettlement((cur) =>
+                              cur === r.settlementId ? null : r.settlementId,
+                            )
+                          }
+                        >
+                          {formatINR(r.totalPayment)}
+                        </button>
+                      ) : (
+                        ""
+                      )}
+                    </td>
+                    <td className="p-2">{r.projectName}</td>
+                    <td className="p-2 font-medium tabular-nums">{formatINR(r.allocated)}</td>
+                    <td className="p-2">
+                      <StatusBadge status={r.status} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {openSettlement !== null && detail.data && (
-        <div className="rounded border p-3 text-sm" data-testid="allocation-detail">
+        <div
+          className="bg-card border-border rounded-xl border p-3 text-sm shadow-xs"
+          data-testid="allocation-detail"
+        >
           <p className="mb-2 font-medium">
             Settlement #{detail.data.settlementId} — {detail.data.vendorName} —{" "}
             {formatINR(detail.data.totalPayment)} ({detail.data.status})

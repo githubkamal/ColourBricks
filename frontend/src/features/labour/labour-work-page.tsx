@@ -10,7 +10,9 @@ import { TeamPicker } from "@/features/teams/team-picker";
 import type { TeamDto } from "@/features/teams/types";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParamNumber } from "@/lib/use-query-param";
@@ -33,7 +35,7 @@ export function LabourWorkPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-lg font-semibold">Labour &amp; Subcontractor Work</h1>
+      <PageHeader title="Labour & Subcontractor Work" />
 
       <label className="block space-y-1">
         <span className="text-sm font-medium">Project</span>
@@ -135,7 +137,7 @@ function WorkList({ projectId }: { projectId: number }) {
       </form>
 
       <div className="space-y-3">
-        {work.length === 0 && <p className="text-muted-foreground text-sm">No work entries yet.</p>}
+        {dataState({ isEmpty: work.length === 0, emptyLabel: "No work entries yet." })}
         {work.map((entry) => (
           <WorkRow key={entry.id} entry={entry} onPaid={invalidate} />
         ))}
@@ -179,7 +181,7 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
   });
 
   return (
-    <div className="rounded border p-3 text-sm">
+    <div className="bg-card border-border rounded-xl border p-3 text-sm shadow-xs">
       <div className="flex items-center justify-between">
         <span>
           {formatDate(entry.date)} · {entry.teamName}

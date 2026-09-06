@@ -5,7 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { listDepartments } from "@/features/departments/api";
 import { ApiError } from "@/lib/api";
 import { createTeam, listTeamsGrouped } from "./api";
@@ -56,7 +58,7 @@ export function TeamsPage() {
   return (
     <div className="max-w-2xl space-y-6">
       {dialog}
-      <h1 className="text-lg font-semibold">Teams</h1>
+      <PageHeader title="Teams" />
 
       <form
         className="flex flex-wrap items-end gap-2"
@@ -108,13 +110,13 @@ export function TeamsPage() {
       </div>
 
       <div className="space-y-4">
-        {isPending && <p className="text-muted-foreground text-sm">Loading…</p>}
+        {dataState({ isPending })}
         {groups.map((group) => (
           <div key={group.departmentId ?? "none"}>
             <h2 className="text-muted-foreground mb-1 text-sm font-semibold uppercase">
               {group.departmentName}
             </h2>
-            <ul className="rounded border">
+            <ul className="bg-card border-border rounded-xl border shadow-xs">
               {group.teams.map((team) => (
                 <li key={team.id} className="border-b px-3 py-1.5 text-sm last:border-0">
                   {team.name}

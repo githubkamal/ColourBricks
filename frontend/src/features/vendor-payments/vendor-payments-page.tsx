@@ -10,7 +10,10 @@ import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select"
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import {
@@ -25,7 +28,7 @@ export function VendorPaymentsPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-lg font-semibold">Vendor Payments</h1>
+      <PageHeader title="Vendor Payments" />
       <PartyPicker type="Vendor" label="Vendor" selected={vendor} onSelect={setVendor} />
       {vendor && <VendorPay vendorId={vendor.id} vendorName={vendor.name} />}
     </div>
@@ -100,7 +103,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
   return (
     <div className="space-y-6">
       {dialog}
-      <div className="rounded border p-3 text-sm">
+      <div className="bg-card border-border rounded-xl border p-3 text-sm shadow-xs">
         <p className="font-medium">
           {vendorName} — total outstanding {formatINR(summary?.total ?? 0)}
         </p>
@@ -114,7 +117,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
       </div>
 
       <form
-        className="grid grid-cols-2 gap-3 rounded border p-4"
+        className="bg-card border-border grid grid-cols-2 gap-3 rounded-xl border p-4 shadow-xs"
         onSubmit={(e) => {
           e.preventDefault();
           if (ready) pay.mutate();
@@ -176,56 +179,53 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
         </div>
       </form>
 
-      <div className="rounded border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr className="border-b text-left">
-              <th className="p-2 font-medium">Date</th>
-              <th className="p-2 font-medium">Amount</th>
-              <th className="p-2 font-medium">Status</th>
-              <th className="p-2 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            {payments.length === 0 && (
-              <tr>
-                <td colSpan={4} className="text-muted-foreground p-3 text-center">
-                  No payments yet.
-                </td>
+      {dataState({ isEmpty: payments.length === 0, emptyLabel: "No payments yet." }) ?? (
+        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/60 text-muted-foreground">
+              <tr className="border-b text-left">
+                <th className="p-2 font-medium">Date</th>
+                <th className="p-2 font-medium">Amount</th>
+                <th className="p-2 font-medium">Status</th>
+                <th className="p-2 font-medium" />
               </tr>
-            )}
-            {payments.map((p) => (
-              <tr key={p.id} className="border-b last:border-0">
-                <td className="p-2">{formatDate(p.date)}</td>
-                <td className="p-2">{formatINR(p.amount)}</td>
-                <td className="text-muted-foreground p-2">{p.status}</td>
-                <td className="p-2 text-right">
-                  {p.status === "Active" && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="xs"
-                      disabled={reverse.isPending}
-                      onClick={() => {
-                        void confirm({
-                          title: "Reverse this payment?",
-                          description: "This cannot be undone.",
-                          destructive: true,
-                          confirmLabel: "Reverse",
-                        }).then(({ confirmed }) => {
-                          if (confirmed) reverse.mutate(p.id);
-                        });
-                      }}
-                    >
-                      Reverse
-                    </Button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {payments.map((p) => (
+                <tr key={p.id} className="border-b last:border-0">
+                  <td className="p-2">{formatDate(p.date)}</td>
+                  <td className="p-2">{formatINR(p.amount)}</td>
+                  <td className="p-2">
+                    <StatusBadge status={p.status} />
+                  </td>
+                  <td className="p-2 text-right">
+                    {p.status === "Active" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        disabled={reverse.isPending}
+                        onClick={() => {
+                          void confirm({
+                            title: "Reverse this payment?",
+                            description: "This cannot be undone.",
+                            destructive: true,
+                            confirmLabel: "Reverse",
+                          }).then(({ confirmed }) => {
+                            if (confirmed) reverse.mutate(p.id);
+                          });
+                        }}
+                      >
+                        Reverse
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

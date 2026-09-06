@@ -34,7 +34,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "bg-sidebar border-sidebar-border z-30 w-64 shrink-0 overscroll-contain border-r",
+          "bg-sidebar border-sidebar-border z-30 w-68 shrink-0 overscroll-contain border-r",
           "fixed inset-y-0 left-0 transition-transform lg:static lg:translate-x-0",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
         )}

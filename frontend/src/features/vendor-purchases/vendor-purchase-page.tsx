@@ -9,7 +9,9 @@ import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { listProjects } from "@/features/projects/api";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import {
@@ -45,7 +47,7 @@ export function VendorPurchasePage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <h1 className="text-lg font-semibold">Material Purchases</h1>
+      <PageHeader title="Material Purchases" />
 
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1">
@@ -287,11 +289,12 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
       </form>
 
       <div className="space-y-3">
-        {purchases.length === 0 && (
-          <p className="text-muted-foreground text-sm">No purchases yet.</p>
-        )}
+        {dataState({ isEmpty: purchases.length === 0, emptyLabel: "No purchases yet." })}
         {purchases.map((p) => (
-          <div key={p.id} className="space-y-2 rounded border p-3 text-sm">
+          <div
+            key={p.id}
+            className="bg-card border-border space-y-2 rounded-xl border p-3 text-sm shadow-xs"
+          >
             <div className="flex justify-between">
               <span>
                 {formatDate(p.date)} · {p.vendorName}

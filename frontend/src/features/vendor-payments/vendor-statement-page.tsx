@@ -8,6 +8,8 @@ import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { listVendorPurchases } from "@/features/vendor-purchases/api";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { applyVendorAdvance, vendorOutstandingSummary, vendorStatement } from "./api";
@@ -77,11 +79,11 @@ export function VendorStatementPage({
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-lg font-semibold">{title}</h1>
+      <PageHeader title={title} />
       <PartyPicker type={partyType} label={pickerLabel} selected={vendor} onSelect={setVendor} />
 
       {vendor && summary && (
-        <div className="grid gap-3 rounded border p-3 sm:grid-cols-[auto_1fr]">
+        <div className="bg-card border-border grid gap-3 rounded-xl border p-3 shadow-xs sm:grid-cols-[auto_1fr]">
           <div>
             <p className="text-muted-foreground text-xs">Total outstanding</p>
             <p className="text-2xl font-semibold" data-testid="vendor-total-outstanding">
@@ -112,7 +114,7 @@ export function VendorStatementPage({
       )}
 
       {vendor && advance > 0 && (
-        <div className="border-attention/40 bg-attention/5 space-y-3 rounded border p-3">
+        <div className="border-attention/40 bg-attention/5 space-y-3 rounded-xl border p-3 shadow-xs">
           <p className="text-sm font-medium" data-testid="advance-balance">
             Advance / credit balance: <span className="text-attention">{formatINR(advance)}</span>
           </p>
@@ -153,45 +155,39 @@ export function VendorStatementPage({
         </div>
       )}
 
-      {vendor && (
-        <div className="rounded border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/60 text-muted-foreground">
-              <tr className="border-b text-left">
-                <th className="p-2 font-medium">Date</th>
-                <th className="p-2 font-medium">Entry</th>
-                <th className="p-2 font-medium">Purchase</th>
-                <th className="p-2 font-medium">Paid</th>
-                <th className="p-2 font-medium">Running outstanding</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-muted-foreground p-3 text-center">
-                    No activity yet.
-                  </td>
+      {vendor &&
+        (dataState({ isEmpty: rows.length === 0, emptyLabel: "No activity yet." }) ?? (
+          <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/60 text-muted-foreground">
+                <tr className="border-b text-left">
+                  <th className="p-2 font-medium">Date</th>
+                  <th className="p-2 font-medium">Entry</th>
+                  <th className="p-2 font-medium">Purchase</th>
+                  <th className="p-2 font-medium">Paid</th>
+                  <th className="p-2 font-medium">Running outstanding</th>
                 </tr>
-              )}
-              {rows.map((r, i) => (
-                <tr key={i} className="border-b last:border-0">
-                  <td className="p-2">{formatDate(r.date)}</td>
-                  <td className="text-muted-foreground p-2">
-                    {r.kind} — {r.reference}
-                  </td>
-                  <td className="p-2 tabular-nums">
-                    {r.purchaseAmount > 0 ? formatINR(r.purchaseAmount) : "—"}
-                  </td>
-                  <td className="p-2 tabular-nums">{r.paid > 0 ? formatINR(r.paid) : "—"}</td>
-                  <td className="p-2 font-medium tabular-nums">
-                    {formatINR(r.runningOutstanding)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="p-2">{formatDate(r.date)}</td>
+                    <td className="text-muted-foreground p-2">
+                      {r.kind} — {r.reference}
+                    </td>
+                    <td className="p-2 tabular-nums">
+                      {r.purchaseAmount > 0 ? formatINR(r.purchaseAmount) : "—"}
+                    </td>
+                    <td className="p-2 tabular-nums">{r.paid > 0 ? formatINR(r.paid) : "—"}</td>
+                    <td className="p-2 font-medium tabular-nums">
+                      {formatINR(r.runningOutstanding)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
     </div>
   );
 }

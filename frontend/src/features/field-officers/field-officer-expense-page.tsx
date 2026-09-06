@@ -10,8 +10,11 @@ import type { PartySearchItem } from "@/features/parties/types";
 import { vendorOutstandingSummary } from "@/features/vendor-payments/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParamNumber } from "@/lib/use-query-param";
@@ -133,7 +136,7 @@ export function FieldOfficerExpensePage() {
   return (
     <div className="max-w-3xl space-y-6">
       {dialog}
-      <h1 className="text-lg font-semibold">Field Officer Bills</h1>
+      <PageHeader title="Field Officer Bills" />
       <p className="text-muted-foreground text-sm">
         For a bill tied to a project, use Material Purchases instead — pick &ldquo;Field
         officer&rdquo; there. This page is for bills with no project: Personal, Office, Savings or
@@ -148,7 +151,7 @@ export function FieldOfficerExpensePage() {
       />
 
       {officer && summary && (
-        <div className="rounded border p-3">
+        <div className="bg-card border-border rounded-xl border p-3 shadow-xs">
           <p className="text-muted-foreground text-xs">Total outstanding (owed to him)</p>
           <p className="text-2xl font-semibold tabular-nums" data-testid="field-officer-outstanding">
             {formatINR(summary.total)}
@@ -163,7 +166,7 @@ export function FieldOfficerExpensePage() {
 
       {officer && (
         <form
-          className="space-y-3 rounded border p-4"
+          className="bg-card border-border space-y-3 rounded-xl border p-4 shadow-xs"
           onSubmit={(e) => {
             e.preventDefault();
             setTouchedDate(true);
@@ -245,51 +248,47 @@ export function FieldOfficerExpensePage() {
         </form>
       )}
 
-      {officer && (
-        <div className="rounded border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/60 text-muted-foreground">
-              <tr className="border-b text-left">
-                <th className="p-2 font-medium">Date</th>
-                <th className="p-2 font-medium">Type</th>
-                <th className="p-2 font-medium">Amount</th>
-                <th className="p-2 font-medium">Description</th>
-                <th className="p-2 font-medium">Status</th>
-                <th className="p-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {bills.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="text-muted-foreground p-3 text-center">
-                    No bills yet.
-                  </td>
+      {officer &&
+        (dataState({ isEmpty: bills.length === 0, emptyLabel: "No bills yet." }) ?? (
+          <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/60 text-muted-foreground">
+                <tr className="border-b text-left">
+                  <th className="p-2 font-medium">Date</th>
+                  <th className="p-2 font-medium">Type</th>
+                  <th className="p-2 font-medium">Amount</th>
+                  <th className="p-2 font-medium">Description</th>
+                  <th className="p-2 font-medium">Status</th>
+                  <th className="p-2" />
                 </tr>
-              )}
-              {bills.map((b) => (
-                <tr key={b.id} className="border-b last:border-0">
-                  <td className="p-2">{formatDate(b.date)}</td>
-                  <td className="p-2">{b.type}</td>
-                  <td className="p-2 tabular-nums">{formatINR(b.amount)}</td>
-                  <td className="p-2">{b.description ?? "—"}</td>
-                  <td className="p-2">{b.status}</td>
-                  <td className="p-2">
-                    {b.status === "Active" && (
-                      <button
-                        type="button"
-                        className="text-negative text-xs"
-                        onClick={() => void handleReverse(b.id)}
-                      >
-                        Reverse
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {bills.map((b) => (
+                  <tr key={b.id} className="border-b last:border-0">
+                    <td className="p-2">{formatDate(b.date)}</td>
+                    <td className="p-2">{b.type}</td>
+                    <td className="p-2 tabular-nums">{formatINR(b.amount)}</td>
+                    <td className="p-2">{b.description ?? "—"}</td>
+                    <td className="p-2">
+                      <StatusBadge status={b.status} />
+                    </td>
+                    <td className="p-2">
+                      {b.status === "Active" && (
+                        <button
+                          type="button"
+                          className="text-negative text-xs"
+                          onClick={() => void handleReverse(b.id)}
+                        >
+                          Reverse
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
     </div>
   );
 }

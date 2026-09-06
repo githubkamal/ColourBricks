@@ -4,7 +4,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { createDepartment, listDepartments, updateDepartment } from "./api";
 import type { DepartmentDto } from "./types";
@@ -49,7 +52,7 @@ export function DepartmentsPage() {
 
   return (
     <div className="max-w-xl space-y-4">
-      <h1 className="text-lg font-semibold">Departments</h1>
+      <PageHeader title="Departments" />
 
       <form
         className="flex gap-2"
@@ -69,52 +72,44 @@ export function DepartmentsPage() {
         </Button>
       </form>
 
-      <div className="rounded border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr className="border-b text-left">
-              <th className="p-2 font-medium">Name</th>
-              <th className="p-2 font-medium">Status</th>
-              <th className="p-2 font-medium" />
-            </tr>
-          </thead>
-          <tbody>
-            {isPending && (
-              <tr>
-                <td colSpan={3} className="text-muted-foreground p-3 text-center">
-                  Loading…
-                </td>
+      {dataState({
+        isPending,
+        isEmpty: !isPending && (data?.length ?? 0) === 0,
+        emptyLabel: "No departments found.",
+      }) ?? (
+        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/60 text-muted-foreground">
+              <tr className="border-b text-left">
+                <th className="p-2 font-medium">Name</th>
+                <th className="p-2 font-medium">Status</th>
+                <th className="p-2 font-medium" />
               </tr>
-            )}
-            {!isPending && (data?.length ?? 0) === 0 && (
-              <tr>
-                <td colSpan={3} className="text-muted-foreground p-3 text-center">
-                  No departments found.
-                </td>
-              </tr>
-            )}
-            {data?.map((department) => (
-              <tr key={department.id} className="border-b last:border-0">
-                <td className="p-2">{department.name}</td>
-                <td className="text-muted-foreground p-2">
-                  {department.isActive ? "Active" : "Inactive"}
-                </td>
-                <td className="p-2 text-right">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="xs"
-                    disabled={toggle.isPending}
-                    onClick={() => toggle.mutate(department)}
-                  >
-                    {department.isActive ? "Deactivate" : "Reactivate"}
-                  </Button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {data?.map((department) => (
+                <tr key={department.id} className="border-b last:border-0">
+                  <td className="p-2">{department.name}</td>
+                  <td className="p-2">
+                    <StatusBadge status={department.isActive ? "Active" : "Inactive"} />
+                  </td>
+                  <td className="p-2 text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      disabled={toggle.isPending}
+                      onClick={() => toggle.mutate(department)}
+                    >
+                      {department.isActive ? "Deactivate" : "Reactivate"}
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

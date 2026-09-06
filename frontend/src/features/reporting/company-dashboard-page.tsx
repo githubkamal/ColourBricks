@@ -1,6 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatTile } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/format";
 import { companyDashboard } from "./api";
 
@@ -12,26 +15,34 @@ export function CompanyDashboardPage() {
     queryFn: companyDashboard,
   });
 
-  if (isLoading) return <p className="p-4 text-sm">Loading…</p>;
-  if (isError || !data)
-    return <p className="text-negative p-4 text-sm">Could not load the dashboard.</p>;
+  if (isLoading || isError || !data) {
+    return (
+      <div className="max-w-5xl space-y-6">
+        <PageHeader title="Company dashboard" />
+        {dataState({
+          isPending: isLoading,
+          isError: isError || !data,
+          errorLabel: "Could not load the dashboard.",
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl space-y-6">
-      <h1 className="text-lg font-semibold">Company dashboard</h1>
+      <PageHeader title="Company dashboard" />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="company-tiles">
         {data.tiles.map((t) => (
-          <div key={t.key} className="rounded border p-3">
-            <div className="text-muted-foreground text-xs">{t.label}</div>
-            <div className="text-base font-semibold tabular-nums">
-              {COUNT_KEYS.has(t.key) ? String(t.value) : formatINR(t.value)}
-            </div>
-          </div>
+          <StatTile
+            key={t.key}
+            label={t.label}
+            value={COUNT_KEYS.has(t.key) ? String(t.value) : formatINR(t.value)}
+          />
         ))}
       </div>
 
-      <div className="rounded border">
+      <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -63,11 +74,11 @@ export function CompanyDashboardPage() {
       </div>
 
       {data.monthlyFlow.length > 0 && (
-        <div className="rounded border p-3 text-sm">
+        <div className="bg-card border-border rounded-xl border p-4 text-sm shadow-xs">
           <p className="mb-2 font-medium">Monthly income vs expense</p>
-          <ul className="space-y-1">
+          <ul className="divide-border divide-y">
             {data.monthlyFlow.map((m) => (
-              <li key={m.month} className="flex justify-between">
+              <li key={m.month} className="flex justify-between py-1.5">
                 <span>{m.month}</span>
                 <span className="tabular-nums">
                   <span className="text-positive">{formatINR(m.income)}</span> /{" "}

@@ -1,8 +1,17 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Badge, type badgeVariants } from "@/components/ui/badge";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { formatINR } from "@/lib/format";
+import type { VariantProps } from "class-variance-authority";
 import { budgetVsActual } from "./api";
+
+const STATUS_VARIANT: Record<string, VariantProps<typeof badgeVariants>["variant"]> = {
+  Exceeded: "negative",
+  Approaching: "attention",
+};
 
 export function BudgetVsActualPage({ projectId }: { projectId: number }) {
   const { data, isLoading, isError } = useQuery({
@@ -10,20 +19,18 @@ export function BudgetVsActualPage({ projectId }: { projectId: number }) {
     queryFn: () => budgetVsActual(projectId),
   });
 
-  if (isLoading) return <p className="p-4 text-sm">Loading…</p>;
-  if (isError || !data)
-    return <p className="text-negative p-4 text-sm">Could not load budget vs actual.</p>;
-
-  const cls = (s: string) =>
-    s === "Exceeded"
-      ? "text-negative"
-      : s === "Approaching"
-        ? "text-attention"
-        : "text-muted-foreground";
+  if (isLoading || isError || !data) {
+    return (
+      <div className="max-w-4xl space-y-4">
+        <PageHeader title="Budget vs actual" />
+        {dataState({ isPending: isLoading, isError: isError || !data, errorLabel: "Could not load budget vs actual." })}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl space-y-4">
-      <h1 className="text-lg font-semibold">Budget vs actual</h1>
+      <PageHeader title="Budget vs actual" />
       <p
         className={
           data.actualCost > data.estimatedCost
@@ -36,7 +43,7 @@ export function BudgetVsActualPage({ projectId }: { projectId: number }) {
         {formatINR(data.actualCost)}
       </p>
 
-      <div className="overflow-x-auto rounded border">
+      <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -58,8 +65,10 @@ export function BudgetVsActualPage({ projectId }: { projectId: number }) {
                 <td className="p-2 tabular-nums">
                   {r.variancePercent == null ? "—" : `${r.variancePercent.toFixed(1)}%`}
                 </td>
-                <td className={`p-2 font-medium ${cls(r.status)}`}>
-                  {r.status === "Exceeded" ? "Over" : r.status}
+                <td className="p-2">
+                  <Badge variant={STATUS_VARIANT[r.status] ?? "positive"}>
+                    {r.status === "Exceeded" ? "Over" : r.status}
+                  </Badge>
                 </td>
               </tr>
             ))}

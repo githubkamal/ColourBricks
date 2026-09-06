@@ -1,3 +1,19 @@
+import {
+  Banknote,
+  BarChart3,
+  Building2,
+  HandCoins,
+  HardHat,
+  Landmark,
+  LayoutDashboard,
+  Package,
+  Receipt,
+  Settings,
+  Truck,
+  UserCheck,
+  type LucideIcon,
+} from "lucide-react";
+
 /**
  * The navigation tree, transcribed from BRD §68 in order. Each leaf carries the
  * `module.action` permission that gates it; a section is hidden when none of its
@@ -12,12 +28,14 @@ export interface NavItem {
 
 export interface NavSection {
   label: string;
+  icon: LucideIcon;
   items: NavItem[];
 }
 
 export const navigation: NavSection[] = [
   {
     label: "Dashboard",
+    icon: LayoutDashboard,
     items: [
       { label: "Company Dashboard", href: "/dashboard/company", permission: "dashboard.view" },
       { label: "Project Dashboard", href: "/dashboard/project", permission: "dashboard.view" },
@@ -26,6 +44,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Projects",
+    icon: Building2,
     items: [
       { label: "Ongoing Projects", href: "/projects?status=ongoing", permission: "projects.view" },
       {
@@ -43,6 +62,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Vendors",
+    icon: Truck,
     items: [
       { label: "Vendor Master", href: "/vendors", permission: "vendors.view" },
       { label: "Purchases", href: "/materials/purchases", permission: "materials.view" },
@@ -72,6 +92,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Field Officers",
+    icon: UserCheck,
     items: [
       { label: "Field Officer Master", href: "/field-officers", permission: "vendors.view" },
       { label: "No-project Bills", href: "/field-officers/bills", permission: "vendors.view" },
@@ -80,6 +101,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Labour / Subcontractors",
+    icon: HardHat,
     items: [
       { label: "Departments", href: "/labour/departments", permission: "labour.view" },
       { label: "Teams", href: "/labour/teams", permission: "labour.view" },
@@ -91,6 +113,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Materials",
+    icon: Package,
     items: [
       { label: "Item Master", href: "/materials", permission: "materials.view" },
       { label: "Item Categories", href: "/materials/categories", permission: "materials.view" },
@@ -99,6 +122,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Temple Donations",
+    icon: Landmark,
     items: [
       { label: "Temple Master", href: "/donations/temples", permission: "temple_donations.view" },
       { label: "Project Donations", href: "/donations", permission: "temple_donations.view" },
@@ -116,6 +140,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Loans",
+    icon: HandCoins,
     items: [
       { label: "Loan Master", href: "/loans", permission: "loans.view" },
       { label: "EMI Schedule", href: "/loans/schedule", permission: "emi.view" },
@@ -125,6 +150,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Other Expenses",
+    icon: Receipt,
     items: [
       {
         label: "Personal Expenses",
@@ -147,6 +173,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Accounts",
+    icon: Banknote,
     items: [
       { label: "Cash Accounts", href: "/accounts/cash", permission: "accounts.view" },
       { label: "Bank Accounts", href: "/accounts/bank", permission: "accounts.view" },
@@ -180,6 +207,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Reports",
+    icon: BarChart3,
     items: [
       { label: "Report Explorer", href: "/reports/explorer", permission: "reports.view" },
       {
@@ -237,6 +265,7 @@ export const navigation: NavSection[] = [
   },
   {
     label: "Administration",
+    icon: Settings,
     items: [
       { label: "Users", href: "/admin/users", permission: "users.view" },
       { label: "Roles", href: "/admin/roles", permission: "roles.view" },

@@ -11,8 +11,11 @@ import { listProjects } from "@/features/projects/api";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import {
@@ -33,7 +36,7 @@ export function CustomWorkPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-lg font-semibold">Customized / Ad-hoc Work</h1>
+      <PageHeader title="Customized / Ad-hoc Work" />
 
       <label className="block space-y-1">
         <span className="text-sm font-medium">Project</span>
@@ -177,34 +180,29 @@ function CustomWorkForm({ projectId }: { projectId: number }) {
         </Button>
       </form>
 
-      <div className="overflow-x-auto rounded border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr className="border-b text-left">
-              <th className="p-2 font-medium">Date</th>
-              <th className="p-2 font-medium">Work type</th>
-              <th className="p-2 font-medium">Party</th>
-              <th className="p-2 font-medium">Estimated</th>
-              <th className="p-2 font-medium">Actual</th>
-              <th className="p-2 font-medium">Variance</th>
-              <th className="p-2 font-medium">Status</th>
-              <th className="p-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {entries.length === 0 && (
-              <tr>
-                <td colSpan={8} className="text-muted-foreground p-3 text-center">
-                  No custom work yet.
-                </td>
+      {dataState({ isEmpty: entries.length === 0, emptyLabel: "No custom work yet." }) ?? (
+        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/60 text-muted-foreground">
+              <tr className="border-b text-left">
+                <th className="p-2 font-medium">Date</th>
+                <th className="p-2 font-medium">Work type</th>
+                <th className="p-2 font-medium">Party</th>
+                <th className="p-2 font-medium">Estimated</th>
+                <th className="p-2 font-medium">Actual</th>
+                <th className="p-2 font-medium">Variance</th>
+                <th className="p-2 font-medium">Status</th>
+                <th className="p-2" />
               </tr>
-            )}
-            {entries.map((w) => (
-              <CustomWorkRow key={w.id} work={w} projectId={projectId} />
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {entries.map((w) => (
+                <CustomWorkRow key={w.id} work={w} projectId={projectId} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
@@ -244,7 +242,9 @@ function CustomWorkRow({ work: w, projectId }: { work: CustomWork; projectId: nu
         >
           {formatINR(w.variance)}
         </td>
-        <td className="p-2">{w.status}</td>
+        <td className="p-2">
+          <StatusBadge status={w.status} />
+        </td>
         <td className="p-2">
           {w.status === "Active" && (
             <div className="flex gap-2">

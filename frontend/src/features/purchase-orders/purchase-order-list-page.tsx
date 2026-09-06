@@ -5,6 +5,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { formatDate, formatINR } from "@/lib/format";
 import { listPurchaseOrders } from "./api";
 
@@ -21,19 +24,21 @@ export function PurchaseOrderListPage() {
 
   return (
     <div className="max-w-4xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold">Purchase Orders</h1>
-        <Link href="/vendors/purchase-orders/new" className="text-primary text-sm underline">
-          New purchase order
-        </Link>
-      </div>
+      <PageHeader
+        title="Purchase Orders"
+        action={
+          <Link href="/vendors/purchase-orders/new" className="text-primary text-sm underline">
+            New purchase order
+          </Link>
+        }
+      />
 
-      <div className="flex flex-wrap items-end gap-3 rounded border p-3">
+      <div className="bg-card border-border flex flex-wrap items-end gap-3 rounded-xl border p-3 shadow-xs">
         <PartyPicker type="Vendor" label="Vendor" selected={vendor} onSelect={setVendor} />
         <label className="space-y-1">
           <span className="text-sm font-medium">Status</span>
           <select
-            className="block rounded border bg-transparent px-3 py-1.5 text-sm"
+            className="border-input bg-background rounded-md border px-2 py-1 text-sm"
             aria-label="Status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -48,46 +53,43 @@ export function PurchaseOrderListPage() {
         </label>
       </div>
 
-      <div className="rounded border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr className="border-b text-left">
-              <th className="p-2 font-medium">PO Number</th>
-              <th className="p-2 font-medium">Vendor</th>
-              <th className="p-2 font-medium">Date</th>
-              <th className="p-2 font-medium">Status</th>
-              <th className="p-2 font-medium">Projects</th>
-              <th className="p-2 font-medium">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orders.length === 0 && (
-              <tr>
-                <td colSpan={6} className="text-muted-foreground p-3 text-center">
-                  No purchase orders yet.
-                </td>
+      {dataState({ isEmpty: orders.length === 0, emptyLabel: "No purchase orders yet." }) ?? (
+        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/60 text-muted-foreground">
+              <tr className="border-b text-left">
+                <th className="p-2 font-medium">PO Number</th>
+                <th className="p-2 font-medium">Vendor</th>
+                <th className="p-2 font-medium">Date</th>
+                <th className="p-2 font-medium">Status</th>
+                <th className="p-2 font-medium">Projects</th>
+                <th className="p-2 font-medium">Total</th>
               </tr>
-            )}
-            {orders.map((po) => (
-              <tr key={po.id} className="border-b last:border-0">
-                <td className="p-2">
-                  <Link
-                    href={`/vendors/purchase-orders/${po.id}`}
-                    className="text-primary underline"
-                  >
-                    {po.poNumber}
-                  </Link>
-                </td>
-                <td className="p-2">{po.vendorName}</td>
-                <td className="p-2">{formatDate(po.orderDate)}</td>
-                <td className="p-2">{po.status}</td>
-                <td className="p-2">{new Set(po.lines.map((l) => l.projectId)).size}</td>
-                <td className="p-2">{po.status === "Draft" ? "—" : formatINR(po.total)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {orders.map((po) => (
+                <tr key={po.id} className="border-b last:border-0">
+                  <td className="p-2">
+                    <Link
+                      href={`/vendors/purchase-orders/${po.id}`}
+                      className="text-primary underline"
+                    >
+                      {po.poNumber}
+                    </Link>
+                  </td>
+                  <td className="p-2">{po.vendorName}</td>
+                  <td className="p-2">{formatDate(po.orderDate)}</td>
+                  <td className="p-2">
+                    <StatusBadge status={po.status} />
+                  </td>
+                  <td className="p-2">{new Set(po.lines.map((l) => l.projectId)).size}</td>
+                  <td className="p-2">{po.status === "Draft" ? "—" : formatINR(po.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

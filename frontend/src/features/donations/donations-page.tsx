@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getProject, listProjects } from "@/features/projects/api";
+import { PageHeader } from "@/components/ui/page-header";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import { DonationOutstandingPanel } from "./donation-outstanding-panel";
 import { ProjectDonationForm } from "./project-donation-form";
@@ -22,7 +23,7 @@ export function DonationsPage() {
 
   return (
     <div className="max-w-xl space-y-6">
-      <h1 className="text-lg font-semibold">Project Donations</h1>
+      <PageHeader title="Project Donations" />
 
       <label className="block space-y-1">
         <span className="text-sm font-medium">Project</span>

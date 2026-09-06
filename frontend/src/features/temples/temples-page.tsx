@@ -5,7 +5,9 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import { ApiError } from "@/lib/api";
 import { createTemple, listTemples } from "./api";
 
@@ -42,7 +44,7 @@ export function TemplesPage() {
   return (
     <div className="max-w-xl space-y-4">
       {dialog}
-      <h1 className="text-lg font-semibold">Temple Master</h1>
+      <PageHeader title="Temple Master" />
 
       <form
         className="flex gap-2"
@@ -62,32 +64,24 @@ export function TemplesPage() {
         </Button>
       </form>
 
-      <div className="rounded border">
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr className="border-b text-left">
-              <th className="p-2 font-medium">Name</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isPending && (
-              <tr>
-                <td className="text-muted-foreground p-3 text-center">Loading…</td>
+      {dataState({ isPending, isEmpty: !isPending && data?.length === 0, emptyLabel: "No temples yet." }) ?? (
+        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/60 text-muted-foreground">
+              <tr className="border-b text-left">
+                <th className="p-2 font-medium">Name</th>
               </tr>
-            )}
-            {data?.length === 0 && (
-              <tr>
-                <td className="text-muted-foreground p-3 text-center">No temples yet.</td>
-              </tr>
-            )}
-            {data?.map((temple) => (
-              <tr key={temple.id} className="border-b last:border-0">
-                <td className="p-2">{temple.name}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {data?.map((temple) => (
+                <tr key={temple.id} className="border-b last:border-0">
+                  <td className="p-2">{temple.name}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { formatINR } from "@/lib/format";
 import { useQueryParam } from "@/lib/use-query-param";
 import { projectPnl } from "./api";
@@ -14,8 +16,18 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
     queryFn: () => projectPnl(projectId, basis),
   });
 
-  if (isLoading) return <p className="p-4 text-sm">Loading…</p>;
-  if (isError || !data) return <p className="text-negative p-4 text-sm">Could not load P&amp;L.</p>;
+  if (isLoading || isError || !data) {
+    return (
+      <div className="max-w-md space-y-4">
+        <PageHeader title="Profit & Loss" />
+        {dataState({
+          isPending: isLoading,
+          isError: isError || !data,
+          errorLabel: "Could not load P&L.",
+        })}
+      </div>
+    );
+  }
 
   const rows: [string, string][] = [
     ["Revenue", formatINR(data.revenue)],
@@ -28,12 +40,12 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
 
   return (
     <div className="max-w-md space-y-4">
-      <h1 className="text-lg font-semibold">{data.projectName} — Profit &amp; Loss</h1>
+      <PageHeader title={`${data.projectName} — Profit & Loss`} />
 
       <label className="flex items-center gap-2 text-sm">
         <span>Revenue basis</span>
         <select
-          className="rounded border bg-transparent px-2 py-1 text-sm"
+          className="border-input bg-background rounded-md border px-2 py-1 text-sm"
           aria-label="Revenue basis"
           value={basis}
           onChange={(e) => setBasis(e.target.value as "Contract" | "Receipts")}
@@ -48,16 +60,18 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
         basis.
       </p>
 
-      <table className="w-full text-sm">
-        <tbody>
-          {rows.map(([k, v]) => (
-            <tr key={k} className="border-b last:border-0">
-              <td className="py-1.5">{k}</td>
-              <td className="py-1.5 text-right font-medium tabular-nums">{v}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
+        <table className="w-full text-sm">
+          <tbody>
+            {rows.map(([k, v]) => (
+              <tr key={k} className="border-b last:border-0">
+                <td className="py-1.5">{k}</td>
+                <td className="py-1.5 text-right font-medium tabular-nums">{v}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

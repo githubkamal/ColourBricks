@@ -5,6 +5,8 @@ import { useState } from "react";
 import { listTeamsGrouped } from "@/features/teams/api";
 import { TeamPicker } from "@/features/teams/team-picker";
 import type { TeamDto } from "@/features/teams/types";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import { teamStatement } from "./api";
@@ -37,44 +39,42 @@ export function TeamStatementPage() {
 
   return (
     <div className="max-w-3xl space-y-6">
-      <h1 className="text-lg font-semibold">Team Statement</h1>
+      <PageHeader title="Team Statement" />
       <TeamPicker selected={team} onSelect={handleSelect} label="Team" />
 
-      {team && (
-        <div className="rounded border">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary/60 text-muted-foreground">
-              <tr className="border-b text-left">
-                <th className="p-2 font-medium">Date</th>
-                <th className="p-2 font-medium">Entry</th>
-                <th className="p-2 font-medium">Work value</th>
-                <th className="p-2 font-medium">Paid</th>
-                <th className="p-2 font-medium">Running outstanding</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="text-muted-foreground p-3 text-center">
-                    No activity yet.
-                  </td>
+      {team &&
+        (dataState({ isEmpty: rows.length === 0, emptyLabel: "No activity yet." }) ?? (
+          <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+            <table className="w-full text-sm">
+              <thead className="bg-secondary/60 text-muted-foreground">
+                <tr className="border-b text-left">
+                  <th className="p-2 font-medium">Date</th>
+                  <th className="p-2 font-medium">Entry</th>
+                  <th className="p-2 font-medium">Work value</th>
+                  <th className="p-2 font-medium">Paid</th>
+                  <th className="p-2 font-medium">Running outstanding</th>
                 </tr>
-              )}
-              {rows.map((r, i) => (
-                <tr key={i} className="border-b last:border-0">
-                  <td className="p-2">{formatDate(r.date)}</td>
-                  <td className="text-muted-foreground p-2">
-                    {r.kind} — {r.reference}
-                  </td>
-                  <td className="p-2 tabular-nums">{r.workValue > 0 ? formatINR(r.workValue) : "—"}</td>
-                  <td className="p-2 tabular-nums">{r.paid > 0 ? formatINR(r.paid) : "—"}</td>
-                  <td className="p-2 font-medium tabular-nums">{formatINR(r.runningOutstanding)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i} className="border-b last:border-0">
+                    <td className="p-2">{formatDate(r.date)}</td>
+                    <td className="text-muted-foreground p-2">
+                      {r.kind} — {r.reference}
+                    </td>
+                    <td className="p-2 tabular-nums">
+                      {r.workValue > 0 ? formatINR(r.workValue) : "—"}
+                    </td>
+                    <td className="p-2 tabular-nums">{r.paid > 0 ? formatINR(r.paid) : "—"}</td>
+                    <td className="p-2 font-medium tabular-nums">
+                      {formatINR(r.runningOutstanding)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
     </div>
   );
 }

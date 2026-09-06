@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { dataState } from "@/components/ui/data-state";
+import { PageHeader } from "@/components/ui/page-header";
 import { formatDate, formatINR } from "@/lib/format";
 import { projectFinancialLedger } from "./api";
 
@@ -10,21 +12,30 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
     queryFn: () => projectFinancialLedger(projectId),
   });
 
-  if (isLoading) return <p className="p-4 text-sm">Loading…</p>;
-  if (isError || !data)
-    return <p className="text-negative p-4 text-sm">Could not load the ledger.</p>;
+  if (isLoading || isError || !data) {
+    return (
+      <div className="max-w-4xl space-y-4">
+        <PageHeader title="Project financial ledger" />
+        {dataState({
+          isPending: isLoading,
+          isError: isError || !data,
+          errorLabel: "Could not load the ledger.",
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl space-y-4">
-      <h1 className="text-lg font-semibold">Project financial ledger</h1>
+      <PageHeader title="Project financial ledger" />
       <p className="text-muted-foreground text-sm">
         Opening {formatINR(data.openingBalance)} · Closing{" "}
-        <span data-testid="closing-balance" className="font-medium">
+        <span data-testid="closing-balance" className="text-foreground font-medium">
           {formatINR(data.closingBalance)}
         </span>
       </p>
 
-      <div className="overflow-x-auto rounded border">
+      <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

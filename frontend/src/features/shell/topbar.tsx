@@ -1,6 +1,7 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -35,18 +36,15 @@ export function Topbar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
       <Button
         type="button"
         variant="ghost"
-        size="sm"
+        size="icon-sm"
         className="lg:hidden"
         aria-label="Toggle navigation"
         onClick={onToggleSidebar}
       >
-        Menu
+        <Menu aria-hidden="true" />
       </Button>
 
-      <span className="flex items-center gap-2 font-semibold">
-        <span className="bg-primary size-2 rounded-full" aria-hidden="true" />
-        Colour Bricks
-      </span>
+      <span className="font-heading hidden font-semibold lg:inline">Colour Bricks</span>
 
       <div className="ml-auto flex min-w-0 items-center gap-3">
         {user.permissions.includes("dashboard.view") && <NotificationBell />}
