@@ -22,6 +22,21 @@ jobs:
     concurrency:
       group: production-deploy
       cancel-in-progress: false
+    # `dotnet ef migrations bundle` needs a live DB to auto-detect the server
+    # version at build time (production's MySQL is bound to 127.0.0.1 on the VPS
+    # and unreachable from here — correctly so). This throwaway container is only
+    # for that version handshake; it holds no real data. Same pattern ci.yml's
+    # `backend` job already uses for the same reason.
+    services:
+      mariadb:
+        image: mariadb:10.4
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "1"
+          MARIADB_DATABASE: colourbricks_bundle
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,6 +90,11 @@ jobs:
         run: >
           dotnet ef migrations bundle -p src/ColourBricks.Infrastructure -s src/ColourBricks.Api
           -r linux-x64 --self-contained --configuration Release -o ../stage/api/efbundle --force
+        env:
+          # Only used to detect the server version while building the bundle —
+          # the bundle itself takes the real production connection string at run
+          # time on the server (see deploy.sh), not this one.
+          COLOURBRICKS_MIGRATIONS_CONNECTION: "Server=127.0.0.1;Port=3306;Database=colourbricks_bundle;User ID=root;Password=;AllowUserVariables=true;UseAffectedRows=false"
 
       # ---------- Ship to the VPS ----------
       - name: Configure SSH
