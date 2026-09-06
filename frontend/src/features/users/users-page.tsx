@@ -134,7 +134,9 @@ export function UsersPage() {
                         );
                         if (!password) return;
                         if (password.length < MIN_PASSWORD_LENGTH) {
-                          toast.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+                          toast.error(
+                            `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`,
+                          );
                           return;
                         }
                         reset.mutate({ id: user.id, password });

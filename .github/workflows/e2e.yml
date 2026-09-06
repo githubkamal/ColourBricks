@@ -1,0 +1,57 @@
+name: E2E
+
+# Split out from CI so a flaky/slow e2e run can never block a deploy — deploy.yml
+# only gates on the CI workflow (backend + frontend) succeeding. This still runs
+# on every push/PR for visibility; it just doesn't hold up shipping.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  DOTNET_VERSION: "10.0.x"
+  NODE_VERSION: "24"
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:10.4
+        env:
+          MARIADB_ALLOW_EMPTY_ROOT_PASSWORD: "1"
+          MARIADB_DATABASE: colourbricks
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Apply migrations (dev database)
+        working-directory: backend
+        run: |
+          dotnet tool restore
+          dotnet ef database update -p src/ColourBricks.Infrastructure -s src/ColourBricks.Api
+        env:
+          COLOURBRICKS_MIGRATIONS_CONNECTION: "Server=127.0.0.1;Port=3306;Database=colourbricks;User ID=root;Password=;AllowUserVariables=true;UseAffectedRows=false"
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: E2E
+        working-directory: frontend
+        run: npx playwright test
+        env:
+          CI: "true"
+          ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__Default: "Server=127.0.0.1;Port=3306;Database=colourbricks;User ID=root;Password=;TreatTinyAsBoolean=false;AllowUserVariables=true;UseAffectedRows=false"
