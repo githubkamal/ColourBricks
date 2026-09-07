@@ -1,10 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
+import { ProjectTabs } from "@/features/projects/project-tabs";
 import { dataState } from "@/components/ui/data-state";
-import { PageHeader } from "@/components/ui/page-header";
 import { StatTile } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/format";
 import { projectDashboard } from "./api";
@@ -23,7 +21,7 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
   if (isLoading || isError || !data) {
     return (
       <div className="max-w-5xl space-y-6">
-        <PageHeader title="Project dashboard" />
+        <ProjectTabs projectId={projectId} title="Project Dashboard" />
         {dataState({
           isPending: isLoading,
           isError: isError || !data,
@@ -36,29 +34,7 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
 
   return (
     <div className="max-w-5xl space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader title={`${data.projectName} — dashboard`} />
-        <nav className="flex flex-wrap gap-2">
-          <Link
-            href={`/projects/${projectId}/budget-vs-actual`}
-            className={buttonVariants({ variant: "default", size: "sm" })}
-          >
-            Budget vs actual
-          </Link>
-          <Link
-            href={`/projects/${projectId}/financial-ledger`}
-            className={buttonVariants({ variant: "default", size: "sm" })}
-          >
-            Ledger
-          </Link>
-          <Link
-            href={`/projects/${projectId}/pnl`}
-            className={buttonVariants({ variant: "default", size: "sm" })}
-          >
-            P&amp;L
-          </Link>
-        </nav>
-      </div>
+      <ProjectTabs projectId={projectId} title="Project Dashboard" />
 
       <div
         className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"

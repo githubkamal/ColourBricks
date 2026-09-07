@@ -46,25 +46,10 @@ export const navigation: NavSection[] = [
     label: "Projects",
     icon: Building2,
     items: [
-      { label: "Ongoing Projects", href: "/projects?status=ongoing", permission: "projects.view" },
       {
-        label: "Completed Projects",
-        href: "/projects?status=completed",
+        label: "Project Master",
+        href: "/projects",
         permission: "projects.view",
-      },
-      { label: "Project Master", href: "/projects", permission: "projects.view" },
-      {
-        label: "Project Ledger",
-        href: "/projects?intent=ledger",
-        permission: "projects.view",
-      },
-      { label: "Project Income", href: "/project-income", permission: "project_income.view" },
-      { label: "Project Expenses", href: "/project-expenses", permission: "project_expenses.view" },
-      { label: "Project Budget", href: "/projects?intent=budget", permission: "budget.view" },
-      {
-        label: "Project Profit/Loss",
-        href: "/projects?intent=pnl",
-        permission: "profit_loss.view",
       },
     ],
   },
@@ -139,11 +124,6 @@ export const navigation: NavSection[] = [
     items: [
       { label: "Temple Master", href: "/donations/temples", permission: "temple_donations.view" },
       { label: "Project Donations", href: "/donations", permission: "temple_donations.view" },
-      {
-        label: "Donation Payments",
-        href: "/donations",
-        permission: "temple_donations.view",
-      },
       {
         label: "Reports",
         href: "/reports/explorer?report=donation-project-wise",

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { listTemples } from "@/features/temples/api";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
@@ -196,8 +197,8 @@ function DonationEditor({
         <p className="text-sm font-medium">Split across temples</p>
         {rows.map((row, index) => (
           <div key={row.id} className="flex gap-2">
-            <select
-              className="bg-card flex-1 rounded border px-2 py-1.5 text-sm"
+            <Select
+              className="flex-1"
               value={row.templeId}
               aria-label={`Temple ${index + 1}`}
               onChange={(e) =>
@@ -216,7 +217,7 @@ function DonationEditor({
                   {t.name}
                 </option>
               ))}
-            </select>
+            </Select>
             <AmountInput
               className="w-40"
               value={row.amount}

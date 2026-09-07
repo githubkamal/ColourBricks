@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import {
   createBankStatementProfile,
@@ -110,8 +111,7 @@ export function BankStatementUploadPage() {
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
-          <select
-            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+          <Select
             aria-label="Account"
             value={accountId}
             onChange={(e) => {
@@ -126,7 +126,7 @@ export function BankStatementUploadPage() {
                 {a.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         <label className="space-y-1">
@@ -146,8 +146,7 @@ export function BankStatementUploadPage() {
             <div className="bg-card space-y-2 rounded border p-3">
               <p className="text-sm font-medium">Use a saved mapping</p>
               <div className="flex flex-wrap items-end gap-3">
-                <select
-                  className="bg-card text-foreground rounded border px-3 py-1.5 text-sm"
+                <Select
                   aria-label="Saved profile"
                   value={profileId}
                   onChange={(e) => setProfileId(e.target.value ? Number(e.target.value) : "")}
@@ -158,7 +157,7 @@ export function BankStatementUploadPage() {
                       {p.name}
                     </option>
                   ))}
-                </select>
+                </Select>
                 <Button
                   type="button"
                   disabled={profileId === "" || uploadWithProfile.isPending}
@@ -206,8 +205,7 @@ export function BankStatementUploadPage() {
                 ).map((field) => (
                   <label key={field} className="flex items-center gap-2 text-sm">
                     <span className="w-40">{field.replace("Column", "")}</span>
-                    <select
-                      className="bg-card text-foreground rounded border px-2 py-1 text-sm"
+                    <Select
                       aria-label={field}
                       value={map[field] ?? ""}
                       onChange={(e) => setCol(field, e.target.value)}
@@ -222,7 +220,7 @@ export function BankStatementUploadPage() {
                           {o.label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </label>
                 ))}
 
@@ -238,8 +236,7 @@ export function BankStatementUploadPage() {
                 {singleAmount ? (
                   <label className="flex items-center gap-2 text-sm">
                     <span className="w-40">amount</span>
-                    <select
-                      className="bg-card text-foreground rounded border px-2 py-1 text-sm"
+                    <Select
                       aria-label="amountColumn"
                       value={map.amountColumn ?? ""}
                       onChange={(e) => setCol("amountColumn", e.target.value)}
@@ -250,14 +247,13 @@ export function BankStatementUploadPage() {
                           {o.label}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </label>
                 ) : (
                   (["debitColumn", "creditColumn"] as const).map((field) => (
                     <label key={field} className="flex items-center gap-2 text-sm">
                       <span className="w-40">{field.replace("Column", "")}</span>
-                      <select
-                        className="bg-card text-foreground rounded border px-2 py-1 text-sm"
+                      <Select
                         aria-label={field}
                         value={map[field] ?? ""}
                         onChange={(e) => setCol(field, e.target.value)}
@@ -268,7 +264,7 @@ export function BankStatementUploadPage() {
                             {o.label}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </label>
                   ))
                 )}

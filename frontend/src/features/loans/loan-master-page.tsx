@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -276,9 +277,9 @@ export function LoanMasterPage() {
             >
               Disbursement account
             </FieldLabel>
-            <select
+            <Select
               ref={disbursementAccountRef}
-              className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+              className="w-full"
               value={disbursementAccountId}
               aria-label="Disbursement account"
               onChange={(e) =>
@@ -291,7 +292,7 @@ export function LoanMasterPage() {
                   {a.name} ({a.type})
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <label className="space-y-1">
             <FieldLabel

@@ -66,7 +66,7 @@ public sealed class CompanyReportsTests(IntegrationFixture fixture) : Integratio
         (byKey["income"] - byKey["expenses"]).Should().Be(byKey["profitLoss"]);
 
         // ... and it agrees with the company dashboard.
-        JsonElement dash = await Json(await c.GetAsync("/api/v1/dashboard"));
+        JsonElement dash = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
         decimal dashProfit = dash.GetProperty("tiles").EnumerateArray()
             .First(t => t.GetProperty("key").GetString() == "profitLoss").GetProperty("value").GetDecimal();
         byKey["profitLoss"].Should().Be(dashProfit);

@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { listLoans } from "./api";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParam, useQueryParamNumber } from "@/lib/use-query-param";
 import { cn } from "@/lib/utils";
@@ -187,8 +188,7 @@ export function LoanReportsPage() {
       <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-3">
         <label className="space-y-1">
           <span className="text-sm font-medium">Report</span>
-          <select
-            className="bg-card rounded border px-3 py-1.5 text-sm"
+          <Select
             aria-label="Report"
             value={reportKey}
             onChange={(e) => setReportKey(e.target.value as ReportKey)}
@@ -198,14 +198,13 @@ export function LoanReportsPage() {
                 {r.title}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
 
         {showLoanFilter && (
           <label className="space-y-1">
             <span className="text-sm font-medium">Loan{needsLoan ? "" : " (optional)"}</span>
-            <select
-              className="bg-card rounded border px-3 py-1.5 text-sm"
+            <Select
               aria-label="Loan"
               value={loanId || ""}
               onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}
@@ -216,7 +215,7 @@ export function LoanReportsPage() {
                   {l.lenderName} — {formatINR(l.principalAmount)}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         )}
 

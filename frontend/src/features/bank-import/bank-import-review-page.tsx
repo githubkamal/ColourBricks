@@ -211,7 +211,10 @@ function RowLine({
   const [lines, setLines] = useState<Line[]>(() =>
     row.allocations.length > 0
       ? row.allocations.map((a) => ({
-          project: { id: a.projectId, name: projects.find((p) => p.id === a.projectId)?.name ?? "" },
+          project: {
+            id: a.projectId,
+            name: projects.find((p) => p.id === a.projectId)?.name ?? "",
+          },
           amount: String(a.amount),
         }))
       : [{ project: null, amount: isCredit ? String(target) : "" }],

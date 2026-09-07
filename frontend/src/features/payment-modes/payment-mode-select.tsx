@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Select } from "@/components/ui/select";
 import { listPaymentModes } from "./api";
 import type { PaymentModeDto } from "./types";
 
@@ -29,8 +30,8 @@ export function PaymentModeSelect({
   return (
     <label className="block space-y-1">
       <span className="text-sm font-medium">{label}</span>
-      <select
-        className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+      <Select
+        className="w-full"
         value={value ?? ""}
         disabled={isPending}
         aria-label={label}
@@ -45,7 +46,7 @@ export function PaymentModeSelect({
             {mode.name}
           </option>
         ))}
-      </select>
+      </Select>
     </label>
   );
 }

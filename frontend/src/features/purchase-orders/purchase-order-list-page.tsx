@@ -9,6 +9,7 @@ import { dataState } from "@/components/ui/data-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
 import { listPurchaseOrders } from "./api";
@@ -40,19 +41,14 @@ export function PurchaseOrderListPage() {
         <PartyPicker type="Vendor" label="Vendor" selected={vendor} onSelect={setVendor} />
         <label className="space-y-1">
           <span className="text-sm font-medium">Status</span>
-          <select
-            className="border-input bg-card rounded-md border px-2 py-1 text-sm"
-            aria-label="Status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
+          <Select aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">All</option>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
                 {s}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
 

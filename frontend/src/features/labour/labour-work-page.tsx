@@ -18,6 +18,7 @@ import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -33,9 +34,7 @@ import {
 
 export function LabourWorkPage() {
   const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
-  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(
-    undefined,
-  );
+  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(undefined);
   const { data: restoredProject } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
@@ -251,8 +250,7 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
               </label>
               <label className="space-y-1">
                 <span className="text-xs">Frequency</span>
-                <select
-                  className="bg-card block rounded border px-2 py-1.5 text-sm"
+                <Select
                   value={frequency}
                   aria-label={`Pay frequency ${entry.id}`}
                   onChange={(e) => setFrequency(e.target.value as PaymentFrequency)}
@@ -262,7 +260,7 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
                       {f}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <PaymentModeSelect
                 value={paymentModeId}
@@ -270,8 +268,7 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
               />
               <label className="space-y-1">
                 <span className="text-xs">Account</span>
-                <select
-                  className="bg-card block rounded border px-2 py-1.5 text-sm"
+                <Select
                   value={accountId}
                   aria-label={`Pay account ${entry.id}`}
                   onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -282,7 +279,7 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
                       {a.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <div className="w-56">
                 <BankTransactionPicker

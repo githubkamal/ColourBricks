@@ -8,6 +8,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
 import { listDepartments } from "@/features/departments/api";
 import { ApiError } from "@/lib/api";
 import { createTeam, listTeamsGrouped } from "./api";
@@ -78,8 +79,7 @@ export function TeamsPage() {
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Department</span>
-          <select
-            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+          <Select
             value={departmentId}
             aria-label="Department"
             onChange={(e) => setDepartmentId(e.target.value ? Number(e.target.value) : "")}
@@ -90,7 +90,7 @@ export function TeamsPage() {
                 {d.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <Button type="submit" disabled={add.isPending || !name.trim() || !departmentId}>
           Add team

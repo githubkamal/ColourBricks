@@ -12,6 +12,7 @@ import { AmountInput } from "@/components/ui/amount-input";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -34,7 +35,7 @@ export function ProjectIncomePage() {
   );
 }
 
-function ProjectIncome({ projectId }: { projectId: number }) {
+export function ProjectIncome({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
   const { confirm, dialog } = useConfirmDialog();
   const [type, setType] = useState<IncomeType>("ClientAdvance");
@@ -131,8 +132,8 @@ function ProjectIncome({ projectId }: { projectId: number }) {
       >
         <label className="space-y-1">
           <span className="text-sm font-medium">Transaction type</span>
-          <select
-            className="bg-card block w-full rounded border px-3 py-1.5 text-sm"
+          <Select
+            className="w-full"
             value={type}
             aria-label="Transaction type"
             onChange={(e) => setType(e.target.value as IncomeType)}
@@ -142,7 +143,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
                 {INCOME_TYPE_LABELS[t]}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Date</span>
@@ -166,8 +167,8 @@ function ProjectIncome({ projectId }: { projectId: number }) {
         />
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
-          <select
-            className="bg-card block w-full rounded border px-3 py-1.5 text-sm"
+          <Select
+            className="w-full"
             value={accountId}
             aria-label="Account"
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -178,7 +179,7 @@ function ProjectIncome({ projectId }: { projectId: number }) {
                 {a.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">

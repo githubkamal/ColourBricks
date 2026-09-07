@@ -8,6 +8,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { formatDate, formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -140,10 +141,7 @@ export function ProjectList() {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <StatusTab
-          active={status === undefined}
-          onClick={() => setStatus(undefined)}
-        >
+        <StatusTab active={status === undefined} onClick={() => setStatus(undefined)}>
           All{data ? ` (${data.totalCount})` : ""}
         </StatusTab>
         {PROJECT_STATUSES.map((s) => (
@@ -155,17 +153,13 @@ export function ProjectList() {
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <label className="text-muted-foreground flex items-center gap-1.5 text-sm">
             Sort
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortKey)}
-              className="border-input bg-card h-8 rounded-md border px-2 text-sm"
-            >
+            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
               {Object.entries(SORT_LABELS).map(([key, label]) => (
                 <option key={key} value={key}>
                   {label}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
           <button
             type="button"

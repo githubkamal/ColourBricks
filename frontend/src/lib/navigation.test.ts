@@ -7,7 +7,7 @@ describe("visibleNavigation", () => {
   });
 
   it("drops a section when every one of its items is gated out", () => {
-    const labels = visibleNavigation(["projects.view", "project_income.view"]).map((s) => s.label);
+    const labels = visibleNavigation(["projects.view"]).map((s) => s.label);
 
     expect(labels).toContain("Projects");
     expect(labels).not.toContain("Vendors");
@@ -15,10 +15,10 @@ describe("visibleNavigation", () => {
   });
 
   it("keeps only the permitted items within a visible section", () => {
-    const projects = visibleNavigation(["project_income.view"]).find((s) => s.label === "Projects");
+    const projects = visibleNavigation(["projects.view"]).find((s) => s.label === "Projects");
 
     expect(projects).toBeDefined();
-    expect(projects?.items.map((i) => i.label)).toEqual(["Project Income"]);
+    expect(projects?.items.map((i) => i.label)).toEqual(["Project Master"]);
   });
 
   it("hides Administration for a role without any admin permission (BRD §61)", () => {

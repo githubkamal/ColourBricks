@@ -17,4 +17,7 @@ public interface ITempleService
 
     Task<CreatePartyResult> CreateAsync(
         string name, bool confirmed, CancellationToken cancellationToken);
+
+    Task<PartyDto?> UpdateAsync(
+        long id, string name, bool isActive, string concurrencyStamp, CancellationToken cancellationToken);
 }

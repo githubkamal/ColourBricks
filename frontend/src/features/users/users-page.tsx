@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { usePagination } from "@/lib/use-pagination";
@@ -268,8 +269,7 @@ function AddUserForm({ roles, onAdded }: { roles: RoleOption[]; onAdded: () => v
       </label>
       <label className="space-y-1">
         <span className="text-sm font-medium">Role</span>
-        <select
-          className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+        <Select
           value={roleId}
           aria-label="Role"
           onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}
@@ -280,7 +280,7 @@ function AddUserForm({ roles, onAdded }: { roles: RoleOption[]; onAdded: () => v
               {r.name}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <Button type="submit" disabled={!ready || add.isPending}>
         Add user
@@ -372,8 +372,7 @@ function UserEditor({
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Role</span>
-          <select
-            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+          <Select
             value={roleId}
             aria-label="Edit role"
             onChange={(e) => setRoleId(e.target.value ? Number(e.target.value) : "")}
@@ -384,7 +383,7 @@ function UserEditor({
                 {r.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </div>
 

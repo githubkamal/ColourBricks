@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -99,8 +100,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
       <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-3">
         <label className="space-y-1">
           <span className="text-sm font-medium">Sub-category</span>
-          <select
-            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+          <Select
             aria-label="Sub-category"
             value={subCategory}
             onChange={(e) => setSubCategory(e.target.value)}
@@ -110,7 +110,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
                 {s}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="space-y-1">
           <FieldLabel required error={touchedDate && date === "" ? "Required" : undefined}>
@@ -145,8 +145,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
         />
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
-          <select
-            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+          <Select
             aria-label="Account"
             value={accountId}
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -157,7 +156,7 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
                 {a.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <BankTransactionPicker
           selected={bankTx}

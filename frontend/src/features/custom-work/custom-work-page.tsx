@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { usePagination } from "@/lib/use-pagination";
 import { formatDate, formatINR } from "@/lib/format";
@@ -389,8 +390,7 @@ function CustomWorkPaymentForm({
       <PaymentModeSelect value={paymentModeId} onChange={(m) => setPaymentModeId(m?.id ?? null)} />
       <label className="space-y-1">
         <span className="text-sm font-medium">Account</span>
-        <select
-          className="bg-card block rounded border px-3 py-1.5 text-sm"
+        <Select
           aria-label="Payment account"
           value={accountId}
           onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -401,7 +401,7 @@ function CustomWorkPaymentForm({
               {a.name}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <div className="w-56">
         <BankTransactionPicker

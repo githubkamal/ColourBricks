@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Select } from "@/components/ui/select";
 import { listTeamsGrouped } from "./api";
 import type { TeamDto } from "./types";
 
@@ -25,8 +26,8 @@ export function TeamPicker({ selected, onSelect, label = "Team" }: TeamPickerPro
   return (
     <label className="block space-y-1">
       <span className="text-sm font-medium">{label}</span>
-      <select
-        className="bg-card text-foreground w-full rounded border px-3 py-1.5 text-sm"
+      <Select
+        className="w-full"
         value={selected?.id ?? ""}
         disabled={isPending}
         aria-label={label}
@@ -42,7 +43,7 @@ export function TeamPicker({ selected, onSelect, label = "Team" }: TeamPickerPro
             ))}
           </optgroup>
         ))}
-      </select>
+      </Select>
     </label>
   );
 }

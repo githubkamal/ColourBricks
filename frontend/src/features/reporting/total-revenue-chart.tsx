@@ -1,15 +1,7 @@
 "use client";
 
 import { TrendingDown, TrendingUp } from "lucide-react";
-import {
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatINR } from "@/lib/format";
 import type { MonthlyFlow } from "./api";
 

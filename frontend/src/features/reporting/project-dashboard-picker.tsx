@@ -11,9 +11,7 @@ import { ProjectDashboardPage } from "./project-dashboard-page";
 export function ProjectDashboardPicker() {
   const [projectIdParam, setProjectIdParam] = useQueryParam("projectId", "");
   const projectId = projectIdParam ? Number(projectIdParam) : 0;
-  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(
-    undefined,
-  );
+  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(undefined);
   const { data: restoredProject } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),

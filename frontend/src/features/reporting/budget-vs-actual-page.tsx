@@ -1,9 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { ProjectTabs } from "@/features/projects/project-tabs";
 import { Badge, type badgeVariants } from "@/components/ui/badge";
 import { dataState } from "@/components/ui/data-state";
-import { PageHeader } from "@/components/ui/page-header";
 import { formatINR } from "@/lib/format";
 import type { VariantProps } from "class-variance-authority";
 import { budgetVsActual } from "./api";
@@ -21,8 +21,8 @@ export function BudgetVsActualPage({ projectId }: { projectId: number }) {
 
   if (isLoading || isError || !data) {
     return (
-      <div className="max-w-4xl space-y-4">
-        <PageHeader title="Budget vs actual" />
+      <div className="max-w-5xl space-y-4">
+        <ProjectTabs projectId={projectId} title="Budget vs Actual" />
         {dataState({
           isPending: isLoading,
           isError: isError || !data,
@@ -33,8 +33,8 @@ export function BudgetVsActualPage({ projectId }: { projectId: number }) {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
-      <PageHeader title="Budget vs actual" />
+    <div className="max-w-5xl space-y-4">
+      <ProjectTabs projectId={projectId} title="Budget vs Actual" />
       <p
         className={
           data.actualCost > data.estimatedCost

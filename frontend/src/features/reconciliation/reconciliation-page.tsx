@@ -15,6 +15,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { formatDate, formatINR } from "@/lib/format";
@@ -170,8 +171,7 @@ export function ReconciliationPage() {
       <div className="flex flex-wrap items-end gap-3">
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
-          <select
-            className="bg-card block rounded border px-3 py-1.5 text-sm"
+          <Select
             aria-label="Account"
             value={accountId}
             onChange={(e) => {
@@ -185,12 +185,11 @@ export function ReconciliationPage() {
                 {a.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Status</span>
-          <select
-            className="bg-card block rounded border px-3 py-1.5 text-sm"
+          <Select
             aria-label="Status"
             value={status}
             onChange={(e) => {
@@ -203,7 +202,7 @@ export function ReconciliationPage() {
                 {s || "Any"}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">From</span>
@@ -603,8 +602,7 @@ function DebitSplitForm({ row, onDone }: { row: ReconciliationRow; onDone: () =>
           <div className="flex flex-wrap items-end gap-2">
             <label className="space-y-1">
               <span className="text-sm font-medium">Target</span>
-              <select
-                className="bg-card block rounded border px-3 py-1.5 text-sm"
+              <Select
                 aria-label={`Target ${i + 1}`}
                 value={l.target}
                 onChange={(e) =>
@@ -623,7 +621,7 @@ function DebitSplitForm({ row, onDone }: { row: ReconciliationRow; onDone: () =>
                 <option value="Office">Office</option>
                 <option value="Savings">Savings</option>
                 <option value="Custom">Custom</option>
-              </select>
+              </Select>
             </label>
             <AmountInput
               className="w-32"
@@ -669,7 +667,9 @@ function DebitSplitForm({ row, onDone }: { row: ReconciliationRow; onDone: () =>
               {showsProjectPicker(l.target) && (
                 <ProjectPicker
                   status="Ongoing"
-                  label={projectRequired(l.target) ? "Project" : "Project (optional — none = advance)"}
+                  label={
+                    projectRequired(l.target) ? "Project" : "Project (optional — none = advance)"
+                  }
                   ariaLabel={`Project ${i + 1}`}
                   selected={l.project}
                   onSelect={(p) => update(i, { project: p ? { id: p.id, name: p.name } : null })}

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -187,8 +188,7 @@ export function FieldOfficerExpensePage() {
           <div className="flex flex-wrap items-end gap-3">
             <label className="space-y-1">
               <FieldLabel required>Type</FieldLabel>
-              <select
-                className="bg-card block rounded border px-3 py-1.5 text-sm"
+              <Select
                 aria-label="Type"
                 value={type}
                 onChange={(e) => setType(e.target.value as FieldOfficerExpenseType)}
@@ -198,7 +198,7 @@ export function FieldOfficerExpensePage() {
                     {t}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="space-y-1">
               <FieldLabel required error={touchedDate && date === "" ? "Required" : undefined}>

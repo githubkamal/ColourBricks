@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -109,8 +110,7 @@ export function AllocationRunPage() {
         </fieldset>
         <label className="space-y-1">
           <span className="text-sm font-medium">Method</span>
-          <select
-            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+          <Select
             aria-label="Method"
             value={method}
             onChange={(e) => setMethod(e.target.value as AllocationMethod)}
@@ -118,7 +118,7 @@ export function AllocationRunPage() {
             <option value="Equal">Equal</option>
             <option value="Percentage">Percentage</option>
             <option value="Manual">Manual</option>
-          </select>
+          </Select>
         </label>
         <Button
           type="button"

@@ -229,9 +229,10 @@ public sealed class ReportingService(
 
         List<RangedLedgerRow> rows = await db.LedgerEntries.AsNoTracking()
             .Where(e => e.ProjectId == projectId)
-            .Join(db.ExpenseCategories.AsNoTracking(), e => e.CategoryId, c => c.Id,
-                (e, c) => new RangedLedgerRow(e.ProjectId!.Value, e.EntryDate, c.Bucket, c.IsCost, e.Debit, e.Credit))
-            .Where(x => x.IsCost || x.Bucket == "Income")
+            .Join(db.ExpenseCategories.AsNoTracking(), e => e.CategoryId, c => c.Id, (e, c) => new { e, c })
+            .Where(x => x.c.IsCost || x.c.Bucket == "Income")
+            .Select(x => new RangedLedgerRow(
+                x.e.ProjectId!.Value, x.e.EntryDate, x.c.Bucket, x.c.IsCost, x.e.Debit, x.e.Credit))
             .ToListAsync(ct);
         List<MonthlyFlowDto> monthly = BuildMonthlyFlow(rows);
 
@@ -262,9 +263,10 @@ public sealed class ReportingService(
         List<RangedLedgerRow> rangedRows = await db.LedgerEntries.AsNoTracking()
             .Where(e => e.ProjectId != null && projectIds.Contains(e.ProjectId.Value))
             .Where(e => (from == null || e.EntryDate >= from.Value) && (to == null || e.EntryDate <= to.Value))
-            .Join(db.ExpenseCategories.AsNoTracking(), e => e.CategoryId, c => c.Id,
-                (e, c) => new RangedLedgerRow(e.ProjectId!.Value, e.EntryDate, c.Bucket, c.IsCost, e.Debit, e.Credit))
-            .Where(x => x.IsCost || x.Bucket == "Income")
+            .Join(db.ExpenseCategories.AsNoTracking(), e => e.CategoryId, c => c.Id, (e, c) => new { e, c })
+            .Where(x => x.c.IsCost || x.c.Bucket == "Income")
+            .Select(x => new RangedLedgerRow(
+                x.e.ProjectId!.Value, x.e.EntryDate, x.c.Bucket, x.c.IsCost, x.e.Debit, x.e.Credit))
             .ToListAsync(ct);
 
         decimal income = 0m, actualCost = 0m;

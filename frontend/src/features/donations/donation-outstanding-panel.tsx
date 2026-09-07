@@ -10,6 +10,7 @@ import { BankTransactionPicker } from "@/features/reconciliation/bank-transactio
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 import { donationOutstanding, payDonationTemple } from "./api";
@@ -176,8 +177,7 @@ function TempleRow({
               />
               <label className="space-y-1">
                 <span className="text-xs">Account</span>
-                <select
-                  className="bg-card block rounded border px-2 py-1.5 text-sm"
+                <Select
                   value={accountId}
                   aria-label={`Donation pay account ${templeId}`}
                   onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -188,7 +188,7 @@ function TempleRow({
                       {a.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <div className="w-56">
                 <BankTransactionPicker

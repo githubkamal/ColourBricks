@@ -1,8 +1,9 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { ProjectTabs } from "@/features/projects/project-tabs";
 import { dataState } from "@/components/ui/data-state";
-import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
 import { formatINR } from "@/lib/format";
 import { useQueryParam } from "@/lib/use-query-param";
 import { projectPnl } from "./api";
@@ -18,8 +19,8 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
 
   if (isLoading || isError || !data) {
     return (
-      <div className="max-w-md space-y-4">
-        <PageHeader title="Profit & Loss" />
+      <div className="max-w-5xl space-y-4">
+        <ProjectTabs projectId={projectId} title="Profit & Loss" />
         {dataState({
           isPending: isLoading,
           isError: isError || !data,
@@ -39,20 +40,19 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
   ];
 
   return (
-    <div className="max-w-md space-y-4">
-      <PageHeader title={`${data.projectName} — Profit & Loss`} />
+    <div className="max-w-5xl space-y-4">
+      <ProjectTabs projectId={projectId} title="Profit & Loss" />
 
       <label className="flex items-center gap-2 text-sm">
         <span>Revenue basis</span>
-        <select
-          className="border-input bg-card rounded-md border px-2 py-1 text-sm"
+        <Select
           aria-label="Revenue basis"
           value={basis}
           onChange={(e) => setBasis(e.target.value as "Contract" | "Receipts")}
         >
           <option value="Contract">Contract value</option>
           <option value="Receipts">Receipts to date</option>
-        </select>
+        </Select>
       </label>
       <p className="text-muted-foreground text-xs" data-testid="basis-label">
         Revenue shown on the{" "}

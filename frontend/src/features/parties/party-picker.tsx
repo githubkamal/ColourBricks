@@ -106,7 +106,13 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
         setHighlightedIndex(-1);
       } else {
         toast.message(`"${name}" already exists — selecting it`);
-        choose({ id: outcome.existingId, name, types: [type ?? "Vendor"], category: null, isActive: true });
+        choose({
+          id: outcome.existingId,
+          name,
+          types: [type ?? "Vendor"],
+          category: null,
+          isActive: true,
+        });
       }
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : "Could not add the party");
@@ -229,7 +235,15 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
                     "hover:bg-secondary block w-full rounded px-2 py-1 text-left",
                     i === highlightedIndex && "bg-secondary",
                   )}
-                  onClick={() => choose({ id: d.id, name: d.name, types: d.types, category: null, isActive: true })}
+                  onClick={() =>
+                    choose({
+                      id: d.id,
+                      name: d.name,
+                      types: d.types,
+                      category: null,
+                      isActive: true,
+                    })
+                  }
                 >
                   {d.name} <span className="text-muted-foreground">· {d.types.join(", ")}</span>
                 </button>
@@ -265,7 +279,15 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
                         "hover:bg-secondary block w-full rounded px-2 py-1 text-left",
                         i === highlightedIndex && "bg-secondary",
                       )}
-                      onClick={() => choose({ id: r.id, name: r.name, types: [], category: null, isActive: true })}
+                      onClick={() =>
+                        choose({
+                          id: r.id,
+                          name: r.name,
+                          types: [],
+                          category: null,
+                          isActive: true,
+                        })
+                      }
                     >
                       {r.name}
                     </button>

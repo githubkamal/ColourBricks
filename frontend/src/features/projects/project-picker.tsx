@@ -37,7 +37,13 @@ export interface ProjectPickerProps {
  * anything past the fetch limit is invisible). Mirrors ItemPicker/PartyPicker's
  * combobox shape for a consistent feel.
  */
-export function ProjectPicker({ selected, onSelect, status, label, ariaLabel }: ProjectPickerProps) {
+export function ProjectPicker({
+  selected,
+  onSelect,
+  status,
+  label,
+  ariaLabel,
+}: ProjectPickerProps) {
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
   const [open, setOpen] = useState(false);
@@ -139,7 +145,7 @@ export function ProjectPicker({ selected, onSelect, status, label, ariaLabel }: 
         <div
           id={listboxId}
           role="listbox"
-          className="bg-popover absolute z-20 mt-1 w-full max-h-64 overflow-y-auto rounded border p-1 text-sm shadow-md"
+          className="bg-popover absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded border p-1 text-sm shadow-md"
         >
           {isFetching && <p className="text-muted-foreground p-2">Searching…</p>}
           {!isFetching && results.length === 0 && (

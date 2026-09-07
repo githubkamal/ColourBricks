@@ -1,36 +1,12 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
 import { dataState } from "@/components/ui/data-state";
-import { cn } from "@/lib/utils";
 import { formatDate, formatINR } from "@/lib/format";
 import { getProject } from "./api";
-import { PROJECT_STATUS_LABELS, type ProjectStatus } from "./types";
-
-// Matches the generic StatusBadge palette's ongoing/completed/onhold/cancelled
-// colours (client request, 2026-09-06) — fixed, not theme-accent-driven.
-const STATUS_BADGE: Record<ProjectStatus, "sky" | "green" | "yellow" | "red"> = {
-  Ongoing: "sky",
-  Completed: "green",
-  OnHold: "yellow",
-  Cancelled: "red",
-};
-
-const TABS = (id: number) => [
-  { label: "Overview", href: `/projects/${id}` },
-  { label: "Dashboard", href: `/projects/${id}/dashboard` },
-  { label: "Budget", href: `/projects/${id}/budget` },
-  { label: "Budget vs Actual", href: `/projects/${id}/budget-vs-actual` },
-  { label: "Financial Ledger", href: `/projects/${id}/financial-ledger` },
-  { label: "Profit/Loss", href: `/projects/${id}/pnl` },
-];
+import { ProjectTabs } from "./project-tabs";
 
 export function ProjectDetail({ id }: { id: number }) {
-  const pathname = usePathname();
   const {
     data: project,
     isPending,
@@ -40,61 +16,18 @@ export function ProjectDetail({ id }: { id: number }) {
     queryFn: () => getProject(id),
   });
 
-  const nav = (
-    <nav className="border-border flex flex-wrap gap-1 border-b">
-      {TABS(id).map((tab) => {
-        const active = pathname === tab.href;
-        return (
-          <Link
-            key={tab.href}
-            href={tab.href}
-            className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-sm transition-colors",
-              active
-                ? "border-primary text-foreground font-medium"
-                : "text-muted-foreground hover:text-foreground border-transparent",
-            )}
-          >
-            {tab.label}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-
   if (isPending || isError || !project) {
     return (
-      <div className="max-w-3xl space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="font-heading text-2xl font-semibold">Project</h1>
-          <Link href="/projects" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            Back to Projects
-          </Link>
-        </div>
-        {nav}
+      <div className="max-w-5xl space-y-5">
+        <ProjectTabs projectId={id} title="Overview" />
         {dataState({ isPending, isError: isError || !project, errorLabel: "Project not found." })}
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <p className="text-muted-foreground font-mono text-xs">{project.code}</p>
-          <div className="flex items-center gap-2">
-            <h1 className="font-heading text-2xl font-semibold">{project.name}</h1>
-            <Badge variant={STATUS_BADGE[project.status]}>
-              {PROJECT_STATUS_LABELS[project.status]}
-            </Badge>
-          </div>
-        </div>
-        <Link href="/projects" className={buttonVariants({ variant: "outline", size: "sm" })}>
-          Back to Projects
-        </Link>
-      </div>
-
-      {nav}
+    <div className="max-w-5xl space-y-5">
+      <ProjectTabs projectId={id} title="Overview" />
 
       <div className="bg-card border-border rounded-xl border p-5 shadow-xs">
         <dl className="grid grid-cols-1 gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
@@ -135,7 +68,7 @@ function Row({
   return (
     <div className={className}>
       <dt className="text-muted-foreground text-xs">{label}</dt>
-      <dd className={numeric ? "num tabular-nums" : undefined}>{children}</dd>
+      <dd className={numeric ? "tabular-nums" : undefined}>{children}</dd>
     </div>
   );
 }

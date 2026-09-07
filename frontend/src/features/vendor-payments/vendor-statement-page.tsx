@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { dataState } from "@/components/ui/data-state";
 import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { applyVendorAdvance, vendorOutstandingSummary, vendorStatement } from "./api";
@@ -123,8 +124,7 @@ export function VendorStatementPage({
           <div className="flex flex-wrap items-end gap-3">
             <label className="space-y-1">
               <span className="text-sm font-medium">Apply to purchase</span>
-              <select
-                className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+              <Select
                 value={purchaseId}
                 aria-label="Apply to purchase"
                 onChange={(e) => setPurchaseId(e.target.value ? Number(e.target.value) : "")}
@@ -135,7 +135,7 @@ export function VendorStatementPage({
                     #{p.id} — {formatDate(p.date)} — {formatINR(p.total - p.partPaid)} open
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <label className="space-y-1">
               <span className="text-sm font-medium">Amount</span>

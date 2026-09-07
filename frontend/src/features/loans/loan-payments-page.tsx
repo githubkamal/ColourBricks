@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -185,8 +186,8 @@ export function LoanPaymentsPage() {
 
       <label className="block max-w-sm space-y-1">
         <span className="text-sm font-medium">Loan</span>
-        <select
-          className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+        <Select
+          className="w-full"
           value={loanId || ""}
           aria-label="Loan"
           onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}
@@ -197,7 +198,7 @@ export function LoanPaymentsPage() {
               {l.lenderName} — {formatINR(l.principalAmount)} ({l.status})
             </option>
           ))}
-        </select>
+        </Select>
       </label>
 
       {loanId !== 0 && (
@@ -212,8 +213,8 @@ export function LoanPaymentsPage() {
             <h2 className="text-sm font-semibold">Pay an EMI instalment</h2>
             <label className="block space-y-1">
               <span className="text-sm font-medium">Instalment</span>
-              <select
-                className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+              <Select
+                className="w-full"
                 value={instalmentId}
                 aria-label="Instalment"
                 onChange={(e) => setInstalmentId(e.target.value ? Number(e.target.value) : "")}
@@ -224,7 +225,7 @@ export function LoanPaymentsPage() {
                     #{i.instalmentNo} — due {formatDate(i.dueDate)} — {formatINR(i.emiAmount)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-1">
@@ -258,8 +259,8 @@ export function LoanPaymentsPage() {
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-1">
                 <span className="text-sm font-medium">Account</span>
-                <select
-                  className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+                <Select
+                  className="w-full"
                   value={accountId ?? ""}
                   aria-label="Account"
                   onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : null)}
@@ -270,7 +271,7 @@ export function LoanPaymentsPage() {
                       {a.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
               <BankTransactionPicker selected={bankTx} onSelect={setBankTx} accountId={accountId} />
             </div>
@@ -313,11 +314,13 @@ export function LoanPaymentsPage() {
               />
               <label className="space-y-1">
                 <span className="text-sm font-medium">Account</span>
-                <select
-                  className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+                <Select
+                  className="w-full"
                   value={prepayAccountId ?? ""}
                   aria-label="Prepayment account"
-                  onChange={(e) => setPrepayAccountId(e.target.value ? Number(e.target.value) : null)}
+                  onChange={(e) =>
+                    setPrepayAccountId(e.target.value ? Number(e.target.value) : null)
+                  }
                 >
                   <option value="">None</option>
                   {accounts.map((a) => (
@@ -325,7 +328,7 @@ export function LoanPaymentsPage() {
                       {a.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
             </div>
             <BankTransactionPicker

@@ -12,9 +12,7 @@ import { ProjectDonationForm } from "./project-donation-form";
 
 export function DonationsPage() {
   const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
-  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(
-    undefined,
-  );
+  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(undefined);
 
   const { data: restoredProject } = useQuery({
     queryKey: ["project", projectId],

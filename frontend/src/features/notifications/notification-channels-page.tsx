@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import {
   evaluateNotifications,
@@ -89,8 +90,7 @@ export function NotificationChannelsPage() {
                   <td className="p-2 font-mono text-xs">{trigger}</td>
                   {roles.map(([roleId]) => (
                     <td key={roleId} className="p-2">
-                      <select
-                        className="bg-card rounded border px-2 py-1 text-xs"
+                      <Select
                         aria-label={`${trigger} channel for role ${roleId}`}
                         value={cell(roleId, trigger)}
                         onChange={(e) =>
@@ -106,7 +106,7 @@ export function NotificationChannelsPage() {
                             {c}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </td>
                   ))}
                 </tr>

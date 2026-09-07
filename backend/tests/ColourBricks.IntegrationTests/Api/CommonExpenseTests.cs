@@ -65,7 +65,7 @@ public sealed class CommonExpenseTests(IntegrationFixture fixture) : Integration
         long acct = await Account(c);
         long project = await Project(c);
 
-        JsonElement dashBefore = await Json(await c.GetAsync("/api/v1/dashboard"));
+        JsonElement dashBefore = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
         decimal expensesBefore = dashBefore.GetProperty("tiles").EnumerateArray()
             .First(t => t.GetProperty("key").GetString() == "expenses").GetProperty("value").GetDecimal();
 
@@ -77,7 +77,7 @@ public sealed class CommonExpenseTests(IntegrationFixture fixture) : Integration
         summary.GetProperty("office").GetDecimal().Should().Be(35_000m);
         summary.GetProperty("total").GetDecimal().Should().Be(75_000m);
 
-        JsonElement dashAfter = await Json(await c.GetAsync("/api/v1/dashboard"));
+        JsonElement dashAfter = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
         decimal expensesAfter = dashAfter.GetProperty("tiles").EnumerateArray()
             .First(t => t.GetProperty("key").GetString() == "expenses").GetProperty("value").GetDecimal();
         (expensesAfter - expensesBefore).Should().Be(75_000m);
@@ -97,7 +97,7 @@ public sealed class CommonExpenseTests(IntegrationFixture fixture) : Integration
         summary.GetProperty("savings").GetDecimal().Should().Be(25_000m);
         summary.GetProperty("total").GetDecimal().Should().Be(10_000m); // savings excluded from the expense total
 
-        JsonElement dash = await Json(await c.GetAsync("/api/v1/dashboard"));
+        JsonElement dash = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
         var tiles = dash.GetProperty("tiles").EnumerateArray()
             .ToDictionary(t => t.GetProperty("key").GetString()!, t => t.GetProperty("value").GetDecimal());
         tiles.Should().ContainKey("savings");

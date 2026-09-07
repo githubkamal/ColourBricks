@@ -3,16 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { listExpenseCategories } from "@/features/direct-expenses/api";
-import { Button } from "@/components/ui/button";
+import { ProjectTabs } from "@/features/projects/project-tabs";
 import { dataState } from "@/components/ui/data-state";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
+import type { ExportTable } from "@/lib/export-table";
 import { formatDate, formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { projectFinancialLedger, type ProjectLedgerLine } from "./api";
 
-type Period = "Weekly" | "Monthly" | "Yearly" | "Entire" | "Custom";
-const PERIODS: Period[] = ["Weekly", "Monthly", "Yearly", "Entire", "Custom"];
+type Period = "Weekly" | "Monthly" | "Yearly" | "Custom";
+const PERIODS: Period[] = ["Weekly", "Monthly", "Yearly", "Custom"];
 
 type SortKey = "date" | "category" | "credit" | "debit" | "runningBalance";
 const SORT_LABELS: Record<SortKey, string> = {
@@ -27,7 +29,7 @@ function toISO(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Weekly/Monthly/Yearly compute a concrete range client-side; Entire/Custom pass through. */
+/** Weekly/Monthly/Yearly compute a concrete range client-side; Custom passes through. */
 function computeRange(
   period: Period,
   customFrom: string,
@@ -45,13 +47,11 @@ function computeRange(
     case "Yearly":
       return { dateFrom: `${today.getFullYear()}-01-01`, dateTo: toISO(today) };
     case "Monthly":
+    default:
       return {
         dateFrom: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`,
         dateTo: toISO(today),
       };
-    case "Entire":
-    default:
-      return {};
   }
 }
 
@@ -75,7 +75,7 @@ function sortLines(lines: ProjectLedgerLine[], sortBy: SortKey, sortDir: "asc" |
 }
 
 export function ProjectLedgerPage({ projectId }: { projectId: number }) {
-  const [period, setPeriod] = useState<Period>("Entire");
+  const [period, setPeriod] = useState<Period>("Monthly");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const [categoryId, setCategoryId] = useState<number | "">("");
@@ -115,34 +115,38 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
     }
   }
 
-  function exportCsv() {
-    if (!data) return;
-    const header = ["Date", "Description", "Category", "Credit", "Debit", "Balance"].join(",");
-    const body = sortedLines
-      .map((l) =>
-        [
-          l.date,
-          JSON.stringify(l.description),
-          JSON.stringify(l.categoryName),
-          l.credit,
-          l.debit,
-          l.runningBalance,
-        ].join(","),
-      )
-      .join("\n");
-    const blob = new Blob([`${header}\n${body}`], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `project-${projectId}-ledger.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+  function buildExportTable(): ExportTable | null {
+    if (!data) return null;
+    return {
+      filename: `project-${projectId}-ledger`,
+      title: "Project financial ledger",
+      columns: ["Date", "Description", "Category", "Credit", "Debit", "Balance"],
+      rows: sortedLines.map((l) => [
+        l.date,
+        l.description,
+        l.categoryName,
+        l.credit,
+        l.debit,
+        l.runningBalance,
+      ]),
+    };
   }
 
   const header = (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <PageHeader title="Project financial ledger" />
+    <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
+        <Select
+          aria-label="Category"
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
+        >
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
         {isCustom && (
           <>
             <Input
@@ -162,19 +166,6 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
             />
           </>
         )}
-        <select
-          className="border-input bg-background h-8 rounded-md border px-2 text-sm"
-          aria-label="Category"
-          value={categoryId}
-          onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
-        >
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
         <div className="inline-flex gap-1 rounded-full border p-1" role="group" aria-label="Period">
           {PERIODS.map((p) => (
             <button
@@ -190,16 +181,15 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
             </button>
           ))}
         </div>
-        <Button type="button" variant="export" onClick={exportCsv} disabled={!data}>
-          Export CSV
-        </Button>
+        <ExportMenu table={buildExportTable} disabled={!data} />
       </div>
     </div>
   );
 
   if (isCustom && (customFrom === "" || customTo === "")) {
     return (
-      <div className="max-w-4xl space-y-4">
+      <div className="max-w-5xl space-y-4">
+        <ProjectTabs projectId={projectId} title="Project Financial Ledger" />
         {header}
         {dataState({ isEmpty: true, emptyLabel: "Pick a start and end date to load the ledger." })}
       </div>
@@ -208,7 +198,8 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
 
   if (isLoading || isError || !data) {
     return (
-      <div className="max-w-4xl space-y-4">
+      <div className="max-w-5xl space-y-4">
+        <ProjectTabs projectId={projectId} title="Project Financial Ledger" />
         {header}
         {dataState({
           isPending: isLoading,
@@ -220,7 +211,8 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
   }
 
   return (
-    <div className="max-w-4xl space-y-4">
+    <div className="max-w-5xl space-y-4">
+      <ProjectTabs projectId={projectId} title="Project Financial Ledger" />
       {header}
       <p className="text-muted-foreground text-sm">
         Opening {formatINR(data.openingBalance)} · Closing{" "}

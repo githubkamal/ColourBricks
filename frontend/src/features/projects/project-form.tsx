@@ -10,6 +10,7 @@ import { z } from "zod";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { createProject } from "./api";
@@ -147,16 +148,13 @@ export function ProjectForm() {
         </Field>
 
         <Field label="Status" error={errors.status?.message}>
-          <select
-            {...register("status")}
-            className="border-input bg-card h-9 w-full rounded border px-3 text-sm"
-          >
+          <Select {...register("status")} className="w-full">
             {PROJECT_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {PROJECT_STATUS_LABELS[s]}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
 
         <Field label="Start date" error={errors.startDate?.message}>

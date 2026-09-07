@@ -146,7 +146,7 @@ public sealed class DashboardReportTests(IntegrationFixture fixture) : Integrati
                 .GetProperty("balance").GetDecimal();
         }
 
-        JsonElement d = await Json(await c.GetAsync("/api/v1/dashboard"));
+        JsonElement d = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
         decimal cashTile = d.GetProperty("tiles").EnumerateArray()
             .First(x => x.GetProperty("key").GetString() == "cashBankPosition").GetProperty("value").GetDecimal();
         cashTile.Should().Be(sum);
@@ -168,7 +168,7 @@ public sealed class DashboardReportTests(IntegrationFixture fixture) : Integrati
         decimal Tile(JsonElement d, string key) => d.GetProperty("summary").EnumerateArray()
             .First(x => x.GetProperty("key").GetString() == key).GetProperty("value").GetDecimal();
 
-        JsonElement company = await Json(await c.GetAsync("/api/v1/dashboard"));
+        JsonElement company = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
         var rows = company.GetProperty("projectProfitability").EnumerateArray()
             .Where(x => x.GetProperty("projectId").GetInt64() == p1 || x.GetProperty("projectId").GetInt64() == p2)
             .ToList();
@@ -199,7 +199,7 @@ public sealed class DashboardReportTests(IntegrationFixture fixture) : Integrati
             type = "Custom", subCategory = "Misc", date = "2026-08-05", amount = 25_000m, paymentModeId = mode,
         })).EnsureSuccessStatusCode();
 
-        JsonElement dash = await Json(await c.GetAsync("/api/v1/dashboard"));
+        JsonElement dash = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
         decimal dashExpenses = dash.GetProperty("tiles").EnumerateArray()
             .First(x => x.GetProperty("key").GetString() == "expenses").GetProperty("value").GetDecimal();
 

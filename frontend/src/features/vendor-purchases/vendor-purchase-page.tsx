@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -55,15 +56,14 @@ export function VendorPurchasePage() {
       <div className="bg-card flex flex-wrap items-end gap-3 rounded border p-4">
         <label className="space-y-1">
           <span className="text-sm font-medium">Bought by</span>
-          <select
-            className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+          <Select
             aria-label="Bought by"
             value={partyType}
             onChange={(e) => setPartyType(e.target.value as PartyType)}
           >
             <option value="Vendor">Vendor</option>
             <option value="FieldOfficer">Field officer</option>
-          </select>
+          </Select>
         </label>
         <div className="min-w-56 flex-1">
           <ProjectPicker selected={project} onSelect={setProject} label="Project" />

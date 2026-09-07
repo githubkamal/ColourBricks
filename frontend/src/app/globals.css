@@ -433,3 +433,17 @@
     height: 0;
   }
 }
+
+/* Fully hidden scrollbar for the per-project tab bar — a visible scroll
+   track under a row of tabs looks heavy-handed; the row still scrolls via
+   drag/shift-wheel, it just doesn't show a track (client request,
+   2026-09-07). */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+}

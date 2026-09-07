@@ -134,7 +134,12 @@ export function CompanyDashboardPage() {
   const [customTo, setCustomTo] = useState("");
   const isCustom = period === "Custom";
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["company-dashboard", period, isCustom ? customFrom : null, isCustom ? customTo : null],
+    queryKey: [
+      "company-dashboard",
+      period,
+      isCustom ? customFrom : null,
+      isCustom ? customTo : null,
+    ],
     queryFn: () => companyDashboard(period, customFrom || undefined, customTo || undefined),
     enabled: !isCustom || (customFrom !== "" && customTo !== ""),
   });
@@ -178,7 +183,10 @@ export function CompanyDashboardPage() {
     return (
       <div className="max-w-5xl space-y-6">
         {header}
-        {dataState({ isEmpty: true, emptyLabel: "Pick a start and end date to load the dashboard." })}
+        {dataState({
+          isEmpty: true,
+          emptyLabel: "Pick a start and end date to load the dashboard.",
+        })}
       </div>
     );
   }

@@ -71,6 +71,41 @@ public sealed class TemplesController(ITempleService temples) : ControllerBase
             };
         }
     }
+
+    [HttpPut("{id:long}")]
+    [HasPermission("temple_donations.edit")]
+    public async Task<ActionResult<PartyDto>> Update(
+        long id, [FromBody] UpdateTempleRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            PartyDto? temple = await temples.UpdateAsync(
+                id, request.Name, request.IsActive, request.ConcurrencyStamp, cancellationToken);
+            return temple is null ? NotFound() : Ok(temple);
+        }
+        catch (PartyExactDuplicateException ex)
+        {
+            var problem = new ProblemDetails
+            {
+                Status = StatusCodes.Status409Conflict,
+                Title = "A temple with this name already exists.",
+                Detail = ex.Message,
+                Type = "https://datatracker.ietf.org/doc/html/rfc9457",
+                Extensions =
+                {
+                    ["existingId"] = ex.ExistingId,
+                    ["traceId"] = Activity.Current?.Id ?? HttpContext.TraceIdentifier,
+                },
+            };
+            return new ObjectResult(problem)
+            {
+                StatusCode = StatusCodes.Status409Conflict,
+                ContentTypes = { "application/problem+json" },
+            };
+        }
+    }
 }
 
 public sealed record CreateTempleRequest(string Name);
+
+public sealed record UpdateTempleRequest(string Name, bool IsActive, string ConcurrencyStamp);

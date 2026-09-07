@@ -4,11 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { listExpenseCategories } from "@/features/direct-expenses/api";
+import { ProjectTabs } from "@/features/projects/project-tabs";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/ui/page-header";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 import { getProjectBudget, listBudgetRevisions, saveProjectBudget } from "./api";
@@ -29,8 +29,8 @@ export function ProjectBudgetPage({ projectId }: { projectId: number }) {
   });
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <PageHeader title="Project budget" />
+    <div className="max-w-5xl space-y-6">
+      <ProjectTabs projectId={projectId} title="Project Budget" />
       {isLoading ? (
         dataState({ isPending: true })
       ) : (

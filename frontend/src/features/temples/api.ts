@@ -3,11 +3,30 @@ import { ApiError, apiClient } from "@/lib/api";
 export interface TempleSummary {
   id: number;
   name: string;
+  isActive: boolean;
+}
+
+export interface TempleDetail {
+  id: number;
+  name: string;
+  isActive: boolean;
+  concurrencyStamp: string;
 }
 
 export function listTemples(search?: string): Promise<TempleSummary[]> {
   const params = search ? `?search=${encodeURIComponent(search)}` : "";
   return apiClient.get<TempleSummary[]>(`/temples${params}`);
+}
+
+export function getTemple(id: number): Promise<TempleDetail> {
+  return apiClient.get<TempleDetail>(`/temples/${id}`);
+}
+
+export function updateTemple(
+  id: number,
+  input: { name: string; isActive: boolean; concurrencyStamp: string },
+): Promise<TempleDetail> {
+  return apiClient.put<TempleDetail>(`/temples/${id}`, input);
 }
 
 export type CreateTempleOutcome =

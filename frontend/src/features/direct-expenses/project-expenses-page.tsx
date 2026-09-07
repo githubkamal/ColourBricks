@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -26,9 +27,7 @@ export function ProjectExpensesPage() {
   // `undefined` = the user hasn't picked in this session yet, so a deep-linked
   // `?projectId=` still needs restoring (just the id survives a URL, not the
   // project's code/name the picker displays).
-  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(
-    undefined,
-  );
+  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(undefined);
   const { data: restoredProject } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
@@ -54,7 +53,7 @@ export function ProjectExpensesPage() {
   );
 }
 
-function ExpenseForm({ projectId }: { projectId: number }) {
+export function ExpenseForm({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
   const [categoryId, setCategoryId] = useState<number | "">("");
   const [date, setDate] = useState("");
@@ -161,9 +160,9 @@ function ExpenseForm({ projectId }: { projectId: number }) {
       >
         <label className="space-y-1">
           <span className="text-sm font-medium">Category</span>
-          <select
+          <Select
             ref={categoryRef}
-            className="bg-card block w-full rounded border px-3 py-1.5 text-sm"
+            className="w-full"
             value={categoryId}
             aria-label="Category"
             onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
@@ -176,7 +175,7 @@ function ExpenseForm({ projectId }: { projectId: number }) {
                   {c.name}
                 </option>
               ))}
-          </select>
+          </Select>
         </label>
         <label className="space-y-1">
           <FieldLabel required error={touchedDate && date === "" ? "Required" : undefined}>
@@ -230,8 +229,8 @@ function ExpenseForm({ projectId }: { projectId: number }) {
             />
             <label className="space-y-1">
               <span className="text-sm font-medium">Account</span>
-              <select
-                className="bg-card block w-full rounded border px-3 py-1.5 text-sm"
+              <Select
+                className="w-full"
                 value={accountId}
                 aria-label="Account"
                 onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -242,7 +241,7 @@ function ExpenseForm({ projectId }: { projectId: number }) {
                     {a.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             <div className="col-span-2">
               <BankTransactionPicker

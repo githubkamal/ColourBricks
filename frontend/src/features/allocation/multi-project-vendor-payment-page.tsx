@@ -12,6 +12,7 @@ import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatINR } from "@/lib/format";
 import { hasPermission } from "@/lib/permissions";
@@ -234,8 +235,7 @@ export function MultiProjectVendorPaymentPage() {
                 />
                 <label className="space-y-1">
                   <span className="text-sm font-medium">Account</span>
-                  <select
-                    className="bg-card text-foreground block rounded border px-3 py-1.5 text-sm"
+                  <Select
                     value={accountId}
                     aria-label="Account"
                     onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -246,7 +246,7 @@ export function MultiProjectVendorPaymentPage() {
                         {a.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </label>
                 <Button
                   type="button"

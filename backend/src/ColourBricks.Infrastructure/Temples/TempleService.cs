@@ -28,4 +28,9 @@ public sealed class TempleService(IPartyService parties) : ITempleService
     public Task<CreatePartyResult> CreateAsync(
         string name, bool confirmed, CancellationToken cancellationToken) =>
         parties.CreateAsync(new CreatePartyRequest(name, [Role]), confirmed, cancellationToken);
+
+    public Task<PartyDto?> UpdateAsync(
+        long id, string name, bool isActive, string concurrencyStamp, CancellationToken cancellationToken) =>
+        parties.UpdateAsync(
+            id, new UpdatePartyRequest(name, [Role], isActive, concurrencyStamp), cancellationToken);
 }

@@ -9,6 +9,7 @@ import { dataState } from "@/components/ui/data-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -26,13 +27,7 @@ export function LoanSchedulePage() {
     queryFn: () => getSchedule(loanId),
     enabled: loanId !== 0,
   });
-  const {
-    pageRows: pagedSchedule,
-    page,
-    setPage,
-    pageCount,
-    total,
-  } = usePagination(schedule, 20);
+  const { pageRows: pagedSchedule, page, setPage, pageCount, total } = usePagination(schedule, 20);
 
   const [emiAmount, setEmiAmount] = useState("");
   const [newRate, setNewRate] = useState("");
@@ -67,8 +62,8 @@ export function LoanSchedulePage() {
 
       <label className="block max-w-sm space-y-1">
         <span className="text-sm font-medium">Loan</span>
-        <select
-          className="bg-card w-full rounded border px-3 py-1.5 text-sm"
+        <Select
+          className="w-full"
           value={loanId || ""}
           aria-label="Loan"
           onChange={(e) => setLoanId(e.target.value ? Number(e.target.value) : 0)}
@@ -79,7 +74,7 @@ export function LoanSchedulePage() {
               {l.lenderName} — {formatINR(l.principalAmount)} ({l.status})
             </option>
           ))}
-        </select>
+        </Select>
       </label>
 
       {loanId !== 0 && (

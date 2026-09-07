@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -161,8 +162,8 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
       >
         <label className="space-y-1">
           <span className="text-sm font-medium">Project</span>
-          <select
-            className="bg-card text-foreground block w-full rounded border px-3 py-1.5 text-sm"
+          <Select
+            className="w-full"
             value={projectId}
             aria-label="Project"
             onChange={(e) => setProjectId(e.target.value ? Number(e.target.value) : "")}
@@ -173,7 +174,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
                 {line.projectName} ({formatINR(line.outstanding)})
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <label className="space-y-1">
           <span className="text-sm font-medium">Date</span>
@@ -194,8 +195,8 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
         />
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
-          <select
-            className="bg-card text-foreground block w-full rounded border px-3 py-1.5 text-sm"
+          <Select
+            className="w-full"
             value={accountId}
             aria-label="Account"
             onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
@@ -206,7 +207,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
                 {a.name}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
         <div className="col-span-2">
           <BankTransactionPicker

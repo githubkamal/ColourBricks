@@ -6,16 +6,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog, type ConfirmOptions } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { createItem, getItem, listItemCategories, listItems, updateItem } from "./api";
 import type { ItemDto, ItemSearchItem } from "./types";
@@ -156,8 +152,8 @@ export function ItemsPage() {
         </div>
         <div className="min-w-40 space-y-1">
           <label className="text-sm font-medium">Category</label>
-          <select
-            className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+          <Select
+            className="w-full"
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
             aria-label="Category"
@@ -170,7 +166,7 @@ export function ItemsPage() {
                   {c.name}
                 </option>
               ))}
-          </select>
+          </Select>
         </div>
         <Button type="submit" disabled={add.isPending || !name.trim()}>
           Add Item
@@ -285,8 +281,8 @@ function EditItemForm({
       </div>
       <div className="space-y-1">
         <label className="text-sm font-medium">Category</label>
-        <select
-          className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+        <Select
+          className="w-full"
           value={categoryId}
           onChange={(e) => setCategoryId(e.target.value)}
         >
@@ -298,7 +294,7 @@ function EditItemForm({
                 {c.name}
               </option>
             ))}
-        </select>
+        </Select>
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit" disabled={saving || !name.trim()}>
