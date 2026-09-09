@@ -6,7 +6,9 @@ import { listTeamsGrouped } from "@/features/teams/api";
 import { TeamPicker } from "@/features/teams/team-picker";
 import type { TeamDto } from "@/features/teams/types";
 import { dataState } from "@/components/ui/data-state";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { PageHeader } from "@/components/ui/page-header";
+import type { ExportTable } from "@/lib/export-table";
 import { formatDate, formatINR } from "@/lib/format";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import { teamStatement } from "./api";
@@ -37,9 +39,22 @@ export function TeamStatementPage() {
     enabled: team !== null,
   });
 
+  function buildExportTable(): ExportTable | null {
+    if (!team || rows.length === 0) return null;
+    return {
+      filename: `${team.name}-statement`,
+      title: `Team Statement — ${team.name}`,
+      columns: ["Date", "Entry", "Work value", "Paid", "Running outstanding"],
+      rows: rows.map((r) => [r.date, `${r.kind} — ${r.reference}`, r.workValue, r.paid, r.runningOutstanding]),
+    };
+  }
+
   return (
     <div className="max-w-3xl space-y-6">
-      <PageHeader title="Team Statement" />
+      <div className="flex items-start justify-between gap-3">
+        <PageHeader title="Team Statement" />
+        {team && <ExportMenu table={buildExportTable} />}
+      </div>
       <TeamPicker selected={team} onSelect={handleSelect} label="Team" />
 
       {team &&

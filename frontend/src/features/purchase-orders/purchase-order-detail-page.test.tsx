@@ -21,6 +21,8 @@ const draftPo = {
   invoiceNumber: null,
   submittedDate: null,
   notes: null,
+  subtotalTotal: 0,
+  taxTotal: 0,
   total: 0,
   lines: [
     {
@@ -32,6 +34,9 @@ const draftPo = {
       quantity: 10,
       unit: "Bag",
       rate: null,
+      subtotal: null,
+      taxType: "Amount",
+      taxRate: null,
       taxAmount: null,
       lineTotal: null,
     },
@@ -45,8 +50,12 @@ const submittedPo = {
   status: "Submitted",
   invoiceNumber: "INV-100",
   submittedDate: "2026-08-05",
+  subtotalTotal: 4000,
+  taxTotal: 0,
   total: 4000,
-  lines: [{ ...draftPo.lines[0], rate: 400, taxAmount: 0, lineTotal: 4000 }],
+  lines: [
+    { ...draftPo.lines[0], rate: 400, subtotal: 4000, taxAmount: 0, lineTotal: 4000 },
+  ],
   obligationIds: [501],
 };
 
@@ -76,7 +85,7 @@ describe("PurchaseOrderDetailPage", () => {
 
     expect(await screen.findByLabelText("Vendor invoice number")).toBeInTheDocument();
     expect(screen.getByLabelText("rate 1")).toBeInTheDocument();
-    expect(screen.getByLabelText("taxAmount 1")).toBeInTheDocument();
+    expect(screen.getByLabelText("taxValue 1")).toBeInTheDocument();
   });
 
   it("Submitted_IsReadOnlyAndDrillsIntoEachProject", async () => {

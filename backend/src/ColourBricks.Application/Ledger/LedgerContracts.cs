@@ -23,7 +23,23 @@ public sealed record LedgerPosting(
     IReadOnlyList<LedgerLeg> Legs);
 
 public sealed record ExpenseCategoryDto(
-    long Id, string Name, string Slug, string Bucket, bool IsCost, bool IsActive);
+    long Id, string Name, string Slug, string Bucket, bool IsCost, bool IsActive,
+    bool IsSystem, string ConcurrencyStamp);
+
+/// <summary>Adds a new cost category (e.g. a material type like "Paint" or "Steel").</summary>
+public sealed record CreateExpenseCategoryRequest(string Name, string Bucket, bool IsCost = true);
+
+/// <summary>A seeded, system-owned category (<c>IsSystem</c>) cannot be edited or deactivated.</summary>
+public sealed record UpdateExpenseCategoryRequest(string Name, bool IsActive, string ConcurrencyStamp);
+
+public sealed class ExpenseCategoryExactDuplicateException(long existingId, string name)
+    : Exception($"An expense category named '{name}' already exists.")
+{
+    public long ExistingId { get; } = existingId;
+}
+
+public sealed class ExpenseCategoryIsSystemException(long id)
+    : Exception($"Expense category #{id} is seeded and system-owned — it cannot be edited or deactivated.");
 
 public sealed record ProjectLedgerRowDto(
     long Id,

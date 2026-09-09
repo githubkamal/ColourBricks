@@ -87,7 +87,7 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
 
   const { data: categories = [] } = useQuery({
     queryKey: ["expense-categories"],
-    queryFn: listExpenseCategories,
+    queryFn: () => listExpenseCategories(),
   });
 
   const { data, isLoading, isError } = useQuery({

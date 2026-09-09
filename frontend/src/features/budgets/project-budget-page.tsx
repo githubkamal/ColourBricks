@@ -25,7 +25,7 @@ export function ProjectBudgetPage({ projectId }: { projectId: number }) {
   });
   const { data: categories = [] } = useQuery({
     queryKey: ["expense-categories", "cost"],
-    queryFn: listExpenseCategories,
+    queryFn: () => listExpenseCategories(),
   });
 
   return (

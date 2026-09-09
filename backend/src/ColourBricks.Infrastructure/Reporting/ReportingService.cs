@@ -80,6 +80,10 @@ public sealed class ReportingService(
     {
         await GuardScopeAsync(projectId, ct);
 
+        // Every entry posted against this project belongs in its ledger — including
+        // Liability-bucket legs (e.g. a vendor payment settling an earlier purchase),
+        // which used to be filtered out here and made payments invisible even though
+        // the original obligation showed up.
         var all = await db.LedgerEntries.AsNoTracking()
             .Where(e => e.ProjectId == projectId)
             .Join(db.ExpenseCategories.AsNoTracking(), e => e.CategoryId, c => c.Id,
@@ -88,7 +92,6 @@ public sealed class ReportingService(
                     e.Id, e.EntryDate, e.CategoryId, c.Name, c.Bucket, c.IsCost,
                     e.PartyId, e.Debit, e.Credit, e.SourceType, e.SourceId, e.IsReversal,
                 })
-            .Where(x => x.IsCost || x.Bucket == "Income")
             .OrderBy(x => x.EntryDate).ThenBy(x => x.Id)
             .ToListAsync(ct);
 
@@ -104,7 +107,14 @@ public sealed class ReportingService(
             bool income = x.Bucket == "Income";
             decimal credit = income ? x.Debit : x.Credit;
             decimal debit = income ? x.Credit : x.Debit;
-            decimal delta = credit - debit;
+            // Only Cost/Income legs move the project's fund balance — a Liability leg
+            // (e.g. a vendor payment settling an earlier purchase) nets to zero against
+            // its own purchase-time leg and isn't a further draw on project funds, so it
+            // contributes no delta. It still needs to be a visible row, though — hiding
+            // Liability legs entirely (the old behaviour) made payments against an
+            // outstanding purchase invisible in this ledger even though the purchase
+            // itself showed up.
+            decimal delta = x.IsCost || income ? credit - debit : 0m;
 
             if (from is { } f && x.EntryDate < f)
             {
@@ -445,9 +455,15 @@ public sealed class ReportingService(
         "VendorPurchase" => "Vendor purchase",
         "VendorPayment" => "Vendor payment",
         "DirectExpense" => "Direct expense",
+        "DirectExpensePayment" => "Direct expense payment",
         "Labour" => "Labour",
         "DonationPayment" => "Temple donation",
         "CustomWork" => "Customised work",
+        "CustomWorkPayment" => "Subcontractor payment",
+        "LoanEmiPayment" => "Loan EMI payment",
+        "CommonExpense" => "Common expense",
+        "CommonExpenseAllocation" => "Common expense allocation",
+        "FieldOfficerExpense" => "Field officer expense",
         "InternalTransfer" => "Internal transfer",
         _ => sourceType,
     };

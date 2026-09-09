@@ -123,6 +123,63 @@ public sealed class DirectExpenseService(
         }).ToList();
     }
 
+    public async Task<DirectExpenseDto?> PayAsync(
+        long id, PayDirectExpenseRequest request, CancellationToken cancellationToken)
+    {
+        Obligation? obligation = await db.Obligations
+            .FirstOrDefaultAsync(o => o.Id == id && o.Type == ObligationType.DirectExpense, cancellationToken);
+        if (obligation is null)
+        {
+            return null;
+        }
+
+        if (obligation.Status != ObligationStatus.Active)
+        {
+            throw Fail("id", "This expense is not active.");
+        }
+
+        bool alreadyPaid = await db.LedgerEntries.AsNoTracking()
+            .AnyAsync(e => e.SourceType == SourceType && e.SourceId == id && e.AccountId != null,
+                cancellationToken);
+        if (alreadyPaid)
+        {
+            throw Fail("id", "This expense has already been paid.");
+        }
+
+        await paymentModes.ValidateInstructionAsync(
+            new PaymentInstruction(request.PaymentModeId, request.ReferenceNo, request.AccountId),
+            cancellationToken);
+
+        var settlement = new Settlement
+        {
+            Direction = SettlementDirection.Out,
+            ProjectId = obligation.ProjectId,
+            PartyId = obligation.PartyId,
+            ObligationId = obligation.Id,
+            Date = request.Date,
+            Amount = obligation.Amount,
+            PaymentModeId = request.PaymentModeId,
+            AccountId = request.AccountId,
+            ReferenceNo = request.ReferenceNo,
+            Description = "Direct expense payment",
+            Status = SettlementStatus.Active,
+        };
+        db.Settlements.Add(settlement);
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Posted under the obligation's own source, mirroring the cash-out leg
+        // RecordAsync would have added had PaidImmediately been true.
+        await ledger.PostAsync(
+            new LedgerPosting(SourceType, obligation.Id, request.Date,
+                [new LedgerLeg(obligation.CategoryId, Debit: obligation.Amount, Credit: 0m,
+                    AccountId: request.AccountId)]),
+            cancellationToken);
+
+        DirectExpenseDto dto = (await ListAsync(obligation.ProjectId, cancellationToken))
+            .First(e => e.Id == obligation.Id);
+        return dto with { SettlementId = settlement.Id };
+    }
+
     public async Task<bool> ReverseAsync(long id, string reason, CancellationToken cancellationToken)
     {
         Obligation? obligation = await db.Obligations

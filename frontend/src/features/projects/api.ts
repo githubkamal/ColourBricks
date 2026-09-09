@@ -1,5 +1,11 @@
 import { apiClient, type PagedResult } from "@/lib/api";
-import type { CreateProjectInput, ProjectDetail, ProjectListItem, ProjectStatus } from "./types";
+import type {
+  CreateProjectInput,
+  ProjectDetail,
+  ProjectListItem,
+  ProjectStatus,
+  UpdateProjectInput,
+} from "./types";
 
 export interface ProjectListParams {
   status?: ProjectStatus;
@@ -27,4 +33,8 @@ export function getProject(id: number): Promise<ProjectDetail> {
 
 export function createProject(input: CreateProjectInput): Promise<ProjectDetail> {
   return apiClient.post<ProjectDetail>("/projects", input);
+}
+
+export function updateProject(id: number, input: UpdateProjectInput): Promise<ProjectDetail> {
+  return apiClient.put<ProjectDetail>(`/projects/${id}`, input);
 }

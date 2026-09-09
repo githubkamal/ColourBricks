@@ -68,6 +68,6 @@ describe("ProjectExpensesPage", () => {
     // Category cell + Bucket cell both read "Electrical".
     expect(await screen.findAllByRole("cell", { name: "Electrical" })).toHaveLength(2);
     expect(screen.getByRole("cell", { name: "₹12,500.000" })).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "Payable" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Outstanding" })).toBeInTheDocument();
   });
 });

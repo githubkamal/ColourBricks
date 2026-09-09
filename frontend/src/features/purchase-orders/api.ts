@@ -1,5 +1,7 @@
 import { apiClient } from "@/lib/api";
 
+export type PurchaseOrderTaxType = "Percentage" | "Amount";
+
 export interface PurchaseOrderLine {
   id: number;
   projectId: number;
@@ -9,6 +11,9 @@ export interface PurchaseOrderLine {
   quantity: number;
   unit: string;
   rate: number | null;
+  subtotal: number | null;
+  taxType: PurchaseOrderTaxType;
+  taxRate: number | null;
   taxAmount: number | null;
   lineTotal: number | null;
 }
@@ -23,6 +28,8 @@ export interface PurchaseOrder {
   invoiceNumber: string | null;
   submittedDate: string | null;
   notes: string | null;
+  subtotalTotal: number;
+  taxTotal: number;
   total: number;
   lines: PurchaseOrderLine[];
   obligationIds: number[];
@@ -55,7 +62,9 @@ export interface SubmitPurchaseOrderLineInput {
   lineId: number;
   quantity: number;
   rate: number;
-  taxAmount?: number;
+  taxType: PurchaseOrderTaxType;
+  taxRate?: number | null;
+  taxAmount: number;
 }
 
 export interface SubmitPurchaseOrderInput {

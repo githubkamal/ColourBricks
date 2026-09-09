@@ -1,3 +1,5 @@
+using ColourBricks.Domain.PurchaseOrders;
+
 namespace ColourBricks.Application.PurchaseOrders;
 
 public sealed record PurchaseOrderLineInput(
@@ -20,10 +22,14 @@ public sealed record UpdatePurchaseOrderRequest(
     string ConcurrencyStamp,
     string? Notes = null);
 
+/// <param name="TaxRate">The GST rate (%), required when <paramref name="TaxType"/> is Percentage.</param>
+/// <param name="TaxAmount">The flat tax figure, used as-is when <paramref name="TaxType"/> is Amount.</param>
 public sealed record SubmitPurchaseOrderLineInput(
     long LineId,
     decimal Quantity,
     decimal Rate,
+    PurchaseOrderTaxType TaxType = PurchaseOrderTaxType.Amount,
+    decimal? TaxRate = null,
     decimal TaxAmount = 0m);
 
 /// <summary>Every line must be priced — the whole order submits at once (client request, 2026-09-04).</summary>
@@ -40,6 +46,10 @@ public sealed record PurchaseOrderLineDto(
     decimal Quantity,
     string Unit,
     decimal? Rate,
+    /// <summary>Quantity * Rate, before GST — null until priced.</summary>
+    decimal? Subtotal,
+    PurchaseOrderTaxType TaxType,
+    decimal? TaxRate,
     decimal? TaxAmount,
     decimal? LineTotal);
 
@@ -53,6 +63,10 @@ public sealed record PurchaseOrderDto(
     string? InvoiceNumber,
     DateOnly? SubmittedDate,
     string? Notes,
+    /// <summary>Sum of every line's Quantity * Rate, before GST.</summary>
+    decimal SubtotalTotal,
+    /// <summary>Sum of every line's GST amount.</summary>
+    decimal TaxTotal,
     decimal Total,
     IReadOnlyList<PurchaseOrderLineDto> Lines,
     /// <summary>The vendor purchase(s) this order became on submit — one per project involved.</summary>

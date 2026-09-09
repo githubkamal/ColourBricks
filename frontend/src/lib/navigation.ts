@@ -162,6 +162,11 @@ export const navigation: NavSection[] = [
         href: "/expenses/customized",
         permission: "customized_work.view",
       },
+      {
+        label: "Expense Categories",
+        href: "/project-expenses/categories",
+        permission: "project_expenses.view",
+      },
     ],
   },
   {

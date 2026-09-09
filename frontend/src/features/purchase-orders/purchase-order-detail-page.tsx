@@ -4,11 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AttachmentPanel } from "@/features/attachments/attachment-panel";
 import { ProjectPicker, type ProjectPickerSelection } from "@/features/projects/project-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import {
@@ -18,6 +20,7 @@ import {
   updatePurchaseOrder,
   type PurchaseOrder,
   type PurchaseOrderLineInput,
+  type PurchaseOrderTaxType,
   type SubmitPurchaseOrderLineInput,
 } from "./api";
 
@@ -36,7 +39,9 @@ interface SubmitRow {
   unit: string;
   quantity: string;
   rate: string;
-  taxAmount: string;
+  taxType: PurchaseOrderTaxType;
+  /** The GST % when taxType is Percentage, or the flat currency figure when Amount. */
+  taxValue: string;
 }
 
 export function PurchaseOrderDetailPage({ id }: { id: number }) {
@@ -236,6 +241,11 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
         </div>
       </div>
 
+      <div className="bg-card rounded border p-4">
+        <p className="mb-2 text-sm font-medium">Vendor invoice / attachments</p>
+        <AttachmentPanel ownerType="PurchaseOrder" ownerId={po.id} />
+      </div>
+
       {!submitting ? (
         <Button type="button" variant="secondary" onClick={() => setSubmitting(true)}>
           Vendor invoice received — submit
@@ -265,14 +275,21 @@ function SubmitForm({
       unit: l.unit,
       quantity: String(l.quantity),
       rate: "",
-      taxAmount: "0",
+      taxType: "Amount",
+      taxValue: "0",
     })),
   );
 
   const round3 = (n: number) => Math.round((n + Number.EPSILON) * 1000) / 1000;
-  const lineTotal = (r: SubmitRow) =>
-    round3((Number(r.quantity) || 0) * (Number(r.rate) || 0) + (Number(r.taxAmount) || 0));
-  const total = round3(rows.reduce((s, r) => s + lineTotal(r), 0));
+  const subtotal = (r: SubmitRow) => round3((Number(r.quantity) || 0) * (Number(r.rate) || 0));
+  const taxAmount = (r: SubmitRow) => {
+    const value = Number(r.taxValue) || 0;
+    return r.taxType === "Percentage" ? round3(subtotal(r) * (value / 100)) : round3(value);
+  };
+  const lineTotal = (r: SubmitRow) => round3(subtotal(r) + taxAmount(r));
+  const subtotalTotal = round3(rows.reduce((s, r) => s + subtotal(r), 0));
+  const taxTotal = round3(rows.reduce((s, r) => s + taxAmount(r), 0));
+  const total = round3(subtotalTotal + taxTotal);
 
   const submit = useMutation({
     mutationFn: () =>
@@ -282,7 +299,9 @@ function SubmitForm({
           lineId: r.lineId,
           quantity: Number(r.quantity),
           rate: Number(r.rate),
-          taxAmount: Number(r.taxAmount) || 0,
+          taxType: r.taxType,
+          taxRate: r.taxType === "Percentage" ? Number(r.taxValue) || 0 : null,
+          taxAmount: taxAmount(r),
         })),
       }),
     onSuccess: (submitted) => {
@@ -301,7 +320,13 @@ function SubmitForm({
 
   const ready =
     invoiceNumber.trim() !== "" &&
-    rows.every((r) => Number(r.quantity) > 0 && Number(r.rate) >= 0 && Number(r.taxAmount) >= 0);
+    rows.every(
+      (r) =>
+        Number(r.quantity) > 0 &&
+        Number(r.rate) >= 0 &&
+        Number(r.taxValue) >= 0 &&
+        (r.taxType !== "Percentage" || Number(r.taxValue) >= 0),
+    );
 
   return (
     <div className="bg-card space-y-3 rounded border p-4">
@@ -327,7 +352,10 @@ function SubmitForm({
             <th className="py-1 font-medium">Item</th>
             <th className="py-1 font-medium">Qty</th>
             <th className="py-1 font-medium">Rate</th>
+            <th className="py-1 font-medium">Subtotal</th>
+            <th className="py-1 font-medium">Tax type</th>
             <th className="py-1 font-medium">Tax (GST)</th>
+            <th className="py-1 font-medium">GST amount</th>
             <th className="py-1 font-medium">Line total</th>
           </tr>
         </thead>
@@ -338,7 +366,7 @@ function SubmitForm({
               <td className="py-1 pr-2">
                 {row.itemName} <span className="text-muted-foreground">({row.unit})</span>
               </td>
-              {(["quantity", "rate", "taxAmount"] as const).map((field) => (
+              {(["quantity", "rate"] as const).map((field) => (
                 <td key={field} className="py-1 pr-2">
                   <AmountInput
                     className="w-24"
@@ -350,6 +378,37 @@ function SubmitForm({
                   />
                 </td>
               ))}
+              <td className="py-1 pr-2 tabular-nums">{formatINR(subtotal(row))}</td>
+              <td className="py-1 pr-2">
+                <Select
+                  className="w-28"
+                  value={row.taxType}
+                  aria-label={`taxType ${i + 1}`}
+                  onChange={(e) =>
+                    setRows((rs) =>
+                      rs.map((r, j) =>
+                        j === i
+                          ? { ...r, taxType: e.target.value as PurchaseOrderTaxType }
+                          : r,
+                      ),
+                    )
+                  }
+                >
+                  <option value="Amount">₹ Amount</option>
+                  <option value="Percentage">% Percentage</option>
+                </Select>
+              </td>
+              <td className="py-1 pr-2">
+                <AmountInput
+                  className="w-24"
+                  value={row.taxValue}
+                  aria-label={`taxValue ${i + 1}`}
+                  onChange={(v) =>
+                    setRows((rs) => rs.map((r, j) => (j === i ? { ...r, taxValue: v } : r)))
+                  }
+                />
+              </td>
+              <td className="py-1 pr-2 tabular-nums">{formatINR(taxAmount(row))}</td>
               <td className="py-1 pr-2 tabular-nums">{formatINR(lineTotal(row))}</td>
             </tr>
           ))}
@@ -357,9 +416,17 @@ function SubmitForm({
       </table>
 
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold" data-testid="submit-total">
-          Total: {formatINR(total)}
-        </p>
+        <div className="space-y-1 text-sm">
+          <p className="text-muted-foreground">
+            Subtotal (excl. GST): <span className="tabular-nums">{formatINR(subtotalTotal)}</span>
+          </p>
+          <p className="text-muted-foreground">
+            GST: <span className="tabular-nums">{formatINR(taxTotal)}</span>
+          </p>
+          <p className="font-semibold" data-testid="submit-total">
+            Total: {formatINR(total)}
+          </p>
+        </div>
         <div className="flex gap-2">
           <Button type="button" variant="ghost" onClick={onCancel}>
             Back
@@ -392,7 +459,16 @@ function SubmittedView({ po }: { po: PurchaseOrder }) {
           Invoice <span className="font-medium">{po.invoiceNumber}</span> · submitted{" "}
           {po.submittedDate ? formatDate(po.submittedDate) : ""}
         </p>
-        <p className="text-lg font-semibold">{formatINR(po.total)}</p>
+        <p className="text-muted-foreground">
+          Subtotal (excl. GST): {formatINR(po.subtotalTotal)}
+        </p>
+        <p className="text-muted-foreground">GST: {formatINR(po.taxTotal)}</p>
+        <p className="text-lg font-semibold">Total: {formatINR(po.total)}</p>
+      </div>
+
+      <div className="bg-card rounded border p-3">
+        <p className="mb-2 text-sm font-medium">Vendor invoice / attachments</p>
+        <AttachmentPanel ownerType="PurchaseOrder" ownerId={po.id} />
       </div>
 
       {[...byProject.entries()].map(([projectId, group]) => (

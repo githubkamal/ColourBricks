@@ -7,6 +7,20 @@ export interface ExpenseCategory {
   bucket: string;
   isCost: boolean;
   isActive: boolean;
+  isSystem: boolean;
+  concurrencyStamp: string;
+}
+
+export interface CreateExpenseCategoryInput {
+  name: string;
+  bucket: string;
+  isCost?: boolean;
+}
+
+export interface UpdateExpenseCategoryInput {
+  name: string;
+  isActive: boolean;
+  concurrencyStamp: string;
 }
 
 export interface DirectExpense {
@@ -36,8 +50,21 @@ export interface RecordDirectExpenseInput {
   description?: string | null;
 }
 
-export function listExpenseCategories(): Promise<ExpenseCategory[]> {
-  return apiClient.get<ExpenseCategory[]>("/expense-categories");
+export function listExpenseCategories(includeInactive = false): Promise<ExpenseCategory[]> {
+  return apiClient.get<ExpenseCategory[]>(
+    `/expense-categories${includeInactive ? "?includeInactive=true" : ""}`,
+  );
+}
+
+export function createExpenseCategory(input: CreateExpenseCategoryInput): Promise<ExpenseCategory> {
+  return apiClient.post<ExpenseCategory>("/expense-categories", input);
+}
+
+export function updateExpenseCategory(
+  id: number,
+  input: UpdateExpenseCategoryInput,
+): Promise<ExpenseCategory> {
+  return apiClient.put<ExpenseCategory>(`/expense-categories/${id}`, input);
 }
 
 export function listProjectExpenses(projectId: number): Promise<DirectExpense[]> {
@@ -46,4 +73,19 @@ export function listProjectExpenses(projectId: number): Promise<DirectExpense[]>
 
 export function recordDirectExpense(input: RecordDirectExpenseInput): Promise<DirectExpense> {
   return apiClient.post<DirectExpense>("/project-expenses", input);
+}
+
+export interface PayDirectExpenseInput {
+  date: string;
+  paymentModeId: number;
+  accountId: number;
+  referenceNo?: string | null;
+}
+
+export function payDirectExpense(id: number, input: PayDirectExpenseInput): Promise<DirectExpense> {
+  return apiClient.post<DirectExpense>(`/project-expenses/${id}/pay`, input);
+}
+
+export function reverseDirectExpense(id: number, reason: string): Promise<void> {
+  return apiClient.post<void>(`/project-expenses/${id}/reverse`, { reason });
 }

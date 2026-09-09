@@ -17,6 +17,7 @@ public sealed class AttachmentsController(IAttachmentService attachments) : Cont
         new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase)
         {
             ["VendorPurchase"] = ("materials.view", "materials.add"),
+            ["PurchaseOrder"] = ("materials.view", "materials.add"),
             ["Receipt"] = ("project_income.view", "project_income.add"),
             ["DirectExpense"] = ("project_expenses.view", "project_expenses.add"),
             ["SubcontractorWork"] = ("labour.view", "labour.edit"),

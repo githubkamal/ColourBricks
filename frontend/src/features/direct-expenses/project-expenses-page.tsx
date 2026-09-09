@@ -12,6 +12,7 @@ import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliatio
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
@@ -20,7 +21,14 @@ import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
 import { useQueryParamNumber } from "@/lib/use-query-param";
-import { listExpenseCategories, listProjectExpenses, recordDirectExpense } from "./api";
+import {
+  type DirectExpense,
+  listExpenseCategories,
+  listProjectExpenses,
+  payDirectExpense,
+  recordDirectExpense,
+  reverseDirectExpense,
+} from "./api";
 
 export function ProjectExpensesPage() {
   const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
@@ -65,13 +73,15 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
   const [bankTx, setBankTx] = useState<ReconciliationRow | null>(null);
   const [touchedDate, setTouchedDate] = useState(false);
   const [touchedAmount, setTouchedAmount] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<DirectExpense | null>(null);
+  const [payingExpense, setPayingExpense] = useState<DirectExpense | null>(null);
   const categoryRef = useRef<HTMLSelectElement>(null);
   const dateRef = useRef<HTMLInputElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["expense-categories"],
-    queryFn: listExpenseCategories,
+    queryFn: () => listExpenseCategories(),
   });
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", { all: true }],
@@ -90,8 +100,8 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
   } = usePagination(expenses, 20);
 
   const record = useMutation({
-    mutationFn: () =>
-      recordDirectExpense({
+    mutationFn: async () => {
+      const payload = {
         projectId,
         categoryId: Number(categoryId),
         date,
@@ -100,13 +110,19 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
         paymentModeId: paidImmediately ? paymentModeId : null,
         accountId: paidImmediately && accountId !== "" ? accountId : null,
         description: description.trim() || null,
-      }),
+      };
+      if (editingExpense) {
+        await reverseDirectExpense(editingExpense.id, "Corrected by user");
+      }
+      return recordDirectExpense(payload);
+    },
     onSuccess: async (result) => {
-      toast.success("Expense recorded");
+      toast.success(editingExpense ? "Expense updated" : "Expense recorded");
       setAmount("");
       setDescription("");
       setTouchedDate(false);
       setTouchedAmount(false);
+      setEditingExpense(null);
       void queryClient.invalidateQueries({ queryKey: ["project-expenses", projectId] });
       if (bankTx && result.settlementId) {
         try {
@@ -132,6 +148,26 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
     date !== "" &&
     Number(amount) > 0 &&
     (!paidImmediately || paymentModeId !== null);
+
+  function startEdit(x: DirectExpense) {
+    setEditingExpense(x);
+    setCategoryId(x.categoryId);
+    setDate(x.date);
+    setAmount(String(x.amount));
+    setDescription(x.description ?? "");
+    setPaidImmediately(false);
+    setPaymentModeId(null);
+    setAccountId("");
+  }
+
+  function cancelEdit() {
+    setEditingExpense(null);
+    setCategoryId("");
+    setDate("");
+    setAmount("");
+    setDescription("");
+    setPaidImmediately(false);
+  }
 
   function focusFirstInvalid() {
     if (categoryId === "") {
@@ -252,14 +288,19 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
             </div>
           </>
         )}
-        <div className="col-span-2">
+        <div className="col-span-2 flex gap-2">
           <Button type="submit" disabled={!ready || record.isPending}>
-            Record expense
+            {editingExpense ? "Save changes" : "Record expense"}
           </Button>
+          {editingExpense && (
+            <Button type="button" variant="outline" onClick={cancelEdit}>
+              Cancel edit
+            </Button>
+          )}
         </div>
       </form>
 
-      <div className="bg-card rounded border">
+      <div className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -267,13 +308,14 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
               <th className="p-2 font-medium">Category</th>
               <th className="p-2 font-medium">Bucket</th>
               <th className="p-2 font-medium">Amount</th>
-              <th className="p-2 font-medium">Paid</th>
+              <th className="p-2 font-medium">Status</th>
+              <th className="p-2 font-medium" />
             </tr>
           </thead>
           <tbody>
             {expenses.length === 0 && (
               <tr>
-                <td colSpan={5} className="text-muted-foreground p-3 text-center">
+                <td colSpan={6} className="text-muted-foreground p-3 text-center">
                   No expenses yet.
                 </td>
               </tr>
@@ -285,7 +327,24 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
                 <td className="text-muted-foreground p-2">{x.bucket}</td>
                 <td className="p-2 tabular-nums">{formatINR(x.amount)}</td>
                 <td className="text-muted-foreground p-2">
-                  {x.paidImmediately ? "Yes" : "Payable"}
+                  {x.status === "Reversed" ? "Reversed" : x.paidImmediately ? "Paid" : "Outstanding"}
+                </td>
+                <td className="p-2 text-right whitespace-nowrap">
+                  {x.status === "Active" && !x.paidImmediately && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => setPayingExpense(x)}
+                      >
+                        Pay
+                      </Button>
+                      <Button type="button" variant="ghost" size="xs" onClick={() => startEdit(x)}>
+                        Edit
+                      </Button>
+                    </>
+                  )}
                 </td>
               </tr>
             ))}
@@ -300,6 +359,99 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
         onPageChange={setExpensesPage}
         itemLabel="expenses"
       />
+
+      <Dialog open={payingExpense !== null} onOpenChange={(open) => !open && setPayingExpense(null)}>
+        {payingExpense && (
+          <DialogContent>
+            <DialogTitle>Pay expense</DialogTitle>
+            <PayExpenseForm
+              expense={payingExpense}
+              accounts={accounts}
+              onDone={() => {
+                setPayingExpense(null);
+                void queryClient.invalidateQueries({ queryKey: ["project-expenses", projectId] });
+              }}
+            />
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
+  );
+}
+
+function PayExpenseForm({
+  expense,
+  accounts,
+  onDone,
+}: {
+  expense: DirectExpense;
+  accounts: { id: number; name: string }[];
+  onDone: () => void;
+}) {
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentModeId, setPaymentModeId] = useState<number | null>(null);
+  const [accountId, setAccountId] = useState<number | "">("");
+  const [referenceNo, setReferenceNo] = useState("");
+
+  const pay = useMutation({
+    mutationFn: () =>
+      payDirectExpense(expense.id, {
+        date,
+        paymentModeId: paymentModeId!,
+        accountId: Number(accountId),
+        referenceNo: referenceNo.trim() || null,
+      }),
+    onSuccess: () => {
+      toast.success("Marked as paid");
+      onDone();
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not record the payment"),
+  });
+
+  const ready = date !== "" && paymentModeId !== null && accountId !== "";
+
+  return (
+    <form
+      className="mt-3 space-y-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (ready) pay.mutate();
+      }}
+    >
+      <p className="text-muted-foreground text-sm">
+        {expense.categoryName} — {formatINR(expense.amount)}
+      </p>
+      <label className="space-y-1">
+        <span className="text-sm font-medium">Date</span>
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      </label>
+      <PaymentModeSelect value={paymentModeId} onChange={(mode) => setPaymentModeId(mode?.id ?? null)} />
+      <label className="space-y-1">
+        <span className="text-sm font-medium">Account</span>
+        <Select
+          className="w-full"
+          value={accountId}
+          aria-label="Account"
+          onChange={(e) => setAccountId(e.target.value ? Number(e.target.value) : "")}
+        >
+          <option value="">Select…</option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </Select>
+      </label>
+      <label className="space-y-1">
+        <span className="text-sm font-medium">Reference</span>
+        <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} />
+      </label>
+      <div className="flex justify-end gap-2 pt-2">
+        <Button type="submit" disabled={!ready || pay.isPending}>
+          Pay
+        </Button>
+      </div>
+    </form>
   );
 }

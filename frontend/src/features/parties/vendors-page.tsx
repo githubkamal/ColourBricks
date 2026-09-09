@@ -26,7 +26,14 @@ export function VendorsPage({
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [gstNumber, setGstNumber] = useState("");
+  const [bankDetails, setBankDetails] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
+  const [showMore, setShowMore] = useState(false);
   const [editing, setEditing] = useState<PartyDto | null>(null);
   const [page, setPage] = useState(1);
 
@@ -44,7 +51,13 @@ export function VendorsPage({
           name: name.trim(),
           types: [partyType],
           category: category.trim() || null,
+          contactPerson: contactPerson.trim() || null,
           phone: phone.trim() || null,
+          email: email.trim() || null,
+          address: address.trim() || null,
+          gstNumber: gstNumber.trim() || null,
+          bankDetails: bankDetails.trim() || null,
+          paymentTerms: paymentTerms.trim() || null,
         },
         false,
       ),
@@ -53,7 +66,14 @@ export function VendorsPage({
         toast.success(`${outcome.party.name} added`);
         setName("");
         setCategory("");
+        setContactPerson("");
         setPhone("");
+        setEmail("");
+        setAddress("");
+        setGstNumber("");
+        setBankDetails("");
+        setPaymentTerms("");
+        setShowMore(false);
         void invalidate();
       } else if (outcome.kind === "needs-confirmation") {
         toast.message("A similar entry already exists — check the list before adding.");
@@ -75,18 +95,18 @@ export function VendorsPage({
   };
 
   const save = useMutation({
-    mutationFn: (input: { party: PartyDto; name: string; category: string | null }) =>
+    mutationFn: (input: { party: PartyDto; fields: EditFields }) =>
       updateParty(input.party.id, {
-        name: input.name,
+        name: input.fields.name,
         types: input.party.types as PartyType[],
-        category: input.category,
-        contactPerson: input.party.contactPerson,
-        phone: input.party.phone,
-        email: input.party.email,
-        address: input.party.address,
-        gstNumber: input.party.gstNumber,
-        bankDetails: input.party.bankDetails,
-        paymentTerms: input.party.paymentTerms,
+        category: input.fields.category,
+        contactPerson: input.fields.contactPerson,
+        phone: input.fields.phone,
+        email: input.fields.email,
+        address: input.fields.address,
+        gstNumber: input.fields.gstNumber,
+        bankDetails: input.fields.bankDetails,
+        paymentTerms: input.fields.paymentTerms,
         departmentId: input.party.departmentId,
         isActive: input.party.isActive,
         concurrencyStamp: input.party.concurrencyStamp,
@@ -184,6 +204,63 @@ export function VendorsPage({
         <Button type="submit" disabled={add.isPending || !name.trim()}>
           Add
         </Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => setShowMore((s) => !s)}>
+          {showMore ? "Fewer details" : "More details"}
+        </Button>
+
+        {showMore && (
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Contact person</label>
+              <Input
+                value={contactPerson}
+                onChange={(e) => setContactPerson(e.target.value)}
+                aria-label="Contact person"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Email</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                aria-label="Email"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-sm font-medium">Address</label>
+              <Input
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                aria-label="Address"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">GST number</label>
+              <Input
+                value={gstNumber}
+                onChange={(e) => setGstNumber(e.target.value)}
+                aria-label="GST number"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Payment terms</label>
+              <Input
+                value={paymentTerms}
+                onChange={(e) => setPaymentTerms(e.target.value)}
+                aria-label="Payment terms"
+              />
+            </div>
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-sm font-medium">Bank details</label>
+              <Input
+                value={bankDetails}
+                onChange={(e) => setBankDetails(e.target.value)}
+                aria-label="Bank details"
+              />
+            </div>
+          </div>
+        )}
       </form>
 
       {dataState({
@@ -252,7 +329,7 @@ export function VendorsPage({
             <DialogTitle>Edit</DialogTitle>
             <EditPartyForm
               party={editing}
-              onSave={(name, category) => save.mutate({ party: editing, name, category })}
+              onSave={(fields) => save.mutate({ party: editing, fields })}
               saving={save.isPending}
             />
           </DialogContent>
@@ -264,33 +341,93 @@ export function VendorsPage({
   );
 }
 
+interface EditFields {
+  name: string;
+  category: string | null;
+  contactPerson: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  gstNumber: string | null;
+  bankDetails: string | null;
+  paymentTerms: string | null;
+}
+
 function EditPartyForm({
   party,
   onSave,
   saving,
 }: {
   party: PartyDto;
-  onSave: (name: string, category: string | null) => void;
+  onSave: (fields: EditFields) => void;
   saving: boolean;
 }) {
   const [name, setName] = useState(party.name);
   const [category, setCategory] = useState(party.category ?? "");
+  const [contactPerson, setContactPerson] = useState(party.contactPerson ?? "");
+  const [phone, setPhone] = useState(party.phone ?? "");
+  const [email, setEmail] = useState(party.email ?? "");
+  const [address, setAddress] = useState(party.address ?? "");
+  const [gstNumber, setGstNumber] = useState(party.gstNumber ?? "");
+  const [bankDetails, setBankDetails] = useState(party.bankDetails ?? "");
+  const [paymentTerms, setPaymentTerms] = useState(party.paymentTerms ?? "");
 
   return (
     <form
       className="mt-3 space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
-        if (name.trim()) onSave(name.trim(), category.trim() || null);
+        if (!name.trim()) return;
+        onSave({
+          name: name.trim(),
+          category: category.trim() || null,
+          contactPerson: contactPerson.trim() || null,
+          phone: phone.trim() || null,
+          email: email.trim() || null,
+          address: address.trim() || null,
+          gstNumber: gstNumber.trim() || null,
+          bankDetails: bankDetails.trim() || null,
+          paymentTerms: paymentTerms.trim() || null,
+        });
       }}
     >
-      <div className="space-y-1">
-        <label className="text-sm font-medium">Name</label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-      </div>
-      <div className="space-y-1">
-        <label className="text-sm font-medium">Category</label>
-        <Input value={category} onChange={(e) => setCategory(e.target.value)} />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="space-y-1 sm:col-span-2">
+          <label className="text-sm font-medium">Name</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Category</label>
+          <Input value={category} onChange={(e) => setCategory(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Contact person</label>
+          <Input value={contactPerson} onChange={(e) => setContactPerson(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Phone</label>
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Email</label>
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <label className="text-sm font-medium">Address</label>
+          <Input value={address} onChange={(e) => setAddress(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">GST number</label>
+          <Input value={gstNumber} onChange={(e) => setGstNumber(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Payment terms</label>
+          <Input value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
+        </div>
+        <div className="space-y-1 sm:col-span-2">
+          <label className="text-sm font-medium">Bank details</label>
+          <Input value={bankDetails} onChange={(e) => setBankDetails(e.target.value)} />
+        </div>
       </div>
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit" disabled={saving || !name.trim()}>

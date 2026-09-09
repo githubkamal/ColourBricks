@@ -30,3 +30,10 @@ public sealed record RecordDirectExpenseRequest(
     long? AccountId = null,
     string? ReferenceNo = null,
     string? Description = null);
+
+/// <summary>Settles an expense that was recorded without <c>PaidImmediately</c>.</summary>
+public sealed record PayDirectExpenseRequest(
+    DateOnly Date,
+    long PaymentModeId,
+    long AccountId,
+    string? ReferenceNo = null);

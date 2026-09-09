@@ -39,8 +39,13 @@ export interface CreatePartyInput {
   name: string;
   types: PartyType[];
   category?: string | null;
+  contactPerson?: string | null;
   phone?: string | null;
   email?: string | null;
+  address?: string | null;
+  gstNumber?: string | null;
+  bankDetails?: string | null;
+  paymentTerms?: string | null;
 }
 
 export interface UpdatePartyInput {

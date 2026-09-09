@@ -43,3 +43,19 @@ export interface CreateProjectInput {
   contactDetails?: string | null;
   notes?: string | null;
 }
+
+export interface UpdateProjectInput {
+  name: string;
+  clientId?: number | null;
+  managerId?: number | null;
+  startDate: string;
+  expectedEndDate?: string | null;
+  actualEndDate?: string | null;
+  contractValue: number;
+  estimatedCost: number;
+  status: ProjectStatus;
+  siteAddress?: string | null;
+  contactDetails?: string | null;
+  notes?: string | null;
+  concurrencyStamp: string;
+}

@@ -9,9 +9,11 @@ import { listVendorPurchases } from "@/features/vendor-purchases/api";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { dataState } from "@/components/ui/data-state";
+import { ExportMenu } from "@/components/ui/export-menu";
 import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
+import type { ExportTable } from "@/lib/export-table";
 import { formatDate, formatINR } from "@/lib/format";
 import { applyVendorAdvance, vendorOutstandingSummary, vendorStatement } from "./api";
 
@@ -78,9 +80,28 @@ export function VendorStatementPage({
 
   const canApply = purchaseId !== "" && Number(amount) > 0 && Number(amount) <= advance + 0.005;
 
+  function buildExportTable(): ExportTable | null {
+    if (!vendor || rows.length === 0) return null;
+    return {
+      filename: `${vendor.name}-statement`,
+      title: `${title} — ${vendor.name}`,
+      columns: ["Date", "Entry", "Purchase", "Paid", "Running outstanding"],
+      rows: rows.map((r) => [
+        r.date,
+        `${r.kind} — ${r.reference}`,
+        r.purchaseAmount,
+        r.paid,
+        r.runningOutstanding,
+      ]),
+    };
+  }
+
   return (
     <div className="max-w-3xl space-y-6">
-      <PageHeader title={title} />
+      <div className="flex items-start justify-between gap-3">
+        <PageHeader title={title} />
+        {vendor && <ExportMenu table={buildExportTable} />}
+      </div>
       <div className="bg-card max-w-xs rounded border p-4">
         <PartyPicker type={partyType} label={pickerLabel} selected={vendor} onSelect={setVendor} />
       </div>

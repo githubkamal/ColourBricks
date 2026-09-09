@@ -39,6 +39,10 @@ const GROUPS: MasterGroup[] = [
     ],
   },
   {
+    title: "Expenses",
+    items: [{ label: "Expense Categories", href: "/project-expenses/categories" }],
+  },
+  {
     title: "Loans",
     items: [{ label: "Loan Master", href: "/loans" }],
   },

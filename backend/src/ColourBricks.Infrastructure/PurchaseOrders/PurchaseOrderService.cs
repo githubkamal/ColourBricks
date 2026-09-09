@@ -152,10 +152,28 @@ public sealed class PurchaseOrderService(
                 throw Fail("lines", "Tax cannot be negative.");
             }
 
+            decimal subtotal = input.Quantity * input.Rate;
+            decimal taxAmount;
+            if (input.TaxType == PurchaseOrderTaxType.Percentage)
+            {
+                if (input.TaxRate is not { } rate || rate < 0m)
+                {
+                    throw Fail("lines", "A GST percentage is required when tax is entered as a percentage.");
+                }
+
+                taxAmount = Money.Round(subtotal * rate / 100m);
+            }
+            else
+            {
+                taxAmount = input.TaxAmount;
+            }
+
             line.Quantity = input.Quantity;
             line.Rate = input.Rate;
-            line.TaxAmount = input.TaxAmount;
-            line.LineTotal = Money.Round(input.Quantity * input.Rate + input.TaxAmount);
+            line.TaxType = input.TaxType;
+            line.TaxRate = input.TaxType == PurchaseOrderTaxType.Percentage ? input.TaxRate : null;
+            line.TaxAmount = taxAmount;
+            line.LineTotal = Money.Round(subtotal + taxAmount);
         }
 
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
@@ -280,13 +298,18 @@ public sealed class PurchaseOrderService(
             .OrderBy(l => l.Id)
             .Select(l => new PurchaseOrderLineDto(
                 l.Id, l.ProjectId, projectNames.GetValueOrDefault(l.ProjectId, ""), l.ItemId, l.ItemName,
-                l.Quantity, l.Unit, l.Rate, l.TaxAmount, l.LineTotal))
+                l.Quantity, l.Unit, l.Rate, l.Rate is { } r ? Money.Round(l.Quantity * r) : null,
+                l.TaxType, l.TaxRate, l.TaxAmount, l.LineTotal))
             .ToList();
+
+        decimal subtotalTotal = Money.Round(lines.Sum(l => l.Subtotal ?? 0m));
+        decimal taxTotal = Money.Round(lines.Sum(l => l.TaxAmount ?? 0m));
 
         return new PurchaseOrderDto(
             po.Id, po.PoNumber, po.VendorId, vendorName, po.OrderDate, po.Status.ToString(),
             po.InvoiceNumber, po.SubmittedDate, po.Notes,
-            Money.Round(lines.Sum(l => l.LineTotal ?? 0m)), lines, obligationIds, po.ConcurrencyStamp);
+            subtotalTotal, taxTotal, Money.Round(lines.Sum(l => l.LineTotal ?? 0m)),
+            lines, obligationIds, po.ConcurrencyStamp);
     }
 
     private static ValidationException Fail(string field, string message) =>

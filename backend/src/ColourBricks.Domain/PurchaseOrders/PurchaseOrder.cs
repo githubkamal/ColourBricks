@@ -10,6 +10,16 @@ public enum PurchaseOrderStatus : byte
     Cancelled = 3,
 }
 
+/// <summary>How a line's tax is entered at submit time. TINYINT.</summary>
+public enum PurchaseOrderTaxType : byte
+{
+    /// <summary>The tax is a percentage of <c>Quantity * Rate</c>.</summary>
+    Percentage = 1,
+
+    /// <summary>The tax is a flat currency figure.</summary>
+    Amount = 2,
+}
+
 /// <summary>
 /// A vendor purchase order raised before the vendor's invoice arrives (client
 /// request, 2026-09-04). Drafted with items and quantities per project — a single
@@ -62,6 +72,13 @@ public sealed class PurchaseOrderLine : BaseEntity
 
     public decimal? Rate { get; set; }
 
+    /// <summary>How <see cref="TaxAmount"/> was entered — only meaningful once priced.</summary>
+    public PurchaseOrderTaxType TaxType { get; set; } = PurchaseOrderTaxType.Amount;
+
+    /// <summary>The tax rate (%) when <see cref="TaxType"/> is Percentage.</summary>
+    public decimal? TaxRate { get; set; }
+
+    /// <summary>Always the resolved currency figure, regardless of <see cref="TaxType"/>.</summary>
     public decimal? TaxAmount { get; set; }
 
     public decimal? LineTotal { get; set; }

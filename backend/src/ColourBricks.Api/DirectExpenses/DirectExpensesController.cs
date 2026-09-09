@@ -22,6 +22,15 @@ public sealed class DirectExpensesController(IDirectExpenseService expenses) : C
     public Task<IReadOnlyList<DirectExpenseDto>> List(long projectId, CancellationToken cancellationToken) =>
         expenses.ListAsync(projectId, cancellationToken);
 
+    [HttpPost("project-expenses/{id:long}/pay")]
+    [HasPermission("project_expenses.edit")]
+    public async Task<ActionResult<DirectExpenseDto>> Pay(
+        long id, [FromBody] PayDirectExpenseRequest request, CancellationToken cancellationToken)
+    {
+        DirectExpenseDto? expense = await expenses.PayAsync(id, request, cancellationToken);
+        return expense is null ? NotFound() : Ok(expense);
+    }
+
     [HttpPost("project-expenses/{id:long}/reverse")]
     [HasPermission("project_expenses.edit")]
     public async Task<IActionResult> Reverse(
