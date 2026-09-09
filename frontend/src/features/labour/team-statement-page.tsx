@@ -45,7 +45,13 @@ export function TeamStatementPage() {
       filename: `${team.name}-statement`,
       title: `Team Statement — ${team.name}`,
       columns: ["Date", "Entry", "Work value", "Paid", "Running outstanding"],
-      rows: rows.map((r) => [r.date, `${r.kind} — ${r.reference}`, r.workValue, r.paid, r.runningOutstanding]),
+      rows: rows.map((r) => [
+        r.date,
+        `${r.kind} — ${r.reference}`,
+        r.workValue,
+        r.paid,
+        r.runningOutstanding,
+      ]),
     };
   }
 

@@ -53,9 +53,7 @@ const submittedPo = {
   subtotalTotal: 4000,
   taxTotal: 0,
   total: 4000,
-  lines: [
-    { ...draftPo.lines[0], rate: 400, subtotal: 4000, taxAmount: 0, lineTotal: 4000 },
-  ],
+  lines: [{ ...draftPo.lines[0], rate: 400, subtotal: 4000, taxAmount: 0, lineTotal: 4000 }],
   obligationIds: [501],
 };
 

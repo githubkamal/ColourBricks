@@ -15,7 +15,11 @@ import { formatDate, formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { getProject, updateProject } from "./api";
 import { ProjectTabs } from "./project-tabs";
-import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, type ProjectDetail as ProjectDetailDto } from "./types";
+import {
+  PROJECT_STATUSES,
+  PROJECT_STATUS_LABELS,
+  type ProjectDetail as ProjectDetailDto,
+} from "./types";
 
 const schema = z
   .object({
@@ -231,7 +235,11 @@ function ProjectOverviewForm({
           <Input autoComplete="off" {...register("siteAddress")} />
         </Field>
 
-        <Field label="Contact details" error={errors.contactDetails?.message} className="sm:col-span-2">
+        <Field
+          label="Contact details"
+          error={errors.contactDetails?.message}
+          className="sm:col-span-2"
+        >
           <Input autoComplete="off" {...register("contactDetails")} />
         </Field>
 

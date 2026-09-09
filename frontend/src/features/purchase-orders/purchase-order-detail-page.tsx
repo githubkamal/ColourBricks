@@ -387,9 +387,7 @@ function SubmitForm({
                   onChange={(e) =>
                     setRows((rs) =>
                       rs.map((r, j) =>
-                        j === i
-                          ? { ...r, taxType: e.target.value as PurchaseOrderTaxType }
-                          : r,
+                        j === i ? { ...r, taxType: e.target.value as PurchaseOrderTaxType } : r,
                       ),
                     )
                   }
@@ -459,9 +457,7 @@ function SubmittedView({ po }: { po: PurchaseOrder }) {
           Invoice <span className="font-medium">{po.invoiceNumber}</span> · submitted{" "}
           {po.submittedDate ? formatDate(po.submittedDate) : ""}
         </p>
-        <p className="text-muted-foreground">
-          Subtotal (excl. GST): {formatINR(po.subtotalTotal)}
-        </p>
+        <p className="text-muted-foreground">Subtotal (excl. GST): {formatINR(po.subtotalTotal)}</p>
         <p className="text-muted-foreground">GST: {formatINR(po.taxTotal)}</p>
         <p className="text-lg font-semibold">Total: {formatINR(po.total)}</p>
       </div>

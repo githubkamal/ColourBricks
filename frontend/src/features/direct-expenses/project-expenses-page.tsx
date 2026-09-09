@@ -327,7 +327,11 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
                 <td className="text-muted-foreground p-2">{x.bucket}</td>
                 <td className="p-2 tabular-nums">{formatINR(x.amount)}</td>
                 <td className="text-muted-foreground p-2">
-                  {x.status === "Reversed" ? "Reversed" : x.paidImmediately ? "Paid" : "Outstanding"}
+                  {x.status === "Reversed"
+                    ? "Reversed"
+                    : x.paidImmediately
+                      ? "Paid"
+                      : "Outstanding"}
                 </td>
                 <td className="p-2 text-right whitespace-nowrap">
                   {x.status === "Active" && !x.paidImmediately && (
@@ -360,7 +364,10 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
         itemLabel="expenses"
       />
 
-      <Dialog open={payingExpense !== null} onOpenChange={(open) => !open && setPayingExpense(null)}>
+      <Dialog
+        open={payingExpense !== null}
+        onOpenChange={(open) => !open && setPayingExpense(null)}
+      >
         {payingExpense && (
           <DialogContent>
             <DialogTitle>Pay expense</DialogTitle>
@@ -426,7 +433,10 @@ function PayExpenseForm({
         <span className="text-sm font-medium">Date</span>
         <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </label>
-      <PaymentModeSelect value={paymentModeId} onChange={(mode) => setPaymentModeId(mode?.id ?? null)} />
+      <PaymentModeSelect
+        value={paymentModeId}
+        onChange={(mode) => setPaymentModeId(mode?.id ?? null)}
+      />
       <label className="space-y-1">
         <span className="text-sm font-medium">Account</span>
         <Select
