@@ -70,11 +70,15 @@ export interface ProjectLedgerLine {
   categoryName: string;
   partyId: number | null;
   partyName: string | null;
+  /** Accounting bucket for the line's category — "Cost" | "Income" | "Liability" | "Asset". */
+  bucket: string;
 }
 export interface ProjectLedgerView {
   projectId: number;
   openingBalance: number;
   closingBalance: number;
+  totalCredit: number;
+  totalDebit: number;
   lines: ProjectLedgerLine[];
 }
 

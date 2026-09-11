@@ -30,7 +30,8 @@ public sealed record ProjectListItemDto(
     DateOnly? ExpectedEndDate,
     decimal ContractValue,
     decimal EstimatedCost,
-    long? ManagerId);
+    long? ManagerId,
+    bool IsActive);
 
 public sealed record CreateProjectRequest(
     string Name,

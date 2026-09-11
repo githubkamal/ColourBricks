@@ -139,11 +139,14 @@ public sealed class ReportingService(
             lines.Add(new ProjectLedgerLineDto(
                 x.Id, x.EntryDate, description, Money.Round(credit), Money.Round(debit),
                 Money.Round(running), x.SourceType, x.SourceId, x.IsReversal,
-                x.CategoryId, x.Name, x.PartyId, party));
+                x.CategoryId, x.Name, x.PartyId, party, x.Bucket));
         }
 
         decimal closing = lines.Count == 0 ? Money.Round(opening) : lines[^1].RunningBalance;
-        return new ProjectLedgerViewDto(projectId, Money.Round(opening), closing, lines);
+        decimal totalCredit = Money.Round(lines.Sum(l => l.Credit));
+        decimal totalDebit = Money.Round(lines.Sum(l => l.Debit));
+        return new ProjectLedgerViewDto(
+            projectId, Money.Round(opening), closing, totalCredit, totalDebit, lines);
     }
 
     // ── P5-T04 ───────────────────────────────────────────────────────────────

@@ -23,6 +23,8 @@ export interface ReportColumn {
   defaultVisible: boolean;
   total: string | null;
   drillThrough: string | null;
+  /** How a numeric value should be formatted: "currency" (₹) or "quantity" (plain number). */
+  unit: "currency" | "quantity";
 }
 
 export interface ReportCatalogEntry {

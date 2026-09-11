@@ -221,6 +221,26 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
         </span>
       </p>
 
+      <div className="flex flex-wrap gap-4">
+        <div className="bg-card border-border rounded-xl border px-4 py-3 shadow-xs">
+          <p className="text-muted-foreground text-xs">Total credit</p>
+          <p data-testid="total-credit" className="num text-lg font-semibold">
+            {formatINR(data.totalCredit)}
+          </p>
+        </div>
+        <div className="bg-card border-border rounded-xl border px-4 py-3 shadow-xs">
+          <p className="text-muted-foreground text-xs">Total debit</p>
+          <p data-testid="total-debit" className="num text-lg font-semibold">
+            {formatINR(data.totalDebit)}
+          </p>
+        </div>
+      </div>
+      <p className="text-muted-foreground text-xs">
+        A <span className="font-medium">Payable</span> entry records a purchase against a
+        vendor/supplier — no cash has moved yet. It only becomes a real cash Credit/Debit once a
+        payment is actually made.
+      </p>
+
       <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
@@ -241,22 +261,48 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
             </tr>
           </thead>
           <tbody>
-            {sortedLines.map((l) => (
-              <tr
-                key={l.entryId}
-                className={
-                  l.isReversal ? "text-attention border-b last:border-0" : "border-b last:border-0"
-                }
-              >
-                <td className="p-2">{formatDate(l.date)}</td>
-                <td className="text-muted-foreground p-2">{l.categoryName}</td>
-                <td className="p-2 tabular-nums">{l.credit > 0 ? formatINR(l.credit) : "—"}</td>
-                <td className="p-2 tabular-nums">{l.debit > 0 ? formatINR(l.debit) : "—"}</td>
-                <td className="p-2 font-medium tabular-nums">{formatINR(l.runningBalance)}</td>
-                <td className="p-2">{l.description}</td>
-              </tr>
-            ))}
+            {sortedLines.map((l) => {
+              const isPayable = l.bucket === "Liability";
+              return (
+                <tr
+                  key={l.entryId}
+                  className={
+                    l.isReversal
+                      ? "text-attention border-b last:border-0"
+                      : "border-b last:border-0"
+                  }
+                >
+                  <td className="p-2">{formatDate(l.date)}</td>
+                  <td className="text-muted-foreground p-2">
+                    {l.categoryName}
+                    {isPayable && (
+                      <span className="border-border text-muted-foreground ml-1.5 rounded-full border px-1.5 py-0.5 text-[10px] font-medium tracking-wide uppercase">
+                        Payable
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-2 tabular-nums">{l.credit > 0 ? formatINR(l.credit) : "—"}</td>
+                  <td className="p-2 tabular-nums">{l.debit > 0 ? formatINR(l.debit) : "—"}</td>
+                  <td className="p-2 font-medium tabular-nums">{formatINR(l.runningBalance)}</td>
+                  <td className="p-2">{l.description}</td>
+                </tr>
+              );
+            })}
           </tbody>
+          <tfoot>
+            <tr className="border-t font-medium">
+              <td className="p-2" colSpan={2}>
+                Total
+              </td>
+              <td data-testid="footer-total-credit" className="p-2 tabular-nums">
+                {formatINR(data.totalCredit)}
+              </td>
+              <td data-testid="footer-total-debit" className="p-2 tabular-nums">
+                {formatINR(data.totalDebit)}
+              </td>
+              <td className="p-2" colSpan={2} />
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>

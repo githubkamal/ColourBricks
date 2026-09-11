@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,9 +19,12 @@ import type { PartyDto, PartySearchItem, PartyType } from "./types";
 export function VendorsPage({
   partyType = "Vendor",
   title = "Vendors",
+  statementHref = "/vendors/statements",
 }: {
   partyType?: PartyType;
   title?: string;
+  /** Where "Open" navigates for a row, pre-selecting that party (`?vendorId=`). */
+  statementHref?: string;
 }) {
   const queryClient = useQueryClient();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
@@ -272,6 +276,7 @@ export function VendorsPage({
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">
+                <th className="p-2 font-medium">ID</th>
                 <th className="p-2 font-medium">Name</th>
                 <th className="p-2 font-medium">Roles</th>
                 <th className="p-2 font-medium">Category</th>
@@ -282,6 +287,7 @@ export function VendorsPage({
             <tbody>
               {data?.items.map((vendor) => (
                 <tr key={vendor.id} className="border-b last:border-0">
+                  <td className="text-muted-foreground p-2 font-mono text-xs">{vendor.id}</td>
                   <td className="p-2">{vendor.name}</td>
                   <td className="text-muted-foreground p-2">{vendor.types.join(", ")}</td>
                   <td className="text-muted-foreground p-2">{vendor.category ?? "—"}</td>
@@ -289,6 +295,12 @@ export function VendorsPage({
                     <StatusBadge status={vendor.isActive ? "Active" : "Inactive"} />
                   </td>
                   <td className="p-2 text-right whitespace-nowrap">
+                    <Link
+                      href={`${statementHref}?vendorId=${vendor.id}`}
+                      className="hover:bg-secondary inline-flex h-7 items-center rounded-md px-2 text-xs font-medium"
+                    >
+                      Open
+                    </Link>
                     <Button
                       type="button"
                       variant="ghost"

@@ -51,7 +51,7 @@ public sealed class VendorPurchaseReport(ReportExecutor executor, AppDbContext d
             new ReportColumn("vendor", "Vendor"),
             new ReportColumn("project", "Project"),
             new ReportColumn("item", "Item"),
-            new ReportColumn("quantity", "Qty", Numeric: true, Total: "quantity"),
+            new ReportColumn("quantity", "Qty", Numeric: true, Total: "quantity", Unit: "quantity"),
             new ReportColumn("amount", "Amount", Numeric: true, Total: "amount"),
         ],
         DefaultSortBy = "date",

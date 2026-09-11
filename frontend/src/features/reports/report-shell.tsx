@@ -12,7 +12,7 @@ import { ExportMenu } from "@/components/ui/export-menu";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { ExportTable } from "@/lib/export-table";
-import { formatINR } from "@/lib/format";
+import { formatINR, formatQuantity } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   DATE_PRESETS,
@@ -254,7 +254,9 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
 
   function renderCell(row: Record<string, unknown>, column: ReportColumn) {
     const value = row[column.key];
-    if (column.numeric && typeof value === "number") return formatINR(value);
+    if (column.numeric && typeof value === "number") {
+      return column.unit === "quantity" ? formatQuantity(value) : formatINR(value);
+    }
     return value === null || value === undefined ? "" : String(value);
   }
 
@@ -537,7 +539,11 @@ export function ReportShell({ reportKey }: { reportKey: string }) {
                 {visibleColumns.map((c, i) => (
                   <td key={c.key} className={c.numeric ? "p-2 text-right tabular-nums" : "p-2"}>
                     {i === 0 && !c.total ? "Total" : ""}
-                    {c.total && c.total in result.totals ? formatINR(result.totals[c.total]) : ""}
+                    {c.total && c.total in result.totals
+                      ? c.unit === "quantity"
+                        ? formatQuantity(result.totals[c.total])
+                        : formatINR(result.totals[c.total])
+                      : ""}
                   </td>
                 ))}
               </tr>

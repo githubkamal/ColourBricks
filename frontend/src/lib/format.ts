@@ -20,6 +20,16 @@ export function formatINR(value: number): string {
   return inrFormatter.format(value);
 }
 
+const quantityFormatter = new Intl.NumberFormat("en-IN", {
+  minimumFractionDigits: MONEY_DECIMALS,
+  maximumFractionDigits: MONEY_DECIMALS,
+});
+
+/** `50` → `"50.000"` — same grouping/precision as {@link formatINR} but no ₹ symbol, for non-currency numerics (e.g. Qty). */
+export function formatQuantity(value: number): string {
+  return quantityFormatter.format(value);
+}
+
 const YMD = /^(\d{4})-(\d{2})-(\d{2})/;
 
 const dateFormatter = new Intl.DateTimeFormat("en-IN", {

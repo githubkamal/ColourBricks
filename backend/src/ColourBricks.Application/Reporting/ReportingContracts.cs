@@ -36,12 +36,21 @@ public sealed record ProjectLedgerLineDto(
     long CategoryId,
     string CategoryName,
     long? PartyId,
-    string? PartyName);
+    string? PartyName,
+    /// <summary>
+    /// The category's accounting bucket ("Cost" | "Income" | "Liability" | "Asset").
+    /// A "Liability" row (e.g. a vendor payable created alongside a purchase) hasn't
+    /// moved any cash yet — it nets to zero against its own purchase-time leg — so the
+    /// UI should label it distinctly from a real cash Credit/Debit.
+    /// </summary>
+    string Bucket);
 
 public sealed record ProjectLedgerViewDto(
     long ProjectId,
     decimal OpeningBalance,
     decimal ClosingBalance,
+    decimal TotalCredit,
+    decimal TotalDebit,
     IReadOnlyList<ProjectLedgerLineDto> Lines);
 
 // ── P5-T04 profit and loss ─────────────────────────────────────────────────

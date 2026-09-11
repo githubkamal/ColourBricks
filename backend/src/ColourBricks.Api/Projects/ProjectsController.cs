@@ -52,4 +52,9 @@ public sealed class ProjectsController(IProjectService projects) : ControllerBas
         ProjectDto? updated = await projects.UpdateAsync(id, request, cancellationToken);
         return updated is null ? NotFound() : Ok(updated);
     }
+
+    [HttpDelete("{id:long}")]
+    [HasPermission("projects.delete")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken) =>
+        await projects.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound();
 }

@@ -6,6 +6,8 @@ import { apiBaseUrl } from "@/lib/config";
 import { server } from "@/test/msw/server";
 import { VendorStatementPage } from "./vendor-statement-page";
 
+vi.mock("next/navigation", () => import("@/test/next-navigation-mock"));
+
 vi.mock("@/features/parties/party-picker", () => ({
   PartyPicker: ({ onSelect }: { onSelect: (p: unknown) => void }) => (
     <button type="button" onClick={() => onSelect({ id: 8, name: "ABC Hardware" })}>

@@ -14,4 +14,7 @@ public interface IProjectService
     Task<ProjectDto> CreateAsync(CreateProjectRequest request, CancellationToken cancellationToken);
 
     Task<ProjectDto?> UpdateAsync(long id, UpdateProjectRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Soft-deletes a project (sets IsActive = false); its history stays intact for reporting.</summary>
+    Task<bool> DeleteAsync(long id, CancellationToken cancellationToken);
 }

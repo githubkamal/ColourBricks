@@ -38,3 +38,7 @@ export function createProject(input: CreateProjectInput): Promise<ProjectDetail>
 export function updateProject(id: number, input: UpdateProjectInput): Promise<ProjectDetail> {
   return apiClient.put<ProjectDetail>(`/projects/${id}`, input);
 }
+
+export function deleteProject(id: number): Promise<void> {
+  return apiClient.del<void>(`/projects/${id}`);
+}

@@ -1,8 +1,10 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { getParty } from "@/features/parties/api";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { listVendorPurchases } from "@/features/vendor-purchases/api";
@@ -26,10 +28,33 @@ export function VendorStatementPage({
   title?: string;
   pickerLabel?: string;
 }) {
+  const searchParams = useSearchParams();
+  const preselectVendorId = searchParams.get("vendorId");
+
   const [vendor, setVendor] = useState<PartySearchItem | null>(null);
   const [purchaseId, setPurchaseId] = useState<number | "">("");
   const [amount, setAmount] = useState("");
   const queryClient = useQueryClient();
+
+  // Arriving here via a vendor list's "Open" link (?vendorId=…) preselects that
+  // vendor instead of leaving the picker empty for the user to search again.
+  useEffect(() => {
+    if (!preselectVendorId) return;
+    const id = Number(preselectVendorId);
+    if (!Number.isFinite(id)) return;
+    let cancelled = false;
+    void getParty(id).then(
+      (party) => {
+        if (!cancelled) setVendor(party);
+      },
+      () => {
+        if (!cancelled) toast.error("Could not load that vendor");
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [preselectVendorId]);
 
   const { data: rows = [] } = useQuery({
     queryKey: ["vendor-statement", vendor?.id],

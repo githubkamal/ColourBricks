@@ -49,7 +49,7 @@ public sealed class ProjectMaterialReport(ReportExecutor executor, AppDbContext 
         [
             new ReportColumn("date", "Date"),
             new ReportColumn("item", "Item"),
-            new ReportColumn("quantity", "Qty", Numeric: true, Total: "quantity"),
+            new ReportColumn("quantity", "Qty", Numeric: true, Total: "quantity", Unit: "quantity"),
             new ReportColumn("rate", "Rate", Numeric: true),
             new ReportColumn("amount", "Amount", Numeric: true, Total: "amount"),
             new ReportColumn("vendor", "Vendor"),

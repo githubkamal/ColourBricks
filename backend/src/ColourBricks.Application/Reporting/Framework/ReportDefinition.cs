@@ -9,7 +9,13 @@ public sealed record ReportColumn(
     bool Numeric = false,
     bool DefaultVisible = true,
     string? Total = null,
-    string? DrillThrough = null);
+    string? DrillThrough = null,
+    /// <summary>
+    /// How a <see cref="Numeric"/> value should be formatted: "currency" (₹, the
+    /// default) or "quantity" (a plain number — e.g. material Qty, which is a unit
+    /// count, not a rupee amount).
+    /// </summary>
+    string Unit = "currency");
 
 /// <summary>A column total, summed over the whole filtered result — never one page.</summary>
 public sealed record ReportAggregate<TRow>(string Key, Expression<Func<TRow, decimal>> Selector);

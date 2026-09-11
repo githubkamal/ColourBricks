@@ -143,6 +143,8 @@ describe("reporting pages", () => {
           projectId: 4,
           openingBalance: 0,
           closingBalance: 1310000,
+          totalCredit: 1000000,
+          totalDebit: 0,
           lines: [
             {
               entryId: 1,
@@ -158,6 +160,7 @@ describe("reporting pages", () => {
               categoryName: "Project Income",
               partyId: null,
               partyName: null,
+              bucket: "Income",
             },
           ],
         }),

@@ -2,18 +2,22 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { useCurrentUser } from "@/features/shell/user-context";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import { getProject, updateProject } from "./api";
+import { deleteProject, getProject, updateProject } from "./api";
 import { ProjectTabs } from "./project-tabs";
 import {
   PROJECT_STATUSES,
@@ -58,6 +62,11 @@ const API_FIELD_TO_FORM: Record<string, keyof FormValues> = {
 };
 
 export function ProjectDetail({ id }: { id: number }) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const user = useCurrentUser();
+  const canDelete = hasPermission(user.permissions, "projects.delete");
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const [editing, setEditing] = useState(false);
   const {
     data: project,
@@ -67,6 +76,29 @@ export function ProjectDetail({ id }: { id: number }) {
     queryKey: ["project", id],
     queryFn: () => getProject(id),
   });
+
+  const remove = useMutation({
+    mutationFn: () => deleteProject(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Project deleted");
+      router.push("/projects");
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not delete the project"),
+  });
+
+  async function handleDelete() {
+    if (!project) return;
+    const result = await confirm({
+      title: `Delete "${project.name}"?`,
+      description:
+        "The project is removed from Project Master, but its history stays intact for reports and ledgers. This cannot be undone from here.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (result.confirmed) remove.mutate();
+  }
 
   if (isPending || isError || !project) {
     return (
@@ -86,10 +118,21 @@ export function ProjectDetail({ id }: { id: number }) {
           <ProjectOverviewForm project={project} onDone={() => setEditing(false)} />
         ) : (
           <>
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
               <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
                 Edit
               </Button>
+              {canDelete && (
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  disabled={remove.isPending}
+                  onClick={() => void handleDelete()}
+                >
+                  Delete
+                </Button>
+              )}
             </div>
             <dl className="mt-3 grid grid-cols-1 gap-x-8 gap-y-4 text-sm sm:grid-cols-2">
               <Row label="Manager">{project.managerId ? `#${project.managerId}` : "—"}</Row>
@@ -117,6 +160,8 @@ export function ProjectDetail({ id }: { id: number }) {
           </>
         )}
       </div>
+
+      {confirmDialog}
     </div>
   );
 }

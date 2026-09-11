@@ -21,7 +21,7 @@ public sealed class ProjectService(
     public async Task<PagedResult<ProjectListItemDto>> ListAsync(
         ProjectListQuery query, CancellationToken cancellationToken)
     {
-        IQueryable<Project> projects = db.Projects.AsNoTracking();
+        IQueryable<Project> projects = db.Projects.AsNoTracking().Where(p => p.IsActive);
 
         // BRD §64 — a project-restricted user only sees their assigned projects.
         ProjectScope scope = await scopeFilter.GetScopeAsync(cancellationToken);
@@ -175,6 +175,19 @@ public sealed class ProjectService(
         return ToDto(project);
     }
 
+    public async Task<bool> DeleteAsync(long id, CancellationToken cancellationToken)
+    {
+        Project? project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (project is null || !project.IsActive)
+        {
+            return false;
+        }
+
+        project.IsActive = false;
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private async Task<string> GenerateCodeAsync(int year, CancellationToken cancellationToken)
     {
         string prefix = $"CB-{year}-";
@@ -204,7 +217,7 @@ public sealed class ProjectService(
     private static readonly System.Linq.Expressions.Expression<Func<Project, ProjectListItemDto>> ToListItem =
         p => new ProjectListItemDto(
             p.Id, p.Code, p.Name, p.Status, p.StartDate, p.ExpectedEndDate,
-            p.ContractValue, p.EstimatedCost, p.ManagerId);
+            p.ContractValue, p.EstimatedCost, p.ManagerId, p.IsActive);
 
     private static ProjectDto ToDto(Project p) => new(
         p.Id, p.Code, p.Name, p.ClientId, p.SiteAddress, p.ContactDetails,
