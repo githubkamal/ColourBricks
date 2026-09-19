@@ -13,7 +13,9 @@ import {
   createBankStatementProfile,
   detectStatementColumns,
   listBankStatementProfiles,
+  updateBankStatementProfile,
   uploadStatement,
+  type BankStatementProfile,
   type DetectedColumns,
 } from "./api";
 
@@ -24,6 +26,7 @@ export function BankStatementUploadPage() {
   const [accountId, setAccountId] = useState<number | "">("");
   const [file, setFile] = useState<File | null>(null);
   const [profileId, setProfileId] = useState<number | "">("");
+  const [editingProfileId, setEditingProfileId] = useState<number | null>(null);
 
   const [headerRowIndex, setHeaderRowIndex] = useState("0");
   const [detected, setDetected] = useState<DetectedColumns | null>(null);
@@ -48,8 +51,18 @@ export function BankStatementUploadPage() {
     enabled: accountId !== "",
   });
 
+  // Once an account has exactly one saved mapping, there's nothing to pick —
+  // use it automatically rather than making the user click through a dropdown
+  // every time. With several saved mappings (e.g. the bank changed its export
+  // layout at some point), the dropdown below still lets them choose.
+  useEffect(() => {
+    if (profiles.length === 1 && profileId === "") {
+      setProfileId(profiles[0].id);
+    }
+  }, [profiles, profileId]);
+
   const detect = useMutation({
-    mutationFn: () => detectStatementColumns(file!, Number(headerRowIndex)),
+    mutationFn: (headerRow: number) => detectStatementColumns(file!, headerRow),
     onSuccess: setDetected,
     onError: (e) => toast.error(e instanceof ApiError ? e.message : "Could not read the file"),
   });
@@ -64,8 +77,7 @@ export function BankStatementUploadPage() {
 
   const saveAndUpload = useMutation({
     mutationFn: async () => {
-      const profile = await createBankStatementProfile({
-        accountId: Number(accountId),
+      const payload = {
         name: name.trim(),
         headerRowIndex: Number(headerRowIndex),
         delimiter: ",",
@@ -78,12 +90,41 @@ export function BankStatementUploadPage() {
         debitColumn: singleAmount ? null : map.debitColumn,
         creditColumn: singleAmount ? null : map.creditColumn,
         dateFormats: dateFormats.trim(),
-      });
+      };
+      const profile = editingProfileId
+        ? await updateBankStatementProfile(editingProfileId, payload)
+        : await createBankStatementProfile({ accountId: Number(accountId), ...payload });
       return uploadStatement(Number(accountId), profile.id, file!);
     },
     onSuccess: (b) => go(b.id),
     onError: (e) => toast.error(e instanceof ApiError ? e.message : "Could not save the mapping"),
   });
+
+  function startNewMapping() {
+    setEditingProfileId(null);
+    setName("");
+    setHeaderRowIndex("0");
+    setDetected(null);
+  }
+
+  function startEditMapping(p: BankStatementProfile) {
+    setEditingProfileId(p.id);
+    setName(p.name);
+    setHeaderRowIndex(String(p.headerRowIndex));
+    setSingleAmount(p.singleAmountColumn);
+    setDateFormats(p.dateFormats);
+    setMap({
+      dateColumn: p.dateColumn,
+      narrationColumn: p.narrationColumn,
+      referenceColumn: p.referenceColumn ?? undefined!,
+      balanceColumn: p.balanceColumn ?? undefined!,
+      amountColumn: p.amountColumn ?? undefined!,
+      debitColumn: p.debitColumn ?? undefined!,
+      creditColumn: p.creditColumn ?? undefined!,
+    });
+    setDetected(null);
+    detect.mutate(p.headerRowIndex);
+  }
 
   // Mid-wizard means a file has been picked and the transaction hasn't yet
   // reached the reconciliation-review page — losing that progress means
@@ -145,34 +186,74 @@ export function BankStatementUploadPage() {
           {profiles.length > 0 && (
             <div className="bg-card space-y-2 rounded border p-3">
               <p className="text-sm font-medium">Use a saved mapping</p>
-              <div className="flex flex-wrap items-end gap-3">
-                <Select
-                  aria-label="Saved profile"
-                  value={profileId}
-                  onChange={(e) => setProfileId(e.target.value ? Number(e.target.value) : "")}
-                >
-                  <option value="">Select mapping…</option>
-                  {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </Select>
-                <Button
-                  type="button"
-                  disabled={profileId === "" || uploadWithProfile.isPending}
-                  onClick={() => uploadWithProfile.mutate()}
-                >
-                  Upload &amp; review
-                </Button>
-              </div>
+              {profiles.length === 1 ? (
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="text-sm">{profiles[0].name}</span>
+                  <Button
+                    type="button"
+                    disabled={uploadWithProfile.isPending}
+                    onClick={() => uploadWithProfile.mutate()}
+                  >
+                    Upload &amp; review
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => startEditMapping(profiles[0])}
+                  >
+                    Edit mapping
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-end gap-3">
+                  <Select
+                    aria-label="Saved profile"
+                    value={profileId}
+                    onChange={(e) => setProfileId(e.target.value ? Number(e.target.value) : "")}
+                  >
+                    <option value="">Select mapping…</option>
+                    {profiles.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </Select>
+                  <Button
+                    type="button"
+                    disabled={profileId === "" || uploadWithProfile.isPending}
+                    onClick={() => uploadWithProfile.mutate()}
+                  >
+                    Upload &amp; review
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={profileId === ""}
+                    onClick={() => {
+                      const p = profiles.find((x) => x.id === profileId);
+                      if (p) startEditMapping(p);
+                    }}
+                  >
+                    Edit mapping
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
           <div className="bg-card space-y-3 rounded border p-3">
             <p className="text-sm font-medium">
-              {profiles.length > 0 ? "…or create a new mapping" : "Map the columns for this bank"}
+              {editingProfileId
+                ? `Editing mapping "${name}"`
+                : profiles.length > 0
+                  ? "…or create a new mapping"
+                  : "Map the columns for this bank"}
             </p>
+            {editingProfileId && (
+              <Button type="button" variant="ghost" size="xs" onClick={startNewMapping}>
+                Cancel — start a new mapping instead
+              </Button>
+            )}
             <div className="flex flex-wrap items-end gap-3">
               <label className="space-y-1">
                 <span className="text-sm">Header row (0-based)</span>
@@ -188,7 +269,7 @@ export function BankStatementUploadPage() {
                 type="button"
                 variant="secondary"
                 disabled={detect.isPending}
-                onClick={() => detect.mutate()}
+                onClick={() => detect.mutate(Number(headerRowIndex))}
               >
                 Detect columns
               </Button>
@@ -292,7 +373,7 @@ export function BankStatementUploadPage() {
                     disabled={name.trim() === "" || saveAndUpload.isPending}
                     onClick={() => saveAndUpload.mutate()}
                   >
-                    Save mapping &amp; review
+                    {editingProfileId ? "Save changes & review" : "Save mapping & review"}
                   </Button>
                 </div>
               </div>

@@ -27,12 +27,37 @@ async function pickAccountAndFile() {
 }
 
 describe("BankStatementUploadPage", () => {
-  it("Upload_WithSavedProfile_UploadsAndNavigatesToReview", async () => {
+  it("Upload_WithOneSavedProfile_AutoSelectsAndNavigatesToReview", async () => {
     server.use(
       http.get(`${apiBaseUrl}/accounts`, () => HttpResponse.json(accounts)),
       http.get(`${apiBaseUrl}/accounts/3/bank-statement-profiles`, () =>
         HttpResponse.json([
           { id: 9, accountId: 3, name: "HDFC current", singleAmountColumn: false },
+        ]),
+      ),
+      http.post(`${apiBaseUrl}/bank-imports/upload`, () =>
+        HttpResponse.json({ id: 55, rows: [], counts: {} }),
+      ),
+    );
+    push.mockClear();
+    renderWithClient(<BankStatementUploadPage />);
+
+    await pickAccountAndFile();
+    // Exactly one saved mapping for this account — no picker, just the name and an upload button.
+    await screen.findByText("HDFC current");
+    expect(screen.queryByLabelText("Saved profile")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Upload & review/ }));
+
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/reconciliation/imports/55"));
+  });
+
+  it("Upload_WithSeveralSavedProfiles_StillOffersAPicker", async () => {
+    server.use(
+      http.get(`${apiBaseUrl}/accounts`, () => HttpResponse.json(accounts)),
+      http.get(`${apiBaseUrl}/accounts/3/bank-statement-profiles`, () =>
+        HttpResponse.json([
+          { id: 9, accountId: 3, name: "HDFC current", singleAmountColumn: false },
+          { id: 10, accountId: 3, name: "HDFC old layout", singleAmountColumn: false },
         ]),
       ),
       http.post(`${apiBaseUrl}/bank-imports/upload`, () =>

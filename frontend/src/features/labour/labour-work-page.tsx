@@ -12,6 +12,7 @@ import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliatio
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { TeamPicker } from "@/features/teams/team-picker";
 import type { TeamDto } from "@/features/teams/types";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { dataState } from "@/components/ui/data-state";
@@ -19,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Select } from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
@@ -27,6 +29,7 @@ import {
   listWork,
   payWork,
   recordWork,
+  reverseWork,
   PAYMENT_FREQUENCIES,
   type PaymentFrequency,
   type WorkEntry,
@@ -66,6 +69,8 @@ function WorkList({ projectId }: { projectId: number }) {
   const [date, setDate] = useState("");
   const [agreedValue, setAgreedValue] = useState("");
   const [workType, setWorkType] = useState("");
+  const [description, setDescription] = useState("");
+  const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);
 
   const { data: work = [] } = useQuery({
     queryKey: ["labour-work", projectId],
@@ -75,24 +80,52 @@ function WorkList({ projectId }: { projectId: number }) {
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["labour-work", projectId] });
 
-  const add = useMutation({
-    mutationFn: () =>
-      recordWork({
+  const save = useMutation({
+    mutationFn: async () => {
+      const payload = {
         projectId,
         teamId: team!.id,
         date,
         agreedValue: Number(agreedValue),
         workType: workType.trim() || null,
-      }),
+        description: description.trim() || null,
+      };
+      if (editingEntry) {
+        await reverseWork(editingEntry.id, "Corrected by user");
+      }
+      return recordWork(payload);
+    },
     onSuccess: () => {
-      toast.success("Work entry recorded");
+      toast.success(editingEntry ? "Work entry updated" : "Work entry recorded");
       setAgreedValue("");
       setWorkType("");
+      setDescription("");
+      setEditingEntry(null);
       void invalidate();
     },
     onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : "Could not record the work entry"),
+      toast.error(
+        error instanceof ApiError ? error.message : "Could not save the work entry",
+      ),
   });
+
+  function startEdit(entry: WorkEntry) {
+    setEditingEntry(entry);
+    setTeam({ id: entry.teamId, name: entry.teamName } as TeamDto);
+    setDate(entry.date);
+    setAgreedValue(String(entry.agreedValue));
+    setWorkType(entry.workType ?? "");
+    setDescription(entry.description ?? "");
+  }
+
+  function cancelEdit() {
+    setEditingEntry(null);
+    setTeam(null);
+    setDate("");
+    setAgreedValue("");
+    setWorkType("");
+    setDescription("");
+  }
 
   const ready = team !== null && date !== "" && Number(agreedValue) > 0;
 
@@ -102,7 +135,7 @@ function WorkList({ projectId }: { projectId: number }) {
         className="bg-card space-y-3 rounded border p-4"
         onSubmit={(e) => {
           e.preventDefault();
-          if (ready) add.mutate();
+          if (ready) save.mutate();
         }}
       >
         <TeamPicker selected={team} onSelect={setTeam} label="Team" />
@@ -133,15 +166,30 @@ function WorkList({ projectId }: { projectId: number }) {
             />
           </label>
         </div>
-        <Button type="submit" disabled={!ready || add.isPending}>
-          Record work entry
-        </Button>
+        <label className="block space-y-1">
+          <span className="text-sm font-medium">Description</span>
+          <Input
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            aria-label="Description"
+          />
+        </label>
+        <div className="flex gap-2">
+          <Button type="submit" disabled={!ready || save.isPending}>
+            {editingEntry ? "Save changes" : "Record work entry"}
+          </Button>
+          {editingEntry && (
+            <Button type="button" variant="outline" onClick={cancelEdit}>
+              Cancel edit
+            </Button>
+          )}
+        </div>
       </form>
 
       <div className="space-y-3">
         {dataState({ isEmpty: work.length === 0, emptyLabel: "No work entries yet." })}
         {pagedWork.map((entry) => (
-          <WorkRow key={entry.id} entry={entry} onPaid={invalidate} />
+          <WorkRow key={entry.id} entry={entry} onPaid={invalidate} onEdit={startEdit} />
         ))}
       </div>
 
@@ -156,7 +204,15 @@ function WorkList({ projectId }: { projectId: number }) {
   );
 }
 
-function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
+function WorkRow({
+  entry,
+  onPaid,
+  onEdit,
+}: {
+  entry: WorkEntry;
+  onPaid: () => void;
+  onEdit: (entry: WorkEntry) => void;
+}) {
   const queryClient = useQueryClient();
   const [paying, setPaying] = useState(false);
   const [amount, setAmount] = useState("");
@@ -212,15 +268,24 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
         <span>
           {formatDate(entry.date)} · {entry.teamName}
           {entry.workType && <span className="text-muted-foreground"> · {entry.workType}</span>}
+          {entry.status !== "Active" && (
+            <>
+              {" "}
+              <StatusBadge status={entry.status} />
+            </>
+          )}
         </span>
-        <span className="tabular-nums">
-          Agreed {formatINR(entry.agreedValue)} · Paid {formatINR(entry.totalPaid)} ·{" "}
-          <span className="font-semibold" data-testid={`outstanding-${entry.id}`}>
+        <span className="flex items-center gap-2 tabular-nums">
+          Agreed {formatINR(entry.agreedValue)} · Paid {formatINR(entry.totalPaid)}
+          <Badge
+            variant={entry.outstanding > 0 ? "amber" : "teal"}
+            data-testid={`outstanding-${entry.id}`}
+          >
             Outstanding {formatINR(entry.outstanding)}
-          </span>
+          </Badge>
         </span>
       </div>
-      {entry.outstanding > 0 && (
+      {entry.status === "Active" && entry.outstanding > 0 && (
         <div className="mt-2">
           {paying ? (
             <form
@@ -296,9 +361,16 @@ function WorkRow({ entry, onPaid }: { entry: WorkEntry; onPaid: () => void }) {
               </Button>
             </form>
           ) : (
-            <Button type="button" size="xs" variant="ghost" onClick={() => setPaying(true)}>
-              Add payment
-            </Button>
+            <div className="flex gap-1">
+              <Button type="button" size="xs" variant="ghost" onClick={() => setPaying(true)}>
+                Add payment
+              </Button>
+              {entry.totalPaid === 0 && (
+                <Button type="button" size="xs" variant="ghost" onClick={() => onEdit(entry)}>
+                  Edit
+                </Button>
+              )}
+            </div>
           )}
         </div>
       )}

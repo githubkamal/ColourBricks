@@ -202,6 +202,35 @@ public sealed class ProjectReportingTests(IntegrationFixture fixture) : Integrat
         view.GetProperty("closingBalance").GetDecimal().Should().Be(0m); // purchase and its reversal net out
     }
 
+    [Fact]
+    public async Task Ledger_VendorPurchase_DoesNotDuplicateThePayableLeg()
+    {
+        HttpClient c = Admin;
+        long project = await Project(c, 5_000_000m, 6_000_000m);
+        long vendor = (await Json(await c.PostAsJsonAsync(
+            "/api/v1/parties?confirm=true", new { name = "Ledger Dup Vendor", types = new[] { "Vendor" } })))
+            .GetProperty("id").GetInt64();
+
+        (await c.PostAsJsonAsync("/api/v1/vendor-purchases", new
+        {
+            projectId = project, vendorId = vendor, date = "2026-08-02", total = 300_000m,
+            lines = new[] { new { itemName = "X", quantity = 1m, unit = "Nos", rate = 300_000m, taxAmount = 0m } },
+        })).EnsureSuccessStatusCode();
+
+        JsonElement view = await Json(await c.GetAsync($"/api/v1/projects/{project}/financial-ledger"));
+        var purchaseLines = view.GetProperty("lines").EnumerateArray()
+            .Where(l => l.GetProperty("sourceType").GetString() == "VendorPurchase")
+            .ToList();
+
+        // The purchase posts a Materials debit and a paired Liability (vendor_payable)
+        // credit in the same transaction — only the Materials row should surface here;
+        // the Liability leg is that same purchase's "not yet paid" flip side, not a
+        // second event, so showing both double-lists one transaction.
+        purchaseLines.Should().ContainSingle();
+        purchaseLines[0].GetProperty("bucket").GetString().Should().Be("Materials");
+        purchaseLines[0].GetProperty("debit").GetDecimal().Should().Be(300_000m);
+    }
+
     // ── P5-T04 ───────────────────────────────────────────────────────────────
 
     [Fact]

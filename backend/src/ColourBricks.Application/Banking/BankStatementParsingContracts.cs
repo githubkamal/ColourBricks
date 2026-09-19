@@ -33,6 +33,23 @@ public sealed record CreateBankStatementProfileRequest(
     int? CreditColumn = null,
     string DebitSign = "Negative");
 
+/// <summary>Edits an existing profile's column mapping (client request, 2026-09-19 —
+/// a bank changing its export layout shouldn't force creating a whole new named profile).</summary>
+public sealed record UpdateBankStatementProfileRequest(
+    string Name,
+    int HeaderRowIndex,
+    int DateColumn,
+    int NarrationColumn,
+    bool SingleAmountColumn,
+    string DateFormats,
+    string Delimiter = ",",
+    int? ReferenceColumn = null,
+    int? BalanceColumn = null,
+    int? AmountColumn = null,
+    int? DebitColumn = null,
+    int? CreditColumn = null,
+    string DebitSign = "Negative");
+
 /// <summary>The header cells and a few sample data rows, for the mapping wizard.</summary>
 public sealed record DetectedColumnsDto(
     IReadOnlyList<string> Headers,
@@ -63,4 +80,7 @@ public interface IBankStatementProfileService
         long accountId, CancellationToken cancellationToken);
 
     Task<BankStatementProfileDto?> GetAsync(long id, CancellationToken cancellationToken);
+
+    Task<BankStatementProfileDto?> UpdateAsync(
+        long id, UpdateBankStatementProfileRequest request, CancellationToken cancellationToken);
 }

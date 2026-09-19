@@ -73,6 +73,10 @@ export function payWork(workId: number, input: PayWorkInput): Promise<WorkPaymen
   return apiClient.post<WorkPayment>(`/labour/work/${workId}/payments`, input);
 }
 
+export function reverseWork(id: number, reason: string): Promise<void> {
+  return apiClient.post<void>(`/labour/work/${id}/reverse`, { reason });
+}
+
 export function teamStatement(teamId: number): Promise<TeamStatementRow[]> {
   return apiClient.get<TeamStatementRow[]>(`/labour/teams/${teamId}/statement`);
 }

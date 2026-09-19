@@ -159,4 +159,50 @@ public sealed class LabourWorkTests(IntegrationFixture fixture) : IntegrationTes
         afterPay.GetProperty("Labour").GetDecimal().Should().Be(100_000m); // unchanged by the payment
         (await Balance(client, cash)).Should().Be(before - 40_000m);
     }
+
+    [Fact]
+    public async Task Reverse_UnpaidWorkEntry_MarksItReversed()
+    {
+        HttpClient client = Client;
+        long projectId = await CreateProject(client, "CB-2026-656");
+        long teamId = await CreateTeam(client, "Electrical Team D");
+        long workId = await RecordWork(client, projectId, teamId, 100_000m);
+
+        (await client.PostAsJsonAsync($"/api/v1/labour/work/{workId}/reverse", new { reason = "wrong team" }))
+            .EnsureSuccessStatusCode();
+
+        JsonElement work = await Json(await client.GetAsync($"/api/v1/labour/work/{workId}"));
+        work.GetProperty("status").GetString().Should().Be("Reversed");
+
+        JsonElement breakdown = await Json(await client.GetAsync($"/api/v1/projects/{projectId}/cost-breakdown"));
+        breakdown.GetProperty("Labour").GetDecimal().Should().Be(0m); // the reversal nets the cost back out
+    }
+
+    [Fact]
+    public async Task Reverse_AlreadyPaidWorkEntry_Returns400()
+    {
+        HttpClient client = Client;
+        long projectId = await CreateProject(client, "CB-2026-657");
+        long teamId = await CreateTeam(client, "Electrical Team E");
+        long mode = await ModeId(client, "Cash");
+        long cash = await AccountId(client, "Office Cash");
+        long workId = await RecordWork(client, projectId, teamId, 100_000m);
+        (await Pay(client, workId, 30_000m, mode, cash)).EnsureSuccessStatusCode();
+
+        HttpResponseMessage response = await client.PostAsJsonAsync(
+            $"/api/v1/labour/work/{workId}/reverse", new { reason = "trying anyway" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Reverse_UnknownWorkEntry_Returns404()
+    {
+        HttpClient client = Client;
+
+        HttpResponseMessage response = await client.PostAsJsonAsync(
+            "/api/v1/labour/work/999999999/reverse", new { reason = "does not exist" });
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
 }

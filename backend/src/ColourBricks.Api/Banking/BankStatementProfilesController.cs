@@ -30,4 +30,13 @@ public sealed class BankStatementProfilesController(IBankStatementProfileService
     public Task<IReadOnlyList<BankStatementProfileDto>> ListForAccount(
         long accountId, CancellationToken cancellationToken) =>
         profiles.ListForAccountAsync(accountId, cancellationToken);
+
+    [HttpPut("bank-statement-profiles/{id:long}")]
+    [HasPermission("bank_reconciliation.edit")]
+    public async Task<ActionResult<BankStatementProfileDto>> Update(
+        long id, [FromBody] UpdateBankStatementProfileRequest request, CancellationToken cancellationToken)
+    {
+        BankStatementProfileDto? dto = await profiles.UpdateAsync(id, request, cancellationToken);
+        return dto is null ? NotFound() : Ok(dto);
+    }
 }

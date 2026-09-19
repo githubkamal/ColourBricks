@@ -162,6 +162,32 @@ public sealed class LabourService(
             settlement.AccountId, settlement.ReferenceNo);
     }
 
+    public async Task<bool> ReverseAsync(long id, string reason, CancellationToken cancellationToken)
+    {
+        Obligation? obligation = await db.Obligations
+            .FirstOrDefaultAsync(o => o.Id == id && o.Type == ObligationType.SubcontractorWork, cancellationToken);
+        if (obligation is null)
+        {
+            return false;
+        }
+
+        if (obligation.Status == ObligationStatus.Reversed)
+        {
+            throw Fail("id", "This work entry is already reversed.");
+        }
+
+        decimal paid = await TotalPaidAsync(id, cancellationToken);
+        if (paid > 0m)
+        {
+            throw Fail("id", "This work entry has a payment recorded and cannot be edited.");
+        }
+
+        await ledger.ReverseAsync(WorkSource, id, reason, cancellationToken);
+        obligation.Status = ObligationStatus.Reversed;
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     public async Task<IReadOnlyList<TeamStatementRowDto>> TeamStatementAsync(
         long teamId, CancellationToken cancellationToken)
     {

@@ -42,9 +42,20 @@ public sealed class LabourController(ILabourService labour) : ControllerBase
         return Ok(payment);
     }
 
+    [HttpPost("work/{id:long}/reverse")]
+    [HasPermission("labour.edit")]
+    public async Task<IActionResult> Reverse(
+        long id, [FromBody] ReverseWorkRequest request, CancellationToken cancellationToken)
+    {
+        bool found = await labour.ReverseAsync(id, request.Reason, cancellationToken);
+        return found ? NoContent() : NotFound();
+    }
+
     [HttpGet("teams/{teamId:long}/statement")]
     [HasPermission("labour.view")]
     public Task<IReadOnlyList<TeamStatementRowDto>> Statement(
         long teamId, CancellationToken cancellationToken) =>
         labour.TeamStatementAsync(teamId, cancellationToken);
 }
+
+public sealed record ReverseWorkRequest(string Reason);

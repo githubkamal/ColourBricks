@@ -100,6 +100,17 @@ public sealed class ReportingService(
             .Where(p => partyIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
 
+        // A purchase/work-recorded posting (VendorPurchase, SubcontractorWork, CustomWork, …)
+        // pairs a Cost debit leg with a Liability credit leg in the very same posting — the
+        // Liability leg is the Cost leg's own "not yet paid" flip side, not a separate event,
+        // so showing both as rows double-lists one transaction. A payment-time posting (e.g.
+        // VendorPurchasePayment) has only a Liability leg with no paired Cost leg here, so it
+        // stays visible — that's a real, distinct settlement event.
+        var costSourceKeys = all
+            .Where(x => x.IsCost)
+            .Select(x => (x.SourceType, x.SourceId))
+            .ToHashSet();
+
         decimal opening = 0m, running = 0m;
         var lines = new List<ProjectLedgerLineDto>();
         foreach (var x in all)
@@ -126,6 +137,11 @@ public sealed class ReportingService(
             if ((to is { } t && x.EntryDate > t)
                 || (categoryId is { } cid && x.CategoryId != cid)
                 || (partyId is { } pid && x.PartyId != pid))
+            {
+                continue;
+            }
+
+            if (x.Bucket == "Liability" && costSourceKeys.Contains((x.SourceType, x.SourceId)))
             {
                 continue;
             }

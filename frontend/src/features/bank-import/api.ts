@@ -122,6 +122,13 @@ export function createBankStatementProfile(
   return apiClient.post<BankStatementProfile>("/bank-statement-profiles", input);
 }
 
+export function updateBankStatementProfile(
+  id: number,
+  input: Omit<CreateProfileInput, "accountId">,
+): Promise<BankStatementProfile> {
+  return apiClient.put<BankStatementProfile>(`/bank-statement-profiles/${id}`, input);
+}
+
 async function postForm<T>(path: string, body: FormData): Promise<T> {
   const response = await fetch(`${apiBaseUrl}${path}`, {
     method: "POST",
