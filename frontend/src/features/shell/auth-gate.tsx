@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Spinner } from "@/components/ui/spinner";
 import { ApiError } from "@/lib/api";
 import { fetchCurrentUser } from "@/lib/auth";
 import { AppShell } from "./app-shell";
@@ -35,7 +36,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
+      <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-2 text-sm">
+        <Spinner className="size-6" />
         Loading…
       </div>
     );

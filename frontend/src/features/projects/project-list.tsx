@@ -7,8 +7,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { formatDate, formatINR } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -186,22 +188,20 @@ export function ProjectList() {
       </div>
 
       {isPending && (
-        <div className="text-muted-foreground rounded-lg border border-dashed p-10 text-center text-sm">
-          Loading projects…
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <ProjectCardSkeleton key={i} />
+          ))}
         </div>
       )}
 
-      {isError && (
-        <div className="text-negative border-negative/30 rounded-lg border border-dashed p-10 text-center text-sm">
-          Could not load projects.
-        </div>
-      )}
-
-      {data?.items.length === 0 && (
-        <div className="text-muted-foreground rounded-lg border border-dashed p-10 text-center text-sm">
-          No projects yet. Create the first one.
-        </div>
-      )}
+      {!isPending &&
+        dataState({
+          isError,
+          isEmpty: data?.items.length === 0,
+          errorLabel: "Could not load projects.",
+          emptyLabel: "No projects yet. Create the first one.",
+        })}
 
       {data && data.items.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -300,6 +300,28 @@ function ProjectCard({ project, intent }: { project: ProjectListItem; intent?: I
         </span>
       </div>
     </Link>
+  );
+}
+
+function ProjectCardSkeleton() {
+  return (
+    <div className="bg-card border-border flex flex-col gap-3 rounded-xl border p-4 shadow-xs">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <Skeleton className="h-3 w-16 rounded-full" />
+          <Skeleton className="h-4 w-3/4 rounded-md" />
+        </div>
+        <Skeleton className="h-5 w-16 shrink-0 rounded-full" />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <Skeleton className="h-8 w-full rounded-md" />
+        <Skeleton className="h-8 w-full rounded-md" />
+      </div>
+      <Skeleton className="h-1.5 w-full rounded-full" />
+      <div className="border-border border-t pt-3">
+        <Skeleton className="h-3 w-2/3 rounded-full" />
+      </div>
+    </div>
   );
 }
 

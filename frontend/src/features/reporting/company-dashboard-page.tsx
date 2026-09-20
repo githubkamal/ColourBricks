@@ -23,7 +23,8 @@ import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
-import { StatTile } from "@/components/ui/stat-tile";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatTile, StatTileSkeleton } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/format";
 import { hasPermission } from "@/lib/navigation";
 import { usePagination } from "@/lib/use-pagination";
@@ -191,13 +192,28 @@ export function CompanyDashboardPage() {
     );
   }
 
-  if (isLoading || isError || !data) {
+  if (isLoading) {
+    return (
+      <div className="max-w-5xl space-y-6">
+        {header}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <StatTileSkeleton key={i} />
+          ))}
+        </div>
+        <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
+          <Skeleton className="h-60 w-full rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError || !data) {
     return (
       <div className="max-w-5xl space-y-6">
         {header}
         {dataState({
-          isPending: isLoading,
-          isError: isError || !data,
+          isError: true,
           errorLabel: "Could not load the dashboard.",
         })}
       </div>
