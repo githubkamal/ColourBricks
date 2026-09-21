@@ -55,11 +55,7 @@ export function BankStatementUploadPage() {
   // use it automatically rather than making the user click through a dropdown
   // every time. With several saved mappings (e.g. the bank changed its export
   // layout at some point), the dropdown below still lets them choose.
-  useEffect(() => {
-    if (profiles.length === 1 && profileId === "") {
-      setProfileId(profiles[0].id);
-    }
-  }, [profiles, profileId]);
+  const effectiveProfileId = profileId === "" && profiles.length === 1 ? profiles[0].id : profileId;
 
   const detect = useMutation({
     mutationFn: (headerRow: number) => detectStatementColumns(file!, headerRow),
@@ -70,7 +66,7 @@ export function BankStatementUploadPage() {
   const go = (batchId: number) => router.push(`/reconciliation/imports/${batchId}`);
 
   const uploadWithProfile = useMutation({
-    mutationFn: () => uploadStatement(Number(accountId), Number(profileId), file!),
+    mutationFn: () => uploadStatement(Number(accountId), Number(effectiveProfileId), file!),
     onSuccess: (b) => go(b.id),
     onError: (e) => toast.error(e instanceof ApiError ? e.message : "Upload failed"),
   });
