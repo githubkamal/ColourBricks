@@ -104,9 +104,7 @@ function WorkList({ projectId }: { projectId: number }) {
       void invalidate();
     },
     onError: (error) =>
-      toast.error(
-        error instanceof ApiError ? error.message : "Could not save the work entry",
-      ),
+      toast.error(error instanceof ApiError ? error.message : "Could not save the work entry"),
   });
 
   function startEdit(entry: WorkEntry) {
