@@ -8,7 +8,7 @@ using ExcelDataReader;
 namespace ColourBricks.Infrastructure.Banking;
 
 /// <summary>
-/// P4-T02 — reads a bank statement (CSV or XLSX) row by row against a saved
+/// P4-T02 — reads a bank statement (CSV, XLS or XLSX) row by row against a saved
 /// <see cref="BankStatementProfile"/>. Streams the file; a row that will not parse
 /// becomes an error row rather than aborting the batch. Indian date and amount
 /// quirks (dd/MM order, lakh grouping, trailing Cr/Dr) are handled here.
@@ -193,9 +193,17 @@ public sealed class BankStatementParser : IBankStatementParser
             content.Position = 0;
         }
 
-        return fileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)
-            ? ReadXlsxRows(content)
-            : ReadCsvRows(content, delimiter);
+        if (fileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            return ReadExcelRows(content, legacyBinary: false);
+        }
+
+        if (fileName.EndsWith(".xls", StringComparison.OrdinalIgnoreCase))
+        {
+            return ReadExcelRows(content, legacyBinary: true);
+        }
+
+        return ReadCsvRows(content, delimiter);
     }
 
     private static IEnumerable<string[]> ReadCsvRows(Stream content, char delimiter)
@@ -264,9 +272,11 @@ public sealed class BankStatementParser : IBankStatementParser
         }
     }
 
-    private static IEnumerable<string[]> ReadXlsxRows(Stream content)
+    private static IEnumerable<string[]> ReadExcelRows(Stream content, bool legacyBinary)
     {
-        using IExcelDataReader reader = ExcelReaderFactory.CreateOpenXmlReader(content);
+        using IExcelDataReader reader = legacyBinary
+            ? ExcelReaderFactory.CreateBinaryReader(content)
+            : ExcelReaderFactory.CreateOpenXmlReader(content);
 
         // First sheet only.
         while (reader.Read())

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import {
   createBankStatementProfile,
   detectStatementColumns,
@@ -19,7 +20,24 @@ import {
   type DetectedColumns,
 } from "./api";
 
-type Field = "dateColumn" | "narrationColumn" | "referenceColumn" | "balanceColumn";
+type MappedField =
+  | "dateColumn"
+  | "narrationColumn"
+  | "referenceColumn"
+  | "balanceColumn"
+  | "amountColumn"
+  | "debitColumn"
+  | "creditColumn";
+
+const FIELD_LABELS: Record<MappedField, string> = {
+  dateColumn: "Date",
+  narrationColumn: "Narration",
+  referenceColumn: "Reference",
+  balanceColumn: "Balance",
+  amountColumn: "Amount",
+  debitColumn: "Debit",
+  creditColumn: "Credit",
+};
 
 export function BankStatementUploadPage() {
   const router = useRouter();
@@ -37,8 +55,9 @@ export function BankStatementUploadPage() {
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", "banks"],
-    queryFn: () => listAccounts(),
+    queryFn: () => listAccounts("Bank"),
   });
+  const selectedAccount = accounts.find((a) => a.id === accountId);
   const { data: profiles = [] } = useQuery({
     queryKey: ["bank-statement-profiles", accountId],
     queryFn: () => listBankStatementProfiles(Number(accountId)),
@@ -140,10 +159,23 @@ export function BankStatementUploadPage() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [midWizard]);
 
-  const columnOptions =
-    detected?.headers.map((h, i) => ({ i, label: `[${i}] ${h || "(blank)"}` })) ?? [];
-  const setCol = (field: string, value: string) =>
-    setMap((cur) => ({ ...cur, [field]: value === "" ? undefined! : Number(value) }));
+  const fieldsForColumns: MappedField[] = singleAmount
+    ? ["dateColumn", "narrationColumn", "referenceColumn", "balanceColumn", "amountColumn"]
+    : ["dateColumn", "narrationColumn", "referenceColumn", "balanceColumn", "debitColumn", "creditColumn"];
+
+  const fieldForColumn = (i: number) =>
+    (Object.keys(map) as MappedField[]).find((f) => map[f] === i);
+
+  function assignColumn(colIndex: number, field: string) {
+    setMap((cur) => {
+      const next = { ...cur };
+      for (const f of Object.keys(next)) {
+        if (next[f] === colIndex) delete next[f];
+      }
+      if (field) next[field] = colIndex;
+      return next;
+    });
+  }
 
   return (
     <div className="max-w-3xl space-y-6">
@@ -171,14 +203,25 @@ export function BankStatementUploadPage() {
           </Select>
         </label>
 
+        {accountId !== "" && (
+          <div className="space-y-1">
+            <span className="text-sm font-medium">Account number</span>
+            <p className="text-sm">{selectedAccount?.accountNumber ?? "—"}</p>
+          </div>
+        )}
+
         <label className="space-y-1">
-          <span className="text-sm font-medium">Statement file (CSV or XLSX)</span>
+          <span className="text-sm font-medium">Statement file (CSV, XLS or XLSX)</span>
           <Input
             type="file"
-            accept=".csv,.xlsx"
+            accept=".csv,.xlsx,.xls"
             aria-label="Statement file"
+            disabled={accountId === ""}
             onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           />
+          {accountId === "" && (
+            <span className="text-muted-foreground block text-xs">Select an account first</span>
+          )}
         </label>
       </div>
 
@@ -279,32 +322,55 @@ export function BankStatementUploadPage() {
             {detected && (
               <div className="space-y-3" data-testid="mapping-wizard">
                 <p className="text-muted-foreground text-xs">
-                  Detected: {detected.headers.map((h, i) => `[${i}] ${h}`).join("  ·  ")}
+                  Pick which field each column holds. The sample rows below show what&apos;s
+                  actually in the file.
                 </p>
 
-                {(
-                  ["dateColumn", "narrationColumn", "referenceColumn", "balanceColumn"] as Field[]
-                ).map((field) => (
-                  <label key={field} className="flex items-center gap-2 text-sm">
-                    <span className="w-40">{field.replace("Column", "")}</span>
-                    <Select
-                      aria-label={field}
-                      value={map[field] ?? ""}
-                      onChange={(e) => setCol(field, e.target.value)}
-                    >
-                      <option value="">
-                        {field === "referenceColumn" || field === "balanceColumn"
-                          ? "none"
-                          : "select…"}
-                      </option>
-                      {columnOptions.map((o) => (
-                        <option key={o.i} value={o.i}>
-                          {o.label}
-                        </option>
+                <div className="overflow-x-auto rounded border">
+                  <table className="w-full text-left text-sm">
+                    <thead>
+                      <tr className="bg-muted/50">
+                        {detected.headers.map((h, i) => (
+                          <th key={i} className="min-w-36 border-b p-2 align-top font-normal">
+                            <div className="text-muted-foreground mb-1 text-xs">
+                              [{i}] {h || "(blank)"}
+                            </div>
+                            <Select
+                              aria-label={`Field for column ${i}`}
+                              className="h-7 w-full text-xs"
+                              value={fieldForColumn(i) ?? ""}
+                              onChange={(e) => assignColumn(i, e.target.value)}
+                            >
+                              <option value="">Not used</option>
+                              {fieldsForColumns.map((f) => (
+                                <option key={f} value={f}>
+                                  {FIELD_LABELS[f]}
+                                </option>
+                              ))}
+                            </Select>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {detected.sampleRows.map((row, r) => (
+                        <tr key={r} className="odd:bg-card even:bg-muted/20">
+                          {detected.headers.map((_, i) => (
+                            <td
+                              key={i}
+                              className={cn(
+                                "border-b p-2",
+                                fieldForColumn(i) && "bg-primary/5 font-medium",
+                              )}
+                            >
+                              {row[i] ?? ""}
+                            </td>
+                          ))}
+                        </tr>
                       ))}
-                    </Select>
-                  </label>
-                ))}
+                    </tbody>
+                  </table>
+                </div>
 
                 <label className="flex items-center gap-2 text-sm">
                   <input
@@ -314,42 +380,6 @@ export function BankStatementUploadPage() {
                   />
                   One signed amount column (debit is negative)
                 </label>
-
-                {singleAmount ? (
-                  <label className="flex items-center gap-2 text-sm">
-                    <span className="w-40">amount</span>
-                    <Select
-                      aria-label="amountColumn"
-                      value={map.amountColumn ?? ""}
-                      onChange={(e) => setCol("amountColumn", e.target.value)}
-                    >
-                      <option value="">select…</option>
-                      {columnOptions.map((o) => (
-                        <option key={o.i} value={o.i}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </label>
-                ) : (
-                  (["debitColumn", "creditColumn"] as const).map((field) => (
-                    <label key={field} className="flex items-center gap-2 text-sm">
-                      <span className="w-40">{field.replace("Column", "")}</span>
-                      <Select
-                        aria-label={field}
-                        value={map[field] ?? ""}
-                        onChange={(e) => setCol(field, e.target.value)}
-                      >
-                        <option value="">select…</option>
-                        {columnOptions.map((o) => (
-                          <option key={o.i} value={o.i}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </Select>
-                    </label>
-                  ))
-                )}
 
                 <div className="flex flex-wrap items-end gap-3">
                   <label className="space-y-1">

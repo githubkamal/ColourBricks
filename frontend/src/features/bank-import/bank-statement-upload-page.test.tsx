@@ -92,6 +92,12 @@ describe("BankStatementUploadPage", () => {
 
     const wizard = await screen.findByTestId("mapping-wizard");
     expect(wizard).toHaveTextContent("[1] Narration");
-    expect(screen.getByLabelText("dateColumn")).toBeInTheDocument();
+    expect(wizard).toHaveTextContent("NEFT ABC");
+    fireEvent.change(screen.getByLabelText("Field for column 0"), {
+      target: { value: "dateColumn" },
+    });
+    expect((screen.getByLabelText("Field for column 0") as HTMLSelectElement).value).toBe(
+      "dateColumn",
+    );
   });
 });
