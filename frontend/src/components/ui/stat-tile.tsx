@@ -4,7 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-const statValueVariants = cva("num mt-2 text-xl font-semibold", {
+const statValueVariants = cva("num mt-2 block break-words text-xl font-semibold", {
   variants: {
     tone: {
       neutral: "text-foreground",

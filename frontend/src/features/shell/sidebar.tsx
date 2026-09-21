@@ -3,7 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { visibleNavigation, type NavSection } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -180,6 +180,7 @@ function RailSection({ section, activeHref }: { section: NavSection; activeHref:
   const active = section.items.some((item) => item.href === activeHref);
   const Icon = section.icon;
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
@@ -189,6 +190,18 @@ function RailSection({ section, activeHref }: { section: NavSection; activeHref:
     },
     [],
   );
+
+  // Sections near the bottom of the rail (e.g. Settings) can open a flyout
+  // taller than the remaining viewport space below the trigger — clamp it
+  // back onto screen instead of letting its lower items render past the
+  // window edge, invisible below the fold.
+  useLayoutEffect(() => {
+    if (!pos || !panelRef.current) return;
+    const overflow = panelRef.current.getBoundingClientRect().bottom - (window.innerHeight - 8);
+    if (overflow > 0) {
+      setPos((p) => (p ? { ...p, top: Math.max(8, p.top - overflow) } : p));
+    }
+  }, [pos]);
 
   function open() {
     if (closeTimer.current) {
@@ -225,6 +238,7 @@ function RailSection({ section, activeHref }: { section: NavSection; activeHref:
         typeof document !== "undefined" &&
         createPortal(
           <div
+            ref={panelRef}
             style={{ top: pos.top, left: pos.left }}
             className="animate-in fade-in-0 fixed z-50 min-w-44 duration-100"
             onMouseEnter={open}
