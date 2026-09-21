@@ -161,7 +161,14 @@ export function BankStatementUploadPage() {
 
   const fieldsForColumns: MappedField[] = singleAmount
     ? ["dateColumn", "narrationColumn", "referenceColumn", "balanceColumn", "amountColumn"]
-    : ["dateColumn", "narrationColumn", "referenceColumn", "balanceColumn", "debitColumn", "creditColumn"];
+    : [
+        "dateColumn",
+        "narrationColumn",
+        "referenceColumn",
+        "balanceColumn",
+        "debitColumn",
+        "creditColumn",
+      ];
 
   const fieldForColumn = (i: number) =>
     (Object.keys(map) as MappedField[]).find((f) => map[f] === i);
