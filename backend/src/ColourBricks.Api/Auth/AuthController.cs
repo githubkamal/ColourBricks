@@ -14,6 +14,7 @@ namespace ColourBricks.Api.Auth;
 public sealed class AuthController(IAuthService auth, IOptions<AuthOptions> authOptions) : ControllerBase
 {
     private bool CookieSecure => authOptions.Value.CookieSecure;
+    private string? CookieDomain => authOptions.Value.CookieDomain;
 
     [HttpPost("login")]
     [AllowAnonymous]
@@ -28,7 +29,7 @@ public sealed class AuthController(IAuthService auth, IOptions<AuthOptions> auth
                 detail: "Login failed.");
         }
 
-        AuthCookies.Write(Response, result.Tokens!, CookieSecure);
+        AuthCookies.Write(Response, result.Tokens!, CookieSecure, CookieDomain);
         return Ok(result.User);
     }
 
@@ -45,11 +46,11 @@ public sealed class AuthController(IAuthService auth, IOptions<AuthOptions> auth
         AuthResult result = await auth.RefreshAsync(refreshToken, cancellationToken);
         if (!result.Succeeded)
         {
-            AuthCookies.Clear(Response, CookieSecure);
+            AuthCookies.Clear(Response, CookieSecure, CookieDomain);
             return Problem(statusCode: StatusCodes.Status401Unauthorized, title: TitleFor(result.Outcome));
         }
 
-        AuthCookies.Write(Response, result.Tokens!, CookieSecure);
+        AuthCookies.Write(Response, result.Tokens!, CookieSecure, CookieDomain);
         return Ok(result.User);
     }
 
@@ -58,7 +59,7 @@ public sealed class AuthController(IAuthService auth, IOptions<AuthOptions> auth
     public async Task<IActionResult> Logout(CancellationToken cancellationToken)
     {
         await auth.LogoutAsync(AuthCookies.ReadRefreshToken(Request), cancellationToken);
-        AuthCookies.Clear(Response, CookieSecure);
+        AuthCookies.Clear(Response, CookieSecure, CookieDomain);
         return NoContent();
     }
 

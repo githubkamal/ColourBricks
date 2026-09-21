@@ -4,8 +4,14 @@ import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/providers";
 import { LoadingBar } from "@/features/shell/loading-bar";
+import { apiBaseUrl } from "@/lib/config";
 import { THEME_BOOT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
+
+// Every page issues a credentialed cross-origin call to this origin (at minimum
+// the auth check on load), so warm the connection before it's needed instead of
+// paying DNS + TCP + TLS after the fact (GTmetrix: "Preconnect to required origins").
+const apiOrigin = new URL(apiBaseUrl).origin;
 
 // The Adminto theme's body/heading pairing (client request, 2026-09-06).
 const publicSans = Public_Sans({
@@ -32,6 +38,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       suppressHydrationWarning
     >
       <head>
+        <link rel="preconnect" href={apiOrigin} crossOrigin="use-credentials" />
+        <link rel="dns-prefetch" href={apiOrigin} />
         {/* Matches the light-mode background; the boot script/theme toggle update this
             to the dark background before/after a mode switch. */}
         <meta name="theme-color" content="#f0f4f7" />

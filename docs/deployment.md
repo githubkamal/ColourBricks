@@ -121,6 +121,7 @@ ASPNETCORE_URLS=http://127.0.0.1:5095
 ConnectionStrings__Default=Server=localhost;Port=3306;Database=colourbricks;User ID=colourbricks_app;Password=<strong-password>;TreatTinyAsBoolean=false;AllowUserVariables=true;UseAffectedRows=false
 Jwt__SigningKey=<random 48+ byte secret, e.g. `openssl rand -base64 48`>
 Auth__CookieSecure=true
+Auth__CookieDomain=.yourdomain.com
 Cors__FrontendOrigins__0=https://app.yourdomain.com
 Storage__Root=/opt/colourbricks/shared/storage
 ```
@@ -128,6 +129,13 @@ Storage__Root=/opt/colourbricks/shared/storage
 **No `Auth__Seed__*` keys** — production intentionally seeds no administrator (see
 [`README.md`](../README.md#creating-the-first-production-administrator)). Create the
 first admin after the first deploy with the `SeedAdmin` tool instead (§2 below).
+
+**`Auth__CookieDomain`** must be the shared parent of the `app.` and `api.` subdomains
+(leading dot), not either subdomain itself — the auth cookies are set by the API but
+need to be readable by the Next.js server on the `app.` host too, so it can redirect
+logged-out visitors to `/login` itself instead of shipping the whole authenticated
+app bundle first and redirecting client-side after an API round trip. Leave it unset
+for local dev, where both sides already run on plain `localhost`.
 
 Create `/opt/colourbricks/shared/web.env` (same ownership/mode). The port is set in
 the systemd unit's `ExecStart` (§1.4), not here — this file just needs:

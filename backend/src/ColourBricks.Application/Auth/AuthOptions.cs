@@ -23,6 +23,15 @@ public sealed class AuthOptions
     /// <summary>Set <c>Secure=false</c> only for plain-HTTP local testing.</summary>
     public bool CookieSecure { get; init; } = true;
 
+    /// <summary>
+    /// Cookie <c>Domain</c> attribute, e.g. <c>.colourbricks.livewiresdigitalsolutions.com</c> so
+    /// the app and api subdomains share the session cookies and the frontend's Next.js
+    /// server can see login state without a client-side round trip to the API. Leave
+    /// unset (null) for local dev, where app and api both run on plain <c>localhost</c>
+    /// and already share host-only cookies regardless of port.
+    /// </summary>
+    public string? CookieDomain { get; init; }
+
     public SeedAdministrator Seed { get; init; } = new();
 
     public sealed class SeedAdministrator
