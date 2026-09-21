@@ -1,9 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { Landmark, Percent, Scale, TrendingDown, TrendingUp, Wallet } from "lucide-react";
 import { ProjectTabs } from "@/features/projects/project-tabs";
 import { dataState } from "@/components/ui/data-state";
 import { Select } from "@/components/ui/select";
+import { StatTile } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/format";
 import { useQueryParam } from "@/lib/use-query-param";
 import { projectPnl } from "./api";
@@ -30,14 +32,8 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
     );
   }
 
-  const rows: [string, string][] = [
-    ["Revenue", formatINR(data.revenue)],
-    ["Estimated cost", formatINR(data.estimatedCost)],
-    ["Actual cost", formatINR(data.actualCost)],
-    ["Gross profit", formatINR(data.grossProfit)],
-    ["Profit %", `${data.profitPercent.toFixed(2)}%`],
-    ["Budget variance", formatINR(data.budgetVariance)],
-  ];
+  const profitTone = data.grossProfit < 0 ? "negative" : "positive";
+  const varianceTone = data.budgetVariance > 0 ? "attention" : "positive";
 
   return (
     <div className="max-w-5xl space-y-4">
@@ -60,17 +56,38 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
         basis.
       </p>
 
-      <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
-        <table className="w-full text-sm">
-          <tbody>
-            {rows.map(([k, v]) => (
-              <tr key={k} className="border-b last:border-0">
-                <td className="py-1.5">{k}</td>
-                <td className="py-1.5 text-right font-medium tabular-nums">{v}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <StatTile label="Revenue" value={formatINR(data.revenue)} tone="positive" icon={TrendingUp} />
+        <StatTile
+          label="Estimated cost"
+          value={formatINR(data.estimatedCost)}
+          tone="neutral"
+          icon={Wallet}
+        />
+        <StatTile
+          label="Actual cost"
+          value={formatINR(data.actualCost)}
+          tone="negative"
+          icon={TrendingDown}
+        />
+        <StatTile
+          label="Gross profit"
+          value={formatINR(data.grossProfit)}
+          tone={profitTone}
+          icon={Scale}
+        />
+        <StatTile
+          label="Profit %"
+          value={`${data.profitPercent.toFixed(2)}%`}
+          tone={profitTone}
+          icon={Percent}
+        />
+        <StatTile
+          label="Budget variance"
+          value={formatINR(data.budgetVariance)}
+          tone={varianceTone}
+          icon={Landmark}
+        />
       </div>
     </div>
   );

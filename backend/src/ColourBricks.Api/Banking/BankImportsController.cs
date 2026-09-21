@@ -39,6 +39,50 @@ public sealed class BankImportsController(
         return Ok(parser.DetectColumns(buffer, file.FileName, Math.Max(0, headerRowIndex)));
     }
 
+    /// <summary>Dry-run: parse a statement against an in-progress (not-yet-saved) column mapping and,
+    /// optionally, flag rows that already exist in the ledger. Nothing is written to the database —
+    /// this backs the upload wizard's preview grid, not the actual import.</summary>
+    [HttpPost("bank-imports/preview")]
+    [HasPermission("bank_reconciliation.add")]
+    [RequestSizeLimit(MaxStatementBytes)]
+    public async Task<ActionResult<IReadOnlyList<PreviewBankImportRowDto>>> Preview(
+        IFormFile file,
+        [FromForm] long accountId,
+        [FromForm] int dateColumn,
+        [FromForm] int narrationColumn,
+        [FromForm] bool singleAmountColumn,
+        [FromForm] string dateFormats,
+        [FromForm] bool checkExisting,
+        [FromForm] int headerRowIndex = 0,
+        [FromForm] string delimiter = ",",
+        [FromForm] int? referenceColumn = null,
+        [FromForm] int? balanceColumn = null,
+        [FromForm] int? amountColumn = null,
+        [FromForm] int? debitColumn = null,
+        [FromForm] int? creditColumn = null,
+        [FromForm] string debitSign = "Negative",
+        CancellationToken cancellationToken = default)
+    {
+        if (file is null || file.Length == 0)
+        {
+            return Problem(statusCode: StatusCodes.Status400BadRequest, detail: "A non-empty file is required.");
+        }
+
+        var adHocProfile = new BankStatementProfileDto(
+            Id: 0, accountId, Name: "preview", headerRowIndex, delimiter,
+            dateColumn, narrationColumn, referenceColumn, balanceColumn,
+            singleAmountColumn, amountColumn, debitColumn, creditColumn,
+            debitSign, dateFormats);
+
+        await using MemoryStream buffer = new();
+        await file.CopyToAsync(buffer, cancellationToken);
+        buffer.Position = 0;
+
+        IReadOnlyList<PreviewBankImportRowDto> rows = await imports.PreviewAsync(
+            accountId, adHocProfile, buffer, file.FileName, checkExisting, cancellationToken);
+        return Ok(rows);
+    }
+
     /// <summary>Parse an uploaded statement against a saved profile and stage it as a Draft batch.</summary>
     [HttpPost("bank-imports/upload")]
     [HasPermission("bank_reconciliation.add")]

@@ -172,3 +172,81 @@ export function uploadStatement(
   body.set("file", file);
   return postForm<BankImportBatch>("/bank-imports/upload", body);
 }
+
+// ── upload-wizard preview (dry run — nothing persisted) ─────────────────────────
+
+/** One row from a dry-run parse. Nothing behind this has been saved; `existsInDb` is
+ * only meaningful when the preview was fetched with `checkExisting: true`. */
+export interface PreviewBankImportRow {
+  sourceLineNo: number;
+  valueDate: string | null;
+  narration: string | null;
+  debit: number;
+  credit: number;
+  balance: number | null;
+  bankReference: string | null;
+  parseError: string | null;
+  existsInDb: boolean;
+}
+
+export interface PreviewBankImportInput {
+  accountId: number;
+  file: File;
+  headerRowIndex: number;
+  delimiter?: string;
+  dateColumn: number;
+  narrationColumn: number;
+  referenceColumn?: number;
+  balanceColumn?: number;
+  singleAmountColumn: boolean;
+  amountColumn?: number;
+  debitColumn?: number;
+  creditColumn?: number;
+  debitSign?: "Negative" | "Positive";
+  dateFormats: string;
+  /** When true, also flags rows whose date+amount+narration+reference signature already
+   * exists in the ledger for this account — used by the wizard's Validate step. */
+  checkExisting: boolean;
+}
+
+export function previewBankImport(input: PreviewBankImportInput): Promise<PreviewBankImportRow[]> {
+  const body = new FormData();
+  body.set("accountId", String(input.accountId));
+  body.set("headerRowIndex", String(input.headerRowIndex));
+  body.set("delimiter", input.delimiter ?? ",");
+  body.set("dateColumn", String(input.dateColumn));
+  body.set("narrationColumn", String(input.narrationColumn));
+  if (input.referenceColumn !== undefined) body.set("referenceColumn", String(input.referenceColumn));
+  if (input.balanceColumn !== undefined) body.set("balanceColumn", String(input.balanceColumn));
+  body.set("singleAmountColumn", String(input.singleAmountColumn));
+  if (input.amountColumn !== undefined) body.set("amountColumn", String(input.amountColumn));
+  if (input.debitColumn !== undefined) body.set("debitColumn", String(input.debitColumn));
+  if (input.creditColumn !== undefined) body.set("creditColumn", String(input.creditColumn));
+  body.set("debitSign", input.debitSign ?? "Negative");
+  body.set("dateFormats", input.dateFormats);
+  body.set("checkExisting", String(input.checkExisting));
+  body.set("file", input.file);
+  return postForm<PreviewBankImportRow[]>("/bank-imports/preview", body);
+}
+
+/** Stages only the rows handed to it (the checked survivors of the preview grid) as a
+ * Draft batch, without re-parsing the file server-side. */
+export function createBankImportFromRows(
+  accountId: number,
+  fileName: string,
+  rows: PreviewBankImportRow[],
+): Promise<BankImportBatch> {
+  return apiClient.post<BankImportBatch>("/bank-imports", {
+    accountId,
+    fileName,
+    rows: rows.map((r) => ({
+      sourceLineNo: r.sourceLineNo,
+      valueDate: r.valueDate,
+      narration: r.narration,
+      debit: r.debit,
+      credit: r.credit,
+      balance: r.balance,
+      bankReference: r.bankReference,
+    })),
+  });
+}

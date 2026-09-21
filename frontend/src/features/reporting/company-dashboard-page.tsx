@@ -286,7 +286,12 @@ export function CompanyDashboardPage() {
         {data.projectProfitability.length > 0 && (
           <ChartCard title="Profit by project">
             <ResponsiveContainer>
-              <BarChart data={data.projectProfitability} layout="vertical" margin={{ left: 24 }}>
+              <BarChart
+                data={data.projectProfitability}
+                layout="vertical"
+                margin={{ left: 24 }}
+                barCategoryGap="30%"
+              >
                 <ChartGradients />
                 <XAxis type="number" tickFormatter={(v: number) => formatINR(v)} fontSize={11} />
                 <YAxis
@@ -302,7 +307,7 @@ export function CompanyDashboardPage() {
                   labelStyle={TOOLTIP_LABEL_STYLE}
                   cursor={{ fill: "var(--muted)" }}
                 />
-                <Bar dataKey="profit" name="Profit" radius={[0, 4, 4, 0]}>
+                <Bar dataKey="profit" name="Profit" radius={[0, 4, 4, 0]} maxBarSize={36}>
                   {data.projectProfitability.map((r) => (
                     <Cell
                       key={r.projectId}
@@ -318,7 +323,7 @@ export function CompanyDashboardPage() {
         {outstandingByType.length > 0 && (
           <ChartCard title="Outstanding by type">
             <ResponsiveContainer>
-              <BarChart data={outstandingByType}>
+              <BarChart data={outstandingByType} barCategoryGap="30%">
                 <ChartGradients />
                 <XAxis dataKey="name" fontSize={12} tick={{ fill: "var(--muted-foreground)" }} />
                 <YAxis tickFormatter={(v: number) => formatINR(v)} fontSize={11} width={70} />
@@ -333,6 +338,7 @@ export function CompanyDashboardPage() {
                   name="Outstanding"
                   fill="url(#grad-series0)"
                   radius={[4, 4, 0, 0]}
+                  maxBarSize={64}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -397,7 +403,7 @@ function LoansOutstandingChart() {
   return (
     <ChartCard title="Loan principal outstanding by project">
       <ResponsiveContainer>
-        <BarChart data={rows}>
+        <BarChart data={rows} barCategoryGap="30%">
           <ChartGradients />
           <XAxis
             dataKey="projectName"
@@ -417,6 +423,7 @@ function LoansOutstandingChart() {
             name="Outstanding"
             fill="url(#grad-series4)"
             radius={[4, 4, 0, 0]}
+            maxBarSize={64}
           />
         </BarChart>
       </ResponsiveContainer>
@@ -478,12 +485,12 @@ function ReconciliationStatusChart() {
   return (
     <ChartCard title="Bank reconciliation status">
       <ResponsiveContainer>
-        <BarChart data={rows}>
+        <BarChart data={rows} barCategoryGap="30%">
           <ChartGradients />
           <XAxis dataKey="name" fontSize={12} tick={{ fill: "var(--muted-foreground)" }} />
           <YAxis allowDecimals={false} fontSize={11} width={40} />
           <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
-          <Bar dataKey="value" name="Transactions" radius={[4, 4, 0, 0]}>
+          <Bar dataKey="value" name="Transactions" radius={[4, 4, 0, 0]} maxBarSize={64}>
             {rows.map((r) => (
               <Cell
                 key={r.name}

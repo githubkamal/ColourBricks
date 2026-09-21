@@ -17,6 +17,20 @@ public sealed record CreateBankImportRequest(
     string FileName,
     IReadOnlyList<ParsedBankRowInput> Rows);
 
+/// <summary>One row from a dry-run parse (<see cref="IBankImportService.PreviewAsync"/>) — nothing
+/// behind this has been persisted. <see cref="ExistsInDb"/> is only populated when the caller asked
+/// for the DB check; otherwise it's always false.</summary>
+public sealed record PreviewBankImportRowDto(
+    int SourceLineNo,
+    DateOnly? ValueDate,
+    string? Narration,
+    decimal Debit,
+    decimal Credit,
+    decimal? Balance,
+    string? BankReference,
+    string? ParseError,
+    bool ExistsInDb);
+
 public sealed record ProjectAllocationInput(long ProjectId, decimal Amount);
 
 public sealed record SetRowAllocationsRequest(IReadOnlyList<ProjectAllocationInput> Allocations);
@@ -91,6 +105,13 @@ public interface IBankImportService
     /// <summary>Parse an uploaded statement against a saved profile and stage it as a Draft batch (P4-T02).</summary>
     Task<BankImportBatchDto> CreateDraftFromFileAsync(
         long accountId, string fileName, Stream content, long profileId, CancellationToken cancellationToken);
+
+    /// <summary>Dry-run parse: reads the file against an ad-hoc (never persisted) column mapping and,
+    /// optionally, flags rows whose date+amount+narration+reference signature already exists in
+    /// <c>BankTransactions</c> for the account. Nothing is written to the database.</summary>
+    Task<IReadOnlyList<PreviewBankImportRowDto>> PreviewAsync(
+        long accountId, BankStatementProfileDto adHocProfile, Stream content, string fileName,
+        bool checkExisting, CancellationToken cancellationToken);
 
     Task<BankImportBatchDto?> GetAsync(long batchId, CancellationToken cancellationToken);
 

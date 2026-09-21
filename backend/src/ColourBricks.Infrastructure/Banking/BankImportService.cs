@@ -99,6 +99,42 @@ public sealed partial class BankImportService(
         return (await GetAsync(batch.Id, cancellationToken))!;
     }
 
+    public async Task<IReadOnlyList<PreviewBankImportRowDto>> PreviewAsync(
+        long accountId, BankStatementProfileDto adHocProfile, Stream content, string fileName,
+        bool checkExisting, CancellationToken cancellationToken)
+    {
+        BankStatementParseResult parsed = parser.Parse(content, fileName, adHocProfile);
+
+        Dictionary<string, int> committed = [];
+        if (checkExisting)
+        {
+            List<DateOnly> dates = parsed.Rows.Where(r => r.ValueDate is not null)
+                .Select(r => r.ValueDate!.Value).Distinct().ToList();
+            committed = await CommittedCountsBySignatureAsync(accountId, dates, cancellationToken);
+        }
+
+        var seen = new Dictionary<string, int>();
+        var result = new List<PreviewBankImportRowDto>(parsed.Rows.Count);
+        foreach (ParsedBankRowInput r in parsed.Rows.OrderBy(r => r.SourceLineNo))
+        {
+            bool existsInDb = false;
+            if (checkExisting && r.ValueDate is not null)
+            {
+                string sig = Signature(accountId, r.ValueDate.Value, Money.Round(r.Debit), Money.Round(r.Credit),
+                    NormaliseNarration(r.Narration), r.BankReference);
+                int ordinal = seen.GetValueOrDefault(sig, 0);
+                seen[sig] = ordinal + 1;
+                existsInDb = committed.GetValueOrDefault(sig, 0) > ordinal;
+            }
+
+            result.Add(new PreviewBankImportRowDto(
+                r.SourceLineNo, r.ValueDate, r.Narration, Money.Round(r.Debit), Money.Round(r.Credit),
+                r.Balance is { } b ? Money.Round(b) : null, r.BankReference, r.ParseError, existsInDb));
+        }
+
+        return result;
+    }
+
     public async Task<BankImportBatchDto?> GetAsync(long batchId, CancellationToken cancellationToken)
     {
         ImportBatch? batch = await db.ImportBatches.AsNoTracking()
@@ -264,7 +300,7 @@ public sealed partial class BankImportService(
             // Occurrence index = existing committed rows of the same identity + the row's
             // ordinal among this batch's promotable rows sharing that identity.
             Dictionary<string, int> committed = await CommittedCountsBySignatureAsync(
-                batch.AccountId, rows, cancellationToken);
+                batch.AccountId, rows.Select(r => r.ValueDate!.Value).Distinct(), cancellationToken);
             var ordinals = new Dictionary<string, int>();
             var built = new List<BankTransaction>();
 
@@ -429,7 +465,7 @@ public sealed partial class BankImportService(
         }
 
         Dictionary<string, int> committed = await CommittedCountsBySignatureAsync(
-            batch.AccountId, parsed, cancellationToken);
+            batch.AccountId, parsed.Select(r => r.ValueDate!.Value).Distinct(), cancellationToken);
 
         var seen = new Dictionary<string, int>();
         foreach (StagedBankRow r in parsed)
@@ -449,10 +485,9 @@ public sealed partial class BankImportService(
     }
 
     private async Task<Dictionary<string, int>> CommittedCountsBySignatureAsync(
-        long accountId, List<StagedBankRow> rows, CancellationToken cancellationToken)
+        long accountId, IEnumerable<DateOnly> valueDates, CancellationToken cancellationToken)
     {
-        List<DateOnly> dates = rows.Where(r => r.ValueDate is not null)
-            .Select(r => r.ValueDate!.Value).Distinct().ToList();
+        List<DateOnly> dates = valueDates.ToList();
         if (dates.Count == 0)
         {
             return [];
