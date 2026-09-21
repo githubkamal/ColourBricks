@@ -1,20 +1,25 @@
 "use client";
 
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { ArrowDownAZ, ArrowUpAZ, CalendarRange, Plus } from "lucide-react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowDownAZ, ArrowUpAZ, CalendarRange, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCurrentUser } from "@/features/shell/user-context";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
+import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
+import { hasPermission } from "@/lib/permissions";
 import { cn } from "@/lib/utils";
-import { listProjects } from "./api";
+import { deleteProject, listProjects } from "./api";
 import {
   PROJECT_STATUSES,
   PROJECT_STATUS_LABELS,
@@ -87,6 +92,10 @@ export function ProjectList() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+  const user = useCurrentUser();
+  const canDelete = hasPermission(user.permissions, "projects.delete");
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
 
   // "status" and "intent" are driven by the URL, not local state — the nav's
   // Ongoing/Completed/Ledger/Budget/Profit-Loss entries all link here with a
@@ -121,6 +130,27 @@ export function ProjectList() {
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
     setPage(1);
+  }
+
+  const remove = useMutation({
+    mutationFn: (id: number) => deleteProject(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Project deleted");
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not delete the project"),
+  });
+
+  async function handleDelete(project: ProjectListItem) {
+    const result = await confirm({
+      title: `Delete "${project.name}"?`,
+      description:
+        "The project is removed from Project Master, but its history stays intact for reports and ledgers. This cannot be undone from here.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (result.confirmed) remove.mutate(project.id);
   }
 
   return (
@@ -206,7 +236,14 @@ export function ProjectList() {
       {data && data.items.length > 0 && (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {data.items.map((project) => (
-            <ProjectCard key={project.id} project={project} intent={intent} />
+            <ProjectCard
+              key={project.id}
+              project={project}
+              intent={intent}
+              canDelete={canDelete}
+              deleting={remove.isPending && remove.variables === project.id}
+              onDelete={() => void handleDelete(project)}
+            />
           ))}
         </div>
       )}
@@ -237,11 +274,25 @@ export function ProjectList() {
           </div>
         </div>
       )}
+
+      {confirmDialog}
     </div>
   );
 }
 
-function ProjectCard({ project, intent }: { project: ProjectListItem; intent?: Intent }) {
+function ProjectCard({
+  project,
+  intent,
+  canDelete,
+  deleting,
+  onDelete,
+}: {
+  project: ProjectListItem;
+  intent?: Intent;
+  canDelete: boolean;
+  deleting: boolean;
+  onDelete: () => void;
+}) {
   const progress = timelineProgress(project);
   const href = intent
     ? `/projects/${project.id}/${INTENTS[intent].path}`
@@ -259,9 +310,28 @@ function ProjectCard({ project, intent }: { project: ProjectListItem; intent?: I
             {project.name}
           </h2>
         </div>
-        <Badge variant={STATUS_BADGE[project.status]}>
-          {PROJECT_STATUS_LABELS[project.status]}
-        </Badge>
+        <div className="flex shrink-0 items-center gap-1.5">
+          <Badge variant={STATUS_BADGE[project.status]}>
+            {PROJECT_STATUS_LABELS[project.status]}
+          </Badge>
+          {canDelete && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              aria-label={`Delete ${project.name}`}
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDelete();
+              }}
+            >
+              <Trash2 aria-hidden="true" />
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-sm">

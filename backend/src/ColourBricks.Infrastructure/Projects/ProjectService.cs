@@ -85,7 +85,7 @@ public sealed class ProjectService(
 
         Project? project = await db.Projects.AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-        return project is null ? null : ToDto(project);
+        return project is null || !project.IsActive ? null : ToDto(project);
     }
 
     public async Task<ProjectDto> CreateAsync(CreateProjectRequest request, CancellationToken cancellationToken)
@@ -141,7 +141,7 @@ public sealed class ProjectService(
         long id, UpdateProjectRequest request, CancellationToken cancellationToken)
     {
         Project? project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
-        if (project is null)
+        if (project is null || !project.IsActive)
         {
             return null;
         }

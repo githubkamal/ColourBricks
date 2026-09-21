@@ -33,13 +33,7 @@ export function BankStatementUploadPage() {
   const [name, setName] = useState("");
   const [singleAmount, setSingleAmount] = useState(false);
   const [dateFormats, setDateFormats] = useState("dd/MM/yyyy");
-  const [map, setMap] = useState<Record<string, number>>({
-    dateColumn: 0,
-    narrationColumn: 1,
-    amountColumn: 2,
-    debitColumn: 2,
-    creditColumn: 3,
-  });
+  const [map, setMap] = useState<Record<string, number>>({});
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", "banks"],
@@ -59,7 +53,16 @@ export function BankStatementUploadPage() {
 
   const detect = useMutation({
     mutationFn: (headerRow: number) => detectStatementColumns(file!, headerRow),
-    onSuccess: setDetected,
+    onSuccess: (result) => {
+      setDetected(result);
+      // Editing a saved profile: `map` already holds its real column indices —
+      // don't clobber them just because we re-ran detection (e.g. after
+      // tweaking the header row). Starting fresh, though, the previous
+      // guesses are meaningless for this file's layout, so force every field
+      // back to "select…" rather than leaving stale/hardcoded indices that
+      // look chosen but point at the wrong columns.
+      if (!editingProfileId) setMap({});
+    },
     onError: (e) => toast.error(e instanceof ApiError ? e.message : "Could not read the file"),
   });
 
@@ -101,6 +104,7 @@ export function BankStatementUploadPage() {
     setName("");
     setHeaderRowIndex("0");
     setDetected(null);
+    setMap({});
   }
 
   function startEditMapping(p: BankStatementProfile) {
@@ -155,6 +159,7 @@ export function BankStatementUploadPage() {
               setAccountId(e.target.value ? Number(e.target.value) : "");
               setProfileId("");
               setDetected(null);
+              setMap({});
             }}
           >
             <option value="">Select account…</option>
