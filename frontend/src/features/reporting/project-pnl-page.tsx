@@ -57,7 +57,12 @@ export function ProjectPnlPage({ projectId }: { projectId: number }) {
       </p>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <StatTile label="Revenue" value={formatINR(data.revenue)} tone="positive" icon={TrendingUp} />
+        <StatTile
+          label="Revenue"
+          value={formatINR(data.revenue)}
+          tone="positive"
+          icon={TrendingUp}
+        />
         <StatTile
           label="Estimated cost"
           value={formatINR(data.estimatedCost)}
