@@ -343,7 +343,9 @@ export function BankStatementUploadPage() {
     },
     onSuccess: (b) => go(b.id),
     onError: (e) =>
-      toast.error(e instanceof ApiError ? (e.fieldErrors?.rows?.[0] ?? e.message) : "Upload failed"),
+      toast.error(
+        e instanceof ApiError ? (e.fieldErrors?.rows?.[0] ?? e.message) : "Upload failed",
+      ),
   });
 
   // Mid-wizard means a file has been picked and the transaction hasn't yet
@@ -385,7 +387,10 @@ export function BankStatementUploadPage() {
     });
   }
 
-  const gridRows: GridRow[] = rows.map((r) => ({ ...r, _checked: selection.ids.has(r.sourceLineNo) }));
+  const gridRows: GridRow[] = rows.map((r) => ({
+    ...r,
+    _checked: selection.ids.has(r.sourceLineNo),
+  }));
   const parsedDates = rows
     .map((r) => r.valueDate)
     .filter((d): d is string => d !== null)
@@ -625,8 +630,8 @@ export function BankStatementUploadPage() {
               {detected && (
                 <div className="space-y-3" data-testid="mapping-wizard">
                   <p className="text-muted-foreground text-xs">
-                    Pick which field each column holds. The sample rows below fill in once a
-                    column is mapped to a field.
+                    Pick which field each column holds. The sample rows below fill in once a column
+                    is mapped to a field.
                   </p>
 
                   <div className="overflow-x-auto rounded border">
@@ -739,7 +744,9 @@ export function BankStatementUploadPage() {
               )}
               {preview.isError && (
                 <p className="text-destructive text-sm">
-                  {preview.error instanceof ApiError ? preview.error.message : "Could not read the file"}
+                  {preview.error instanceof ApiError
+                    ? preview.error.message
+                    : "Could not read the file"}
                 </p>
               )}
 
@@ -768,7 +775,9 @@ export function BankStatementUploadPage() {
                   </Button>
                 ) : (
                   <Button type="button" disabled={!canUpload} onClick={() => upload.mutate()}>
-                    {upload.isPending ? "Uploading…" : `Upload ${selection.ids.size} transaction(s)`}
+                    {upload.isPending
+                      ? "Uploading…"
+                      : `Upload ${selection.ids.size} transaction(s)`}
                   </Button>
                 )}
                 {isValidated && !canUpload && name.trim() === "" && usingProfileId === null && (

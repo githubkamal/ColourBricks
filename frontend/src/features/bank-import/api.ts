@@ -216,7 +216,8 @@ export function previewBankImport(input: PreviewBankImportInput): Promise<Previe
   body.set("delimiter", input.delimiter ?? ",");
   body.set("dateColumn", String(input.dateColumn));
   body.set("narrationColumn", String(input.narrationColumn));
-  if (input.referenceColumn !== undefined) body.set("referenceColumn", String(input.referenceColumn));
+  if (input.referenceColumn !== undefined)
+    body.set("referenceColumn", String(input.referenceColumn));
   if (input.balanceColumn !== undefined) body.set("balanceColumn", String(input.balanceColumn));
   body.set("singleAmountColumn", String(input.singleAmountColumn));
   if (input.amountColumn !== undefined) body.set("amountColumn", String(input.amountColumn));

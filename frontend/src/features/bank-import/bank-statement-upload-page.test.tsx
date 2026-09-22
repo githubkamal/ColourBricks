@@ -185,7 +185,9 @@ describe("BankStatementUploadPage", () => {
           },
         ]),
       ),
-      http.post(`${apiBaseUrl}/bank-imports`, () => HttpResponse.json({ id: 55, rows: [], counts: {} })),
+      http.post(`${apiBaseUrl}/bank-imports`, () =>
+        HttpResponse.json({ id: 55, rows: [], counts: {} }),
+      ),
     );
     push.mockClear();
     renderWithClient(<BankStatementUploadPage />);
