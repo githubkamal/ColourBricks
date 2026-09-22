@@ -178,6 +178,7 @@ public sealed class ReportingService(
     {
         ProjectScope scope = await scopeFilter.GetScopeAsync(ct);
         List<Project> projects = await db.Projects.AsNoTracking()
+            .Where(p => p.IsActive)
             .Where(p => scope.IsUnrestricted || scope.ProjectIds.Contains(p.Id))
             .ToListAsync(ct);
 
@@ -276,6 +277,7 @@ public sealed class ReportingService(
     {
         ProjectScope scope = await scopeFilter.GetScopeAsync(ct);
         List<Project> projects = await db.Projects.AsNoTracking()
+            .Where(p => p.IsActive)
             .Where(p => scope.IsUnrestricted || scope.ProjectIds.Contains(p.Id))
             .ToListAsync(ct);
         List<long> projectIds = projects.Select(p => p.Id).ToList();

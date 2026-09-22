@@ -210,4 +210,38 @@ public sealed class DashboardReportTests(IntegrationFixture fixture) : Integrati
         dashExpenses.Should().Be(pnlActual);
         pnlUnallocated.Should().BeGreaterThanOrEqualTo(25_000m);
     }
+
+    [Fact]
+    public async Task CompanyDashboard_And_CompanyPnl_ExcludeSoftDeletedProjects()
+    {
+        // A soft-deleted project (IsActive = false, via DELETE /projects/{id}) must not
+        // keep feeding company-wide aggregates — its stale figures previously survived
+        // the delete and kept inflating Overall Expenses / Profit-Loss / the dashboard
+        // charts indefinitely (production incident, 2026-09-22).
+        HttpClient c = Admin;
+        var cat = await Cats(c);
+        long kept = await Project(c);
+        long deleted = await Project(c);
+        await Expense(c, kept, cat["materials"], 400_000m);
+        await Expense(c, deleted, cat["materials"], 999_999_999m);
+        await Receipt(c, kept, 300_000m);
+
+        (await c.DeleteAsync($"/api/v1/projects/{deleted}")).EnsureSuccessStatusCode();
+
+        JsonElement dash = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
+        var profitability = dash.GetProperty("projectProfitability").EnumerateArray().ToList();
+        profitability.Should().NotContain(x => x.GetProperty("projectId").GetInt64() == deleted);
+
+        decimal dashExpenses = dash.GetProperty("tiles").EnumerateArray()
+            .First(x => x.GetProperty("key").GetString() == "expenses").GetProperty("value").GetDecimal();
+        dashExpenses.Should().Be(400_000m);
+
+        JsonElement pnl = await Json(await c.GetAsync("/api/v1/pnl"));
+        pnl.GetProperty("projects").EnumerateArray()
+            .Should().NotContain(x => x.GetProperty("projectId").GetInt64() == deleted);
+        pnl.GetProperty("actualCost").GetDecimal().Should().Be(400_000m);
+
+        JsonElement forReporting = await Json(await c.GetAsync("/api/v1/projects/reporting"));
+        forReporting.EnumerateArray().Should().NotContain(x => x.GetProperty("id").GetInt64() == deleted);
+    }
 }

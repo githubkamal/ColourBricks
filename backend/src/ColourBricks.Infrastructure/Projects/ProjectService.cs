@@ -59,8 +59,10 @@ public sealed class ProjectService(
 
     public async Task<IReadOnlyList<ProjectListItemDto>> ListForReportingAsync(CancellationToken cancellationToken)
     {
-        // Every project, every status — completed/cancelled included (BRD §70 rule 31).
-        IQueryable<Project> projects = db.Projects.AsNoTracking();
+        // Every status — completed/cancelled included (BRD §70 rule 31) — but never a
+        // soft-deleted project: IsActive is the delete flag, not a lifecycle status, and
+        // a deleted project's stale figures must not keep feeding company-wide reports.
+        IQueryable<Project> projects = db.Projects.AsNoTracking().Where(p => p.IsActive);
 
         ProjectScope scope = await scopeFilter.GetScopeAsync(cancellationToken);
         if (!scope.IsUnrestricted)

@@ -164,6 +164,7 @@ public sealed class ProjectFinancialSummaryReport(
     protected override async ValueTask<IQueryable<SummaryReportRow>> SourceAsync(AppDbContext db, CancellationToken ct)
     {
         List<(long Id, string Name, decimal Value, decimal Estimate)> projects = await db.Projects.AsNoTracking()
+            .Where(p => p.IsActive)
             .Select(p => new ValueTuple<long, string, decimal, decimal>(p.Id, p.Name, p.ContractValue, p.EstimatedCost))
             .ToListAsync(ct);
 
@@ -223,7 +224,8 @@ public sealed class ProjectBudgetVsActualReport(
 
     protected override async ValueTask<IQueryable<SummaryReportRow>> SourceAsync(AppDbContext db, CancellationToken ct)
     {
-        List<long> projectIds = await db.Projects.AsNoTracking().Select(p => p.Id).ToListAsync(ct);
+        List<long> projectIds = await db.Projects.AsNoTracking()
+            .Where(p => p.IsActive).Select(p => p.Id).ToListAsync(ct);
         var rows = new List<SummaryReportRow>();
         foreach (long projectId in projectIds)
         {
@@ -277,7 +279,8 @@ public sealed class ProjectOutstandingReport(
 
     protected override async ValueTask<IQueryable<SummaryReportRow>> SourceAsync(AppDbContext db, CancellationToken ct)
     {
-        List<long> projectIds = await db.Projects.AsNoTracking().Select(p => p.Id).ToListAsync(ct);
+        List<long> projectIds = await db.Projects.AsNoTracking()
+            .Where(p => p.IsActive).Select(p => p.Id).ToListAsync(ct);
         IReadOnlyList<LoanOutstandingReportRowDto> loanRows = await loans.OutstandingAsync(null, ct);
 
         var rows = new List<SummaryReportRow>();
