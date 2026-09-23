@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -63,9 +63,9 @@ export function AccountsPage({ type }: { type: AccountType }) {
           placeholder={type === "Cash" ? "e.g. Office Cash" : "e.g. HDFC"}
           aria-label={`New ${type.toLowerCase()} account name`}
         />
-        <Button type="submit" disabled={add.isPending || !name.trim()}>
+        <SubmitButton type="submit" disabled={!name.trim()} mutation={add}>
           Add
-        </Button>
+        </SubmitButton>
       </form>
 
       {dataState({
@@ -73,7 +73,10 @@ export function AccountsPage({ type }: { type: AccountType }) {
         isEmpty: !isPending && (data?.length ?? 0) === 0,
         emptyLabel: `No ${type.toLowerCase()} accounts found.`,
       }) ?? (
-        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+        <div
+          data-table-scroll
+          className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+        >
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">

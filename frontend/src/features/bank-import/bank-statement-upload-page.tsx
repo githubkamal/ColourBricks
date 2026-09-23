@@ -17,6 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { useTheme } from "@/features/shell/theme-context";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -479,10 +480,11 @@ export function BankStatementUploadPage() {
     <div className="max-w-5xl space-y-6">
       <h1 className="text-lg font-semibold">Upload bank statement</h1>
 
-      <div className="flex flex-wrap items-start gap-3">
+      <div className="grid gap-4 sm:grid-cols-[minmax(12rem,16rem)_1fr] sm:items-start">
         <label className="space-y-1">
           <span className="text-sm font-medium">Account</span>
           <Select
+            className="w-full"
             aria-label="Account"
             value={accountId}
             onChange={(e) => {
@@ -505,7 +507,7 @@ export function BankStatementUploadPage() {
           )}
         </label>
 
-        <div className="space-y-1">
+        <div className="min-w-0 space-y-1">
           <span className="text-sm font-medium">Statement file</span>
           <FileDropzone
             file={file}
@@ -525,25 +527,14 @@ export function BankStatementUploadPage() {
       {accountId !== "" && file && (
         <>
           {profiles.length > 0 && usingProfileId === null && editingProfileId === null && (
-            <div className="bg-card space-y-2 rounded border p-3">
+            <div className="bg-card space-y-3 rounded border p-3">
               <p className="text-sm font-medium">Use a saved mapping</p>
-              {profiles.length === 1 ? (
-                <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {profiles.length === 1 ? (
                   <span className="text-sm">{profiles[0].name}</span>
-                  <Button type="button" onClick={() => applyProfileMapping(profiles[0], false)}>
-                    Use this mapping
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => applyProfileMapping(profiles[0], true)}
-                  >
-                    Edit mapping
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-end gap-3">
+                ) : (
                   <Select
+                    className="min-w-48"
                     aria-label="Saved profile"
                     value={profileId}
                     onChange={(e) => setProfileId(e.target.value ? Number(e.target.value) : "")}
@@ -555,11 +546,16 @@ export function BankStatementUploadPage() {
                       </option>
                     ))}
                   </Select>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
                   <Button
                     type="button"
-                    disabled={profileId === ""}
+                    disabled={profiles.length > 1 && profileId === ""}
                     onClick={() => {
-                      const p = profiles.find((x) => x.id === profileId);
+                      const p =
+                        profiles.length === 1
+                          ? profiles[0]
+                          : profiles.find((x) => x.id === profileId);
                       if (p) applyProfileMapping(p, false);
                     }}
                   >
@@ -567,26 +563,29 @@ export function BankStatementUploadPage() {
                   </Button>
                   <Button
                     type="button"
-                    variant="ghost"
-                    disabled={profileId === ""}
+                    variant="outline"
+                    disabled={profiles.length > 1 && profileId === ""}
                     onClick={() => {
-                      const p = profiles.find((x) => x.id === profileId);
+                      const p =
+                        profiles.length === 1
+                          ? profiles[0]
+                          : profiles.find((x) => x.id === profileId);
                       if (p) applyProfileMapping(p, true);
                     }}
                   >
                     Edit mapping
                   </Button>
                 </div>
-              )}
+              </div>
             </div>
           )}
 
           {usingProfileId !== null && (
-            <div className="bg-card flex flex-wrap items-center gap-3 rounded border p-3">
+            <div className="bg-card flex flex-wrap items-center justify-between gap-3 rounded border p-3">
               <p className="text-sm">
                 Using saved mapping <span className="font-medium">{name}</span>
               </p>
-              <Button type="button" variant="ghost" size="xs" onClick={startNewMapping}>
+              <Button type="button" variant="outline" size="sm" onClick={startNewMapping}>
                 Map columns manually instead
               </Button>
             </div>
@@ -594,18 +593,20 @@ export function BankStatementUploadPage() {
 
           {showMappingCard && (
             <div className="bg-card space-y-3 rounded border p-3">
-              <p className="text-sm font-medium">
-                {editingProfileId
-                  ? `Editing mapping "${name}"`
-                  : profiles.length > 0
-                    ? "…or create a new mapping"
-                    : "Map the columns for this bank"}
-              </p>
-              {editingProfileId && (
-                <Button type="button" variant="ghost" size="xs" onClick={startNewMapping}>
-                  Cancel — start a new mapping instead
-                </Button>
-              )}
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-medium">
+                  {editingProfileId
+                    ? `Editing mapping "${name}"`
+                    : profiles.length > 0
+                      ? "…or create a new mapping"
+                      : "Map the columns for this bank"}
+                </p>
+                {editingProfileId && (
+                  <Button type="button" variant="outline" size="sm" onClick={startNewMapping}>
+                    Start a new mapping instead
+                  </Button>
+                )}
+              </div>
               <div className="flex flex-wrap items-end gap-3">
                 <label className="space-y-1">
                   <span className="text-sm">Header row (0-based)</span>
@@ -617,14 +618,17 @@ export function BankStatementUploadPage() {
                     onChange={(e) => setHeaderRowIndex(e.target.value)}
                   />
                 </label>
-                <Button
+                <SubmitButton
                   type="button"
                   variant="secondary"
-                  disabled={detect.isPending}
+                  mutation={detect}
+                  pendingLabel="Reading the file…"
+                  successLabel="Columns detected"
+                  errorLabel="Could not read the file"
                   onClick={() => detect.mutate(Number(headerRowIndex))}
                 >
                   Detect columns
-                </Button>
+                </SubmitButton>
               </div>
 
               {detected && (
@@ -634,7 +638,7 @@ export function BankStatementUploadPage() {
                     is mapped to a field.
                   </p>
 
-                  <div className="overflow-x-auto rounded border">
+                  <div data-table-scroll className="overflow-x-auto rounded border">
                     <table className="w-full text-left text-sm">
                       <thead>
                         <tr className="bg-muted/50">
@@ -689,11 +693,11 @@ export function BankStatementUploadPage() {
                     One signed amount column (debit is negative)
                   </label>
 
-                  <div className="flex flex-wrap items-end gap-3">
+                  <div className="grid gap-3 sm:grid-cols-2 sm:items-end">
                     <label className="space-y-1">
                       <span className="text-sm">Date format(s)</span>
                       <Input
-                        className="w-48"
+                        className="w-full"
                         aria-label="Date formats"
                         value={dateFormats}
                         onChange={(e) => setDateFormats(e.target.value)}
@@ -702,6 +706,7 @@ export function BankStatementUploadPage() {
                     <label className="space-y-1">
                       <span className="text-sm">Mapping name</span>
                       <Input
+                        className="w-full"
                         aria-label="Mapping name"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
@@ -728,11 +733,11 @@ export function BankStatementUploadPage() {
                   )}
                 </div>
                 {rows.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <Button type="button" variant="ghost" size="xs" onClick={selectAll}>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Button type="button" variant="outline" size="sm" onClick={selectAll}>
                       Select all
                     </Button>
-                    <Button type="button" variant="ghost" size="xs" onClick={selectNone}>
+                    <Button type="button" variant="outline" size="sm" onClick={selectNone}>
                       Select none
                     </Button>
                   </div>
@@ -764,25 +769,42 @@ export function BankStatementUploadPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-3">
-                {!isValidated ? (
-                  <Button
-                    type="button"
-                    disabled={rows.length === 0 || validate.isPending}
-                    onClick={() => validate.mutate()}
-                  >
-                    {validate.isPending ? "Validating…" : "Validate"}
-                  </Button>
-                ) : (
-                  <Button type="button" disabled={!canUpload} onClick={() => upload.mutate()}>
-                    {upload.isPending
-                      ? "Uploading…"
-                      : `Upload ${selection.ids.size} transaction(s)`}
-                  </Button>
-                )}
-                {isValidated && !canUpload && name.trim() === "" && usingProfileId === null && (
-                  <span className="text-attention text-sm">Name this mapping to save it</span>
-                )}
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+                <p className="text-muted-foreground text-xs">
+                  {isValidated
+                    ? "Checked against the ledger — uncheck anything you don't want imported."
+                    : "Validate first: it flags rows already in the ledger before anything is imported."}
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  {isValidated && !canUpload && name.trim() === "" && usingProfileId === null && (
+                    <span className="text-attention text-sm">Name this mapping to save it</span>
+                  )}
+                  {!isValidated ? (
+                    <SubmitButton
+                      type="button"
+                      disabled={rows.length === 0}
+                      mutation={validate}
+                      pendingLabel="Validating…"
+                      successLabel="Validated"
+                      errorLabel="Validation failed"
+                      onClick={() => validate.mutate()}
+                    >
+                      Validate
+                    </SubmitButton>
+                  ) : (
+                    <SubmitButton
+                      type="button"
+                      disabled={!canUpload}
+                      mutation={upload}
+                      pendingLabel="Uploading…"
+                      successLabel="Uploaded"
+                      errorLabel="Upload failed"
+                      onClick={() => upload.mutate()}
+                    >
+                      Upload {selection.ids.size} transaction(s)
+                    </SubmitButton>
+                  )}
+                </div>
               </div>
             </div>
           )}

@@ -7,6 +7,7 @@ import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -275,9 +276,9 @@ export function LoanPaymentsPage() {
               </label>
               <BankTransactionPicker selected={bankTx} onSelect={setBankTx} accountId={accountId} />
             </div>
-            <Button type="submit" disabled={!payReady || pay.isPending}>
+            <SubmitButton type="submit" disabled={!payReady} mutation={pay}>
               Record payment
-            </Button>
+            </SubmitButton>
           </form>
 
           <form
@@ -336,9 +337,9 @@ export function LoanPaymentsPage() {
               onSelect={setPrepayBankTx}
               accountId={prepayAccountId}
             />
-            <Button type="submit" variant="outline" disabled={!prepayReady || prepay.isPending}>
+            <SubmitButton type="submit" variant="outline" disabled={!prepayReady} mutation={prepay}>
               Record prepayment
-            </Button>
+            </SubmitButton>
           </form>
 
           {dataState({
@@ -346,7 +347,10 @@ export function LoanPaymentsPage() {
             isEmpty: !isPending && payments.length === 0,
             emptyLabel: "No payments recorded yet.",
           }) ?? (
-            <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+            <div
+              data-table-scroll
+              className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+            >
               <table className="w-full text-sm">
                 <thead className="bg-secondary/60 text-muted-foreground">
                   <tr className="border-b text-left">
@@ -385,7 +389,9 @@ export function LoanPaymentsPage() {
 function PaymentRow({ payment, onReverse }: { payment: LoanEmiPayment; onReverse: () => void }) {
   return (
     <tr className="border-b last:border-0">
-      <td className="p-2">{formatDate(payment.date)}</td>
+      <td data-nowrap className="p-2">
+        {formatDate(payment.date)}
+      </td>
       <td className="p-2 tabular-nums">{formatINR(payment.amount)}</td>
       <td className="p-2 tabular-nums">{formatINR(payment.principalPaid)}</td>
       <td className="p-2 tabular-nums">{formatINR(payment.interestPaid)}</td>

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
@@ -70,9 +71,9 @@ export function DepartmentsPage() {
           placeholder="e.g. Site Operations"
           aria-label="New department name"
         />
-        <Button type="submit" disabled={add.isPending || !name.trim()}>
+        <SubmitButton type="submit" disabled={!name.trim()} mutation={add} successLabel="Added">
           Add
-        </Button>
+        </SubmitButton>
       </form>
 
       {dataState({
@@ -80,7 +81,10 @@ export function DepartmentsPage() {
         isEmpty: !isPending && (data?.length ?? 0) === 0,
         emptyLabel: "No departments found.",
       }) ?? (
-        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+        <div
+          data-table-scroll
+          className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+        >
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">
@@ -101,7 +105,7 @@ export function DepartmentsPage() {
                       type="button"
                       variant="ghost"
                       size="xs"
-                      disabled={toggle.isPending}
+                      loading={toggle.isPending}
                       onClick={() => toggle.mutate(department)}
                     >
                       {department.isActive ? "Deactivate" : "Reactivate"}

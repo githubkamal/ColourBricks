@@ -5,7 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { listExpenseCategories } from "@/features/direct-expenses/api";
 import { ProjectTabs } from "@/features/projects/project-tabs";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
@@ -99,7 +99,10 @@ function Editor({
         {formatINR(budget?.estimatedCost ?? 0)}
       </p>
 
-      <div className="bg-card border-border overflow-x-auto rounded-xl border p-4 shadow-xs">
+      <div
+        data-table-scroll
+        className="bg-card border-border overflow-x-auto rounded-xl border p-4 shadow-xs"
+      >
         <table className="w-full text-sm">
           <thead className="text-muted-foreground text-left">
             <tr>
@@ -162,9 +165,14 @@ function Editor({
             onChange={(e) => setNote(e.target.value)}
           />
         </label>
-        <Button type="button" disabled={total <= 0 || save.isPending} onClick={() => save.mutate()}>
+        <SubmitButton
+          type="button"
+          disabled={total <= 0}
+          mutation={save}
+          onClick={() => save.mutate()}
+        >
           Save as revision {(budget?.revisionNumber ?? 0) + 1}
-        </Button>
+        </SubmitButton>
       </div>
 
       {revisions.length > 0 && (

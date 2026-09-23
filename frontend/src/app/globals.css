@@ -363,6 +363,7 @@
 @utility num {
   font-variant-numeric: tabular-nums;
   text-align: right;
+  white-space: nowrap;
 }
 
 @layer base {
@@ -375,6 +376,55 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ── Data tables ────────────────────────────────────────────────────────────
+   Client report (2026-09-23): "the numbers are getting out of the table". A
+   figure like ₹10,00,00,00,00,00,000.000 is one unbreakable token, so a cell
+   holding it can't shrink; where the card around the table had no scroller the
+   figure simply ran out past the border.
+
+   The rule is: a table is allowed to be wider than its card, and the card
+   scrolls. It is never allowed to be squeezed narrower than its content can
+   legibly be — which rules out `overflow-wrap: anywhere` on cells, tempting as
+   it looks: `anywhere` shrinks a cell's intrinsic minimum to one character, so
+   a narrow viewport turns "Category" into a vertical column of letters instead
+   of producing a scrollbar. `break-word` wraps an over-long word without
+   touching that minimum, which is what we want.
+
+   Every table's card carries `data-table-scroll` (see components/ui/table-scroll)
+   and the `overflow-x-auto` that makes this work. */
+@layer base {
+  table :is(th, td) {
+    overflow-wrap: break-word;
+  }
+
+  /* Column headings are short labels — one per line beats one letter per line. */
+  table th {
+    white-space: nowrap;
+  }
+
+  /* Figures are read as one token: never break ₹1,23,456.000 over two lines —
+     half an amount is worse than a scrollbar. Also covers a cell whose figure
+     sits in a wrapped <span>. */
+  table :is(th, td):is(.num, .tabular-nums, [data-num]),
+  table :is(th, td):has(> .num, > .tabular-nums) {
+    white-space: nowrap;
+  }
+
+  /* Opt-in for any other single-token cell — a date, a status, a reference. */
+  table :is(th, td)[data-nowrap] {
+    white-space: nowrap;
+  }
+}
+
+/* The scroller is what absorbs the extra width, so it must be free to be
+   narrower than its content: `min-width: 0` is what lets it shrink inside a
+   flex or grid parent rather than being sized by the table (the classic reason
+   an `overflow-x-auto` appears to do nothing at all). */
+[data-table-scroll] {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Hover lift for content cards and grid/table containers app-wide — the shared

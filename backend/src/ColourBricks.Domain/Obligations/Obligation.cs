@@ -45,5 +45,13 @@ public sealed class Obligation : BaseEntity
     /// </summary>
     public long? PurchaseOrderId { get; set; }
 
+    /// <summary>
+    /// A manual adjustment folded into <see cref="Amount"/> on top of the lines
+    /// (client request, 2026-09-23) — so <see cref="Amount"/> is Σ line totals +
+    /// <see cref="RoundOff"/>, not Σ line totals alone. May be negative. Zero for
+    /// every obligation that isn't rounded.
+    /// </summary>
+    public decimal RoundOff { get; set; }
+
     public List<ObligationLine> Lines { get; } = [];
 }

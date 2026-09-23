@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog, type ConfirmOptions } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
@@ -108,9 +109,9 @@ export function ItemCategoriesPage() {
             aria-label="New category name"
           />
         </div>
-        <Button type="submit" disabled={add.isPending || !name.trim()}>
+        <SubmitButton type="submit" disabled={!name.trim()} mutation={add}>
           Add Category
-        </Button>
+        </SubmitButton>
       </form>
 
       {dataState({
@@ -118,7 +119,10 @@ export function ItemCategoriesPage() {
         isEmpty: !isPending && data?.length === 0,
         emptyLabel: "No categories found.",
       }) ?? (
-        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+        <div
+          data-table-scroll
+          className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+        >
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">

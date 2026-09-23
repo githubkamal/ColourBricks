@@ -8,6 +8,7 @@ import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { ProjectPicker } from "@/features/projects/project-picker";
 import type { ProjectListItem } from "@/features/projects/types";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -326,9 +327,9 @@ export function LoanMasterPage() {
           </label>
         </div>
 
-        <Button type="submit" disabled={record.isPending}>
+        <SubmitButton type="submit" mutation={record}>
           Record loan
-        </Button>
+        </SubmitButton>
       </form>
 
       {dataState({
@@ -336,7 +337,10 @@ export function LoanMasterPage() {
         isEmpty: !isPending && loans.length === 0,
         emptyLabel: "No loans recorded yet.",
       }) ?? (
-        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+        <div
+          data-table-scroll
+          className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+        >
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">

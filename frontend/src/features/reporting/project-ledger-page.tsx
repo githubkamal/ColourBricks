@@ -1,6 +1,8 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { FileText } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { listExpenseCategories } from "@/features/direct-expenses/api";
 import { ProjectTabs } from "@/features/projects/project-tabs";
@@ -241,7 +243,10 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
         payment is actually made.
       </p>
 
-      <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+      <div
+        data-table-scroll
+        className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+      >
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -258,6 +263,9 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
                 ),
               )}
               <th className="p-2 font-medium">Description</th>
+              <th className="p-2 font-medium">
+                <span className="sr-only">Source</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -272,7 +280,9 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
                       : "border-b last:border-0"
                   }
                 >
-                  <td className="p-2">{formatDate(l.date)}</td>
+                  <td data-nowrap className="p-2">
+                    {formatDate(l.date)}
+                  </td>
                   <td className="text-muted-foreground p-2">
                     {l.categoryName}
                     {isPayable && (
@@ -285,6 +295,21 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
                   <td className="p-2 tabular-nums">{l.debit > 0 ? formatINR(l.debit) : "—"}</td>
                   <td className="p-2 font-medium tabular-nums">{formatINR(l.runningBalance)}</td>
                   <td className="p-2">{l.description}</td>
+                  <td className="p-2 text-right">
+                    {/* A vendor purchase that came from a purchase order can be opened
+                        from here rather than hunted for under Vendors (client request,
+                        2026-09-23). A purchase recorded directly has no order to show. */}
+                    {l.purchaseOrderId !== null && (
+                      <Link
+                        href={`/vendors/purchase-orders/${l.purchaseOrderId}`}
+                        className="text-primary inline-flex items-center gap-1 whitespace-nowrap underline"
+                        aria-label={`View the purchase order behind ${l.description}`}
+                      >
+                        <FileText aria-hidden="true" className="size-3.5" />
+                        View PO
+                      </Link>
+                    )}
+                  </td>
                 </tr>
               );
             })}
@@ -300,7 +325,7 @@ export function ProjectLedgerPage({ projectId }: { projectId: number }) {
               <td data-testid="footer-total-debit" className="p-2 tabular-nums">
                 {formatINR(data.totalDebit)}
               </td>
-              <td className="p-2" colSpan={2} />
+              <td className="p-2" colSpan={3} />
             </tr>
           </tfoot>
         </table>

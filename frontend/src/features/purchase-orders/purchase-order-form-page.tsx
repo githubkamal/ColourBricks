@@ -10,6 +10,7 @@ import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { ProjectPicker } from "@/features/projects/project-picker";
 import type { ProjectListItem } from "@/features/projects/types";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -99,79 +100,81 @@ export function PurchaseOrderFormPage() {
           when the vendor&apos;s invoice arrives.
         </p>
 
-        <table className="w-full text-sm">
-          <thead className="text-muted-foreground">
-            <tr className="text-left">
-              <th className="py-1 font-medium">Project</th>
-              <th className="py-1 font-medium">Item</th>
-              <th className="py-1 font-medium">Qty</th>
-              <th className="py-1 font-medium">Unit</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={i}>
-                <td className="py-1 pr-2">
-                  <ProjectPicker
-                    selected={row.project}
-                    ariaLabel={`Project ${i + 1}`}
-                    onSelect={(project) =>
-                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, project } : r)))
-                    }
-                  />
-                </td>
-                <td className="py-1 pr-2">
-                  <ItemPicker
-                    selected={row.item}
-                    ariaLabel={`itemName ${i + 1}`}
-                    onSelect={(item) =>
-                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, item } : r)))
-                    }
-                  />
-                </td>
-                {(["quantity", "unit"] as const).map((field) =>
-                  field === "quantity" ? (
-                    <td key={field} className="py-1 pr-2">
-                      <AmountInput
-                        value={row[field]}
-                        aria-label={`${field} ${i + 1}`}
-                        onChange={(v) =>
-                          setRows((rs) => rs.map((r, j) => (j === i ? { ...r, quantity: v } : r)))
-                        }
-                      />
-                    </td>
-                  ) : (
-                    <td key={field} className="py-1 pr-2">
-                      <Input
-                        value={row[field]}
-                        aria-label={`${field} ${i + 1}`}
-                        onChange={(e) =>
-                          setRows((rs) =>
-                            rs.map((r, j) => (j === i ? { ...r, [field]: e.target.value } : r)),
-                          )
-                        }
-                      />
-                    </td>
-                  ),
-                )}
-                <td className="py-1">
-                  {rows.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="xs"
-                      aria-label={`Remove line ${i + 1}`}
-                      onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
-                    >
-                      ✕
-                    </Button>
-                  )}
-                </td>
+        <div data-table-scroll className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-muted-foreground">
+              <tr className="text-left">
+                <th className="py-1 font-medium">Project</th>
+                <th className="py-1 font-medium">Item</th>
+                <th className="py-1 font-medium">Qty</th>
+                <th className="py-1 font-medium">Unit</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i}>
+                  <td className="py-1 pr-2">
+                    <ProjectPicker
+                      selected={row.project}
+                      ariaLabel={`Project ${i + 1}`}
+                      onSelect={(project) =>
+                        setRows((rs) => rs.map((r, j) => (j === i ? { ...r, project } : r)))
+                      }
+                    />
+                  </td>
+                  <td className="py-1 pr-2">
+                    <ItemPicker
+                      selected={row.item}
+                      ariaLabel={`itemName ${i + 1}`}
+                      onSelect={(item) =>
+                        setRows((rs) => rs.map((r, j) => (j === i ? { ...r, item } : r)))
+                      }
+                    />
+                  </td>
+                  {(["quantity", "unit"] as const).map((field) =>
+                    field === "quantity" ? (
+                      <td key={field} className="py-1 pr-2">
+                        <AmountInput
+                          value={row[field]}
+                          aria-label={`${field} ${i + 1}`}
+                          onChange={(v) =>
+                            setRows((rs) => rs.map((r, j) => (j === i ? { ...r, quantity: v } : r)))
+                          }
+                        />
+                      </td>
+                    ) : (
+                      <td key={field} className="py-1 pr-2">
+                        <Input
+                          value={row[field]}
+                          aria-label={`${field} ${i + 1}`}
+                          onChange={(e) =>
+                            setRows((rs) =>
+                              rs.map((r, j) => (j === i ? { ...r, [field]: e.target.value } : r)),
+                            )
+                          }
+                        />
+                      </td>
+                    ),
+                  )}
+                  <td className="py-1">
+                    {rows.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        aria-label={`Remove line ${i + 1}`}
+                        onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <Button
           type="button"
@@ -183,9 +186,9 @@ export function PurchaseOrderFormPage() {
         </Button>
 
         <div>
-          <Button type="submit" disabled={!ready || create.isPending}>
+          <SubmitButton type="submit" disabled={!ready} mutation={create}>
             Save as draft
-          </Button>
+          </SubmitButton>
         </div>
       </form>
     </div>

@@ -50,14 +50,15 @@ public sealed class PurchaseOrderService(
     public async Task<PurchaseOrderDto?> GetAsync(long id, CancellationToken ct)
     {
         PurchaseOrder? po = await db.Set<PurchaseOrder>().AsNoTracking()
-            .Include(p => p.Lines)
+            .Include(p => p.Lines).Include(p => p.Charges)
             .FirstOrDefaultAsync(p => p.Id == id, ct);
         return po is null ? null : await ToDtoAsync(po, ct);
     }
 
     public async Task<IReadOnlyList<PurchaseOrderDto>> ListAsync(long? vendorId, string? status, CancellationToken ct)
     {
-        IQueryable<PurchaseOrder> query = db.Set<PurchaseOrder>().AsNoTracking().Include(p => p.Lines);
+        IQueryable<PurchaseOrder> query = db.Set<PurchaseOrder>().AsNoTracking()
+            .Include(p => p.Lines).Include(p => p.Charges);
 
         if (vendorId is { } v)
         {
@@ -111,7 +112,9 @@ public sealed class PurchaseOrderService(
 
     public async Task<PurchaseOrderDto> SubmitAsync(long id, SubmitPurchaseOrderRequest request, CancellationToken ct)
     {
-        PurchaseOrder? po = await db.Set<PurchaseOrder>().Include(p => p.Lines).FirstOrDefaultAsync(p => p.Id == id, ct);
+        PurchaseOrder? po = await db.Set<PurchaseOrder>()
+            .Include(p => p.Lines).Include(p => p.Charges)
+            .FirstOrDefaultAsync(p => p.Id == id, ct);
         if (po is null)
         {
             throw Fail("id", "The purchase order does not exist.");
@@ -176,19 +179,51 @@ public sealed class PurchaseOrderService(
             line.LineTotal = Money.Round(subtotal + taxAmount);
         }
 
+        List<PurchaseOrderCharge> charges = BuildCharges(request.Charges);
+        db.Set<PurchaseOrderCharge>().RemoveRange(po.Charges);
+        po.Charges.Clear();
+        po.Charges.AddRange(charges);
+        po.RoundOff = Money.Round(request.RoundOff);
+
+        // An extra charge is raised once for the whole invoice but the order may span
+        // several projects, so each project carries the share of transport/handling its
+        // own goods caused (client request, 2026-09-23). Apportioned by item value, with
+        // the last project absorbing the rounding remainder so the shares always add back
+        // up to the charge. The round-off, being an adjustment of a few paise, is not
+        // split at all - it lands whole on the project with the largest share.
+        var groups = po.Lines.GroupBy(l => l.ProjectId)
+            .Select(g => new
+            {
+                ProjectId = g.Key,
+                Lines = g.ToList(),
+                Total = Money.Round(g.Sum(l => l.LineTotal!.Value)),
+            })
+            .OrderByDescending(g => g.Total).ThenBy(g => g.ProjectId)
+            .ToList();
+
+        decimal linesGrandTotal = Money.Round(groups.Sum(g => g.Total));
+        Dictionary<long, List<PurchaseLineInput>> chargeLines = ApportionCharges(
+            charges, groups.Select(g => (g.ProjectId, g.Total)).ToList(), linesGrandTotal);
+
+        long roundOffProjectId = groups[0].ProjectId;
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
         var obligationIds = new List<long>();
-        foreach (IGrouping<long, PurchaseOrderLine> group in po.Lines.GroupBy(l => l.ProjectId))
+        foreach (var group in groups)
         {
-            decimal groupTotal = Money.Round(group.Sum(l => l.LineTotal!.Value));
-            var lines = group
+            var lines = group.Lines
                 .Select(l => new PurchaseLineInput(l.ItemId, l.ItemName, l.Quantity, l.Unit, l.Rate!.Value, l.TaxAmount!.Value))
                 .ToList();
+            lines.AddRange(chargeLines.GetValueOrDefault(group.ProjectId, []));
+
+            decimal roundOff = group.ProjectId == roundOffProjectId ? po.RoundOff : 0m;
+            decimal groupTotal = Money.Round(
+                lines.Sum(l => Money.Round(l.Quantity * l.Rate + l.TaxAmount)) + roundOff);
 
             RecordVendorPurchaseResult result = await vendorPurchases.RecordAsync(new RecordVendorPurchaseRequest(
-                group.Key, po.VendorId, po.OrderDate, groupTotal, lines,
-                request.InvoiceNumber.Trim(), $"From purchase order {po.PoNumber}"), ct);
+                group.ProjectId, po.VendorId, po.OrderDate, groupTotal, lines,
+                request.InvoiceNumber.Trim(), $"From purchase order {po.PoNumber}", RoundOff: roundOff), ct);
             obligationIds.Add(result.Purchase.Id);
         }
 
@@ -274,6 +309,120 @@ public sealed class PurchaseOrderService(
         return lines;
     }
 
+    private static List<PurchaseOrderCharge> BuildCharges(IReadOnlyList<PurchaseOrderChargeInput>? inputs)
+    {
+        var charges = new List<PurchaseOrderCharge>();
+        foreach (PurchaseOrderChargeInput input in inputs ?? [])
+        {
+            if (string.IsNullOrWhiteSpace(input.ChargeType))
+            {
+                throw Fail("charges", "Each extra charge needs a type (e.g. Transport).");
+            }
+
+            if (input.Amount < 0m)
+            {
+                throw Fail("charges", "A charge cannot be negative.");
+            }
+
+            decimal taxAmount;
+            if (input.TaxType == PurchaseOrderTaxType.Percentage)
+            {
+                if (input.TaxRate is not { } rate || rate < 0m)
+                {
+                    throw Fail("charges", "A GST percentage is required when a charge's tax is entered as a percentage.");
+                }
+
+                taxAmount = Money.Round(input.Amount * rate / 100m);
+            }
+            else
+            {
+                if (input.TaxAmount < 0m)
+                {
+                    throw Fail("charges", "A charge's tax cannot be negative.");
+                }
+
+                taxAmount = Money.Round(input.TaxAmount);
+            }
+
+            charges.Add(new PurchaseOrderCharge
+            {
+                ChargeType = input.ChargeType.Trim(),
+                Amount = Money.Round(input.Amount),
+                TaxType = input.TaxType,
+                TaxRate = input.TaxType == PurchaseOrderTaxType.Percentage ? input.TaxRate : null,
+                TaxAmount = taxAmount,
+                Total = Money.Round(input.Amount + taxAmount),
+            });
+        }
+
+        return charges;
+    }
+
+    /// <summary>
+    /// Splits each order-wide charge across the projects on the order in proportion
+    /// to their item value, as one extra purchase line per project per charge. A
+    /// share that rounds to nothing is dropped rather than posted as a zero line.
+    /// </summary>
+    /// <param name="groups">
+    /// The projects on the order with their item value, <b>largest first</b>. The
+    /// largest takes the rounding remainder — every other project takes its rounded
+    /// share and the biggest absorbs what is left, so the shares always add back up
+    /// to the charge exactly and the remainder can never come out negative (which a
+    /// line's Rate is not allowed to be).
+    /// </param>
+    private static Dictionary<long, List<PurchaseLineInput>> ApportionCharges(
+        IReadOnlyList<PurchaseOrderCharge> charges,
+        IReadOnlyList<(long ProjectId, decimal Total)> groups,
+        decimal linesGrandTotal)
+    {
+        var result = new Dictionary<long, List<PurchaseLineInput>>();
+        if (charges.Count == 0 || groups.Count == 0)
+        {
+            return result;
+        }
+
+        void Add(long projectId, PurchaseOrderCharge charge, decimal amount, decimal tax)
+        {
+            if (amount == 0m && tax == 0m)
+            {
+                return;
+            }
+
+            if (!result.TryGetValue(projectId, out List<PurchaseLineInput>? lines))
+            {
+                result[projectId] = lines = [];
+            }
+
+            lines.Add(new PurchaseLineInput(null, charge.ChargeType, 1m, "lot", amount, tax));
+        }
+
+        foreach (PurchaseOrderCharge charge in charges)
+        {
+            decimal amountLeft = charge.Amount;
+            decimal taxLeft = charge.TaxAmount;
+
+            for (int i = 1; i < groups.Count; i++)
+            {
+                (long projectId, decimal groupTotal) = groups[i];
+                // An order whose every line is priced at zero has no value to weight
+                // by, so fall back to an equal split rather than dividing by zero.
+                decimal share = linesGrandTotal == 0m
+                    ? 1m / groups.Count
+                    : groupTotal / linesGrandTotal;
+
+                decimal amount = Money.Round(charge.Amount * share);
+                decimal tax = Money.Round(charge.TaxAmount * share);
+                amountLeft -= amount;
+                taxLeft -= tax;
+                Add(projectId, charge, amount, tax);
+            }
+
+            Add(groups[0].ProjectId, charge, amountLeft, taxLeft);
+        }
+
+        return result;
+    }
+
     private async Task<string> NextNumberAsync(CancellationToken ct)
     {
         int year = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime).Year;
@@ -302,14 +451,25 @@ public sealed class PurchaseOrderService(
                 l.TaxType, l.TaxRate, l.TaxAmount, l.LineTotal))
             .ToList();
 
+        var charges = po.Charges
+            .OrderBy(c => c.Id)
+            .Select(c => new PurchaseOrderChargeDto(
+                c.Id, c.ChargeType, c.Amount, c.TaxType, c.TaxRate, c.TaxAmount, c.Total))
+            .ToList();
+
         decimal subtotalTotal = Money.Round(lines.Sum(l => l.Subtotal ?? 0m));
         decimal taxTotal = Money.Round(lines.Sum(l => l.TaxAmount ?? 0m));
+        decimal chargesSubtotal = Money.Round(charges.Sum(c => c.Amount));
+        decimal chargesTax = Money.Round(charges.Sum(c => c.TaxAmount));
+        decimal total = Money.Round(
+            lines.Sum(l => l.LineTotal ?? 0m) + charges.Sum(c => c.Total) + po.RoundOff);
 
         return new PurchaseOrderDto(
             po.Id, po.PoNumber, po.VendorId, vendorName, po.OrderDate, po.Status.ToString(),
             po.InvoiceNumber, po.SubmittedDate, po.Notes,
-            subtotalTotal, taxTotal, Money.Round(lines.Sum(l => l.LineTotal ?? 0m)),
-            lines, obligationIds, po.ConcurrencyStamp);
+            subtotalTotal, taxTotal, total,
+            lines, charges, chargesSubtotal, chargesTax, po.RoundOff,
+            obligationIds, po.ConcurrencyStamp);
     }
 
     private static ValidationException Fail(string field, string message) =>

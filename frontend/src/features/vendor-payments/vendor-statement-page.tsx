@@ -8,7 +8,7 @@ import { getParty } from "@/features/parties/api";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { listVendorPurchases } from "@/features/vendor-purchases/api";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { dataState } from "@/components/ui/data-state";
 import { ExportMenu } from "@/components/ui/export-menu";
@@ -147,16 +147,18 @@ export function VendorStatementPage({
           {summary.byProject.length > 0 && (
             <div>
               <p className="text-muted-foreground mb-1 text-xs">By project</p>
-              <table className="w-full text-sm">
-                <tbody>
-                  {summary.byProject.map((p) => (
-                    <tr key={p.projectId} className="border-b last:border-0">
-                      <td className="py-1">{p.projectName}</td>
-                      <td className="py-1 text-right tabular-nums">{formatINR(p.outstanding)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div data-table-scroll className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {summary.byProject.map((p) => (
+                      <tr key={p.projectId} className="border-b last:border-0">
+                        <td className="py-1">{p.projectName}</td>
+                        <td className="py-1 text-right tabular-nums">{formatINR(p.outstanding)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
@@ -192,20 +194,24 @@ export function VendorStatementPage({
                 aria-label="Advance amount to apply"
               />
             </label>
-            <Button
+            <SubmitButton
               type="button"
-              disabled={!canApply || apply.isPending}
+              disabled={!canApply}
+              mutation={apply}
               onClick={() => apply.mutate()}
             >
               Apply advance
-            </Button>
+            </SubmitButton>
           </div>
         </div>
       )}
 
       {vendor &&
         (dataState({ isEmpty: rows.length === 0, emptyLabel: "No activity yet." }) ?? (
-          <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <div
+            data-table-scroll
+            className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+          >
             <table className="w-full text-sm">
               <thead className="bg-secondary/60 text-muted-foreground">
                 <tr className="border-b text-left">
@@ -219,7 +225,9 @@ export function VendorStatementPage({
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={i} className="border-b last:border-0">
-                    <td className="p-2">{formatDate(r.date)}</td>
+                    <td data-nowrap className="p-2">
+                      {formatDate(r.date)}
+                    </td>
                     <td className="text-muted-foreground p-2">
                       {r.kind} — {r.reference}
                     </td>

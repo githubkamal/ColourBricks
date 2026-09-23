@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { attachmentPreviewUrl, uploadAttachment } from "@/features/attachments/api";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
@@ -246,9 +247,9 @@ function SettingsForm({ initial }: { initial: SystemSettings }) {
           </div>
         </section>
 
-        <Button type="submit" disabled={!ready || save.isPending}>
+        <SubmitButton type="submit" disabled={!ready} mutation={save}>
           {save.isPending ? "Saving…" : "Save settings"}
-        </Button>
+        </SubmitButton>
       </form>
     </div>
   );

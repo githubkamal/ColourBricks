@@ -23,6 +23,21 @@ internal sealed class PurchaseOrderConfiguration : IEntityTypeConfiguration<Purc
 
         builder.HasMany(x => x.Lines).WithOne()
             .HasForeignKey(l => l.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.Charges).WithOne()
+            .HasForeignKey(c => c.PurchaseOrderId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+internal sealed class PurchaseOrderChargeConfiguration : IEntityTypeConfiguration<PurchaseOrderCharge>
+{
+    public void Configure(EntityTypeBuilder<PurchaseOrderCharge> builder)
+    {
+        builder.ToTable("PurchaseOrderCharge");
+
+        builder.Property(x => x.ChargeType).HasMaxLength(100).IsRequired();
+
+        builder.HasIndex(x => x.PurchaseOrderId);
     }
 }
 

@@ -3,8 +3,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
-import { Button } from "@/components/ui/button";
 import { dataState } from "@/components/ui/data-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
@@ -84,14 +84,14 @@ export function LoanSchedulePage() {
               <span className="text-sm font-medium">EMI amount (optional)</span>
               <AmountInput value={emiAmount} aria-label="EMI amount" onChange={setEmiAmount} />
             </label>
-            <Button
+            <SubmitButton
               type="button"
               variant="outline"
               onClick={() => generate.mutate()}
-              disabled={generate.isPending}
+              mutation={generate}
             >
               Generate schedule
-            </Button>
+            </SubmitButton>
 
             <span className="bg-border mx-1 h-6 w-px" aria-hidden="true" />
 
@@ -99,14 +99,15 @@ export function LoanSchedulePage() {
               <span className="text-sm font-medium">New annual rate % (regenerate)</span>
               <AmountInput value={newRate} aria-label="New annual rate %" onChange={setNewRate} />
             </label>
-            <Button
+            <SubmitButton
               type="button"
               variant="outline"
               onClick={() => regenerate.mutate()}
-              disabled={regenerate.isPending || !(Number(newRate) > 0)}
+              disabled={!(Number(newRate) > 0)}
+              mutation={regenerate}
             >
               Regenerate pending tail
-            </Button>
+            </SubmitButton>
           </div>
 
           {dataState({
@@ -114,7 +115,10 @@ export function LoanSchedulePage() {
             isEmpty: !isPending && schedule.length === 0,
             emptyLabel: "No schedule generated yet.",
           }) ?? (
-            <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+            <div
+              data-table-scroll
+              className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+            >
               <table className="w-full text-sm">
                 <thead className="bg-secondary/60 text-muted-foreground">
                   <tr className="border-b text-left">
@@ -131,7 +135,9 @@ export function LoanSchedulePage() {
                   {pagedSchedule.map((i) => (
                     <tr key={i.id} className="border-b last:border-0">
                       <td className="p-2">{i.instalmentNo}</td>
-                      <td className="p-2">{formatDate(i.dueDate)}</td>
+                      <td data-nowrap className="p-2">
+                        {formatDate(i.dueDate)}
+                      </td>
                       <td className="p-2 tabular-nums">{formatINR(i.emiAmount)}</td>
                       <td className="p-2 tabular-nums">{formatINR(i.principalComponent)}</td>
                       <td className="p-2 tabular-nums">{formatINR(i.interestComponent)}</td>

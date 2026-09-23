@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
@@ -92,9 +92,9 @@ export function TeamsPage() {
             ))}
           </Select>
         </label>
-        <Button type="submit" disabled={add.isPending || !name.trim() || !departmentId}>
+        <SubmitButton type="submit" disabled={!name.trim() || !departmentId} mutation={add}>
           Add team
-        </Button>
+        </SubmitButton>
       </form>
 
       <div className="space-y-2">

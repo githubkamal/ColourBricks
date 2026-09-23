@@ -12,6 +12,7 @@ import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliatio
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { TeamPicker } from "@/features/teams/team-picker";
 import type { TeamDto } from "@/features/teams/types";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
@@ -173,9 +174,9 @@ function WorkList({ projectId }: { projectId: number }) {
           />
         </label>
         <div className="flex gap-2">
-          <Button type="submit" disabled={!ready || save.isPending}>
+          <SubmitButton type="submit" disabled={!ready} mutation={save}>
             {editingEntry ? "Save changes" : "Record work entry"}
-          </Button>
+          </SubmitButton>
           {editingEntry && (
             <Button type="button" variant="outline" onClick={cancelEdit}>
               Cancel edit
@@ -351,9 +352,9 @@ function WorkRow({
                   accountId={accountId === "" ? null : accountId}
                 />
               </div>
-              <Button type="submit" size="xs" disabled={pay.isPending}>
+              <SubmitButton type="submit" size="xs" mutation={pay}>
                 Save payment
-              </Button>
+              </SubmitButton>
               <Button type="button" size="xs" variant="ghost" onClick={() => setPaying(false)}>
                 Cancel
               </Button>

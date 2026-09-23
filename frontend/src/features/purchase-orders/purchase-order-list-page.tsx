@@ -53,7 +53,10 @@ export function PurchaseOrderListPage() {
       </div>
 
       {dataState({ isEmpty: orders.length === 0, emptyLabel: "No purchase orders yet." }) ?? (
-        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+        <div
+          data-table-scroll
+          className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+        >
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">
@@ -77,7 +80,9 @@ export function PurchaseOrderListPage() {
                     </Link>
                   </td>
                   <td className="p-2">{po.vendorName}</td>
-                  <td className="p-2">{formatDate(po.orderDate)}</td>
+                  <td data-nowrap className="p-2">
+                    {formatDate(po.orderDate)}
+                  </td>
                   <td className="p-2">
                     <StatusBadge status={po.status} />
                   </td>

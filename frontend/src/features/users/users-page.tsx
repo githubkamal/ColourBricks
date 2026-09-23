@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { listProjects } from "@/features/projects/api";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -80,7 +81,7 @@ export function UsersPage() {
 
       <AddUserForm roles={roles} onAdded={invalidate} />
 
-      <div className="bg-card rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -127,7 +128,7 @@ export function UsersPage() {
                       type="button"
                       variant="ghost"
                       size="xs"
-                      disabled={toggleActive.isPending}
+                      loading={toggleActive.isPending}
                       onClick={() => toggleActive.mutate(user)}
                     >
                       {user.isActive ? "Deactivate" : "Reactivate"}
@@ -282,9 +283,9 @@ function AddUserForm({ roles, onAdded }: { roles: RoleOption[]; onAdded: () => v
           ))}
         </Select>
       </label>
-      <Button type="submit" disabled={!ready || add.isPending}>
+      <SubmitButton type="submit" disabled={!ready} mutation={add} successLabel="User added">
         Add user
-      </Button>
+      </SubmitButton>
     </form>
   );
 }
@@ -417,9 +418,9 @@ function UserEditor({
         </div>
       </fieldset>
 
-      <Button type="submit" disabled={save.isPending}>
+      <SubmitButton type="submit" mutation={save}>
         Save changes
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

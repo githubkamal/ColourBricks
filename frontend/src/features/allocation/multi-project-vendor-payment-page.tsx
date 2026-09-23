@@ -8,8 +8,8 @@ import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { useCurrentUser } from "@/features/shell/user-context";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { Select } from "@/components/ui/select";
@@ -127,14 +127,17 @@ export function MultiProjectVendorPaymentPage() {
               <span className="text-sm font-medium">Payment amount</span>
               <AmountInput value={amount} onChange={setAmount} aria-label="Payment amount" />
             </label>
-            <Button type="submit" disabled={propose.isPending || !(Number(amount) > 0)}>
+            <SubmitButton type="submit" disabled={!(Number(amount) > 0)} mutation={propose}>
               Propose FIFO allocation
-            </Button>
+            </SubmitButton>
           </form>
 
           {proposal && (
             <div className="space-y-3">
-              <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+              <div
+                data-table-scroll
+                className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+              >
                 <table className="w-full text-sm">
                   <thead className="bg-secondary/60 text-muted-foreground">
                     <tr className="border-b text-left">
@@ -248,9 +251,10 @@ export function MultiProjectVendorPaymentPage() {
                     ))}
                   </Select>
                 </label>
-                <Button
+                <SubmitButton
                   type="button"
-                  disabled={!canApply || apply.isPending}
+                  disabled={!canApply}
+                  mutation={apply}
                   onClick={() => apply.mutate()}
                 >
                   {isOverridden
@@ -258,7 +262,7 @@ export function MultiProjectVendorPaymentPage() {
                     : difference > 0.0005
                       ? "Apply payment + advance"
                       : "Apply payment"}
-                </Button>
+                </SubmitButton>
               </div>
             </div>
           )}

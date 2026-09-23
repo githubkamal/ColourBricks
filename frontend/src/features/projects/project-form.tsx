@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -187,9 +188,9 @@ export function ProjectForm() {
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={mutation.isPending}>
+        <SubmitButton type="submit" mutation={mutation}>
           {mutation.isPending ? "Creating…" : "Create project"}
-        </Button>
+        </SubmitButton>
         <Button type="button" variant="outline" onClick={handleCancel}>
           Cancel
         </Button>

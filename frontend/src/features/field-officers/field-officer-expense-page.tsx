@@ -3,13 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { listParties } from "@/features/parties/api";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { vendorOutstandingSummary } from "@/features/vendor-payments/api";
 import { AmountInput } from "@/components/ui/amount-input";
-import { Button } from "@/components/ui/button";
 import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
@@ -248,15 +248,18 @@ export function FieldOfficerExpensePage() {
               onChange={(e) => setDescription(e.target.value)}
             />
           </label>
-          <Button type="submit" disabled={!ready || record.isPending}>
+          <SubmitButton type="submit" disabled={!ready} mutation={record}>
             Record bill
-          </Button>
+          </SubmitButton>
         </form>
       )}
 
       {officer &&
         (dataState({ isEmpty: bills.length === 0, emptyLabel: "No bills yet." }) ?? (
-          <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <div
+            data-table-scroll
+            className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+          >
             <table className="w-full text-sm">
               <thead className="bg-secondary/60 text-muted-foreground">
                 <tr className="border-b text-left">
@@ -271,7 +274,9 @@ export function FieldOfficerExpensePage() {
               <tbody>
                 {pagedBills.map((b) => (
                   <tr key={b.id} className="border-b last:border-0">
-                    <td className="p-2">{formatDate(b.date)}</td>
+                    <td data-nowrap className="p-2">
+                      {formatDate(b.date)}
+                    </td>
                     <td className="p-2">{b.type}</td>
                     <td className="p-2 tabular-nums">{formatINR(b.amount)}</td>
                     <td className="p-2">{b.description ?? "—"}</td>

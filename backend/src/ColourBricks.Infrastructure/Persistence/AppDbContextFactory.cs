@@ -10,6 +10,15 @@ namespace ColourBricks.Infrastructure.Persistence;
 /// </summary>
 public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
+    /// <summary>
+    /// What <see cref="ServerVersion.AutoDetect"/> would report against the deployed
+    /// database (deploy/scripts/server-setup.sh provisions MySQL 8). Used only when
+    /// no server is reachable, so <c>dotnet ef migrations add</c> works on a machine
+    /// with no local MySQL — writing a migration needs the model, not a database.
+    /// </summary>
+    private static readonly ServerVersion FallbackVersion =
+        new MySqlServerVersion(new Version(8, 0, 36));
+
     public AppDbContext CreateDbContext(string[] args)
     {
         string connectionString =
@@ -17,11 +26,21 @@ public sealed class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
             ?? "Server=localhost;Port=3306;Database=colourbricks;User ID=root;Password=;"
                + "TreatTinyAsBoolean=false;AllowUserVariables=true;UseAffectedRows=false";
 
+        ServerVersion version;
+        try
+        {
+            version = ServerVersion.AutoDetect(connectionString);
+        }
+        catch (Exception)
+        {
+            version = FallbackVersion;
+        }
+
         DbContextOptions<AppDbContext> options =
             new DbContextOptionsBuilder<AppDbContext>()
                 .UseMySql(
                     connectionString,
-                    ServerVersion.AutoDetect(connectionString),
+                    version,
                     mySql => mySql.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName))
                 .Options;
 

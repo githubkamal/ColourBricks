@@ -132,7 +132,7 @@ export function AuditLogsPage() {
         </Button>
       </div>
 
-      <div className="bg-card overflow-x-auto rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

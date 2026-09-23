@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
@@ -127,7 +128,7 @@ export function ProjectDetail({ id }: { id: number }) {
                   type="button"
                   variant="destructive"
                   size="sm"
-                  disabled={remove.isPending}
+                  loading={remove.isPending}
                   onClick={() => void handleDelete()}
                 >
                   Delete
@@ -298,9 +299,9 @@ function ProjectOverviewForm({
       </div>
 
       <div className="flex gap-2">
-        <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? "Saving…" : "Save changes"}
-        </Button>
+        <SubmitButton type="submit" mutation={mutation}>
+          Save changes
+        </SubmitButton>
         <Button type="button" variant="outline" onClick={onDone}>
           Cancel
         </Button>

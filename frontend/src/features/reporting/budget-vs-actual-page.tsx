@@ -47,7 +47,10 @@ export function BudgetVsActualPage({ projectId }: { projectId: number }) {
         {formatINR(data.actualCost)}
       </p>
 
-      <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+      <div
+        data-table-scroll
+        className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+      >
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">

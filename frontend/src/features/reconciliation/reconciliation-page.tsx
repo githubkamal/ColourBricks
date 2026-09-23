@@ -9,6 +9,7 @@ import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
 import { ProjectPicker } from "@/features/projects/project-picker";
 import type { ProjectListItem } from "@/features/projects/types";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -271,7 +272,7 @@ export function ReconciliationPage() {
         </div>
       )}
 
-      <div className="bg-card overflow-x-auto rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -420,7 +421,9 @@ function QueueRow({
             />
           )}
         </td>
-        <td className="p-2">{formatDate(row.date)}</td>
+        <td data-nowrap className="p-2">
+          {formatDate(row.date)}
+        </td>
         <td className="p-2">{row.bank}</td>
         <td className="p-2">{row.description}</td>
         <td className="p-2">{row.type}</td>
@@ -510,13 +513,14 @@ function CreditMapForm({ row, onDone }: { row: ReconciliationRow; onDone: () => 
     <div className="flex flex-wrap items-end gap-3">
       <PartyPicker type="Client" label="Client" selected={client} onSelect={setClient} />
       <ProjectPicker status="Ongoing" selected={project} onSelect={setProject} label="Project" />
-      <Button
+      <SubmitButton
         type="button"
-        disabled={!client || !project || creditMut.isPending}
+        disabled={!client || !project}
+        mutation={creditMut}
         onClick={() => creditMut.mutate()}
       >
         Reconcile {formatINR(row.credit)}
-      </Button>
+      </SubmitButton>
     </div>
   );
 }
@@ -697,14 +701,15 @@ function DebitSplitForm({ row, onDone }: { row: ReconciliationRow; onDone: () =>
         {formatINR(difference)}
       </p>
 
-      <Button
+      <SubmitButton
         type="button"
-        disabled={!balanced || !linesValid || lines.length === 0 || mapMut.isPending}
+        disabled={!balanced || !linesValid || lines.length === 0}
+        mutation={mapMut}
         title={balanced ? undefined : "The split must equal the bank debit"}
         onClick={() => mapMut.mutate()}
       >
         Submit
-      </Button>
+      </SubmitButton>
     </div>
   );
 }

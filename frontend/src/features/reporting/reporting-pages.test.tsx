@@ -161,6 +161,7 @@ describe("reporting pages", () => {
               partyId: null,
               partyName: null,
               bucket: "Income",
+              purchaseOrderId: null,
             },
           ],
         }),
@@ -168,5 +169,62 @@ describe("reporting pages", () => {
     );
     rc(<ProjectLedgerPage projectId={4} />);
     expect(await screen.findByTestId("closing-balance")).toHaveTextContent("₹13,10,000.00");
+  });
+
+  it("ProjectLedger_VendorPurchaseFromAPo_LinksToThatOrder", async () => {
+    server.use(
+      http.get(`${apiBaseUrl}/projects/4/financial-ledger`, () =>
+        HttpResponse.json({
+          projectId: 4,
+          openingBalance: 0,
+          closingBalance: -50000,
+          totalCredit: 0,
+          totalDebit: 70000,
+          lines: [
+            {
+              entryId: 2,
+              date: "2026-08-02",
+              description: "Vendor purchase — Materials — ABC Hardware",
+              credit: 0,
+              debit: 50000,
+              runningBalance: -50000,
+              sourceType: "VendorPurchase",
+              sourceId: 501,
+              isReversal: false,
+              categoryId: 3,
+              categoryName: "Materials",
+              partyId: 8,
+              partyName: "ABC Hardware",
+              bucket: "Cost",
+              purchaseOrderId: 77,
+            },
+            {
+              entryId: 3,
+              date: "2026-08-03",
+              description: "Vendor purchase — Materials — Direct Traders",
+              credit: 0,
+              debit: 20000,
+              runningBalance: -70000,
+              sourceType: "VendorPurchase",
+              sourceId: 502,
+              isReversal: false,
+              categoryId: 3,
+              categoryName: "Materials",
+              partyId: 9,
+              partyName: "Direct Traders",
+              bucket: "Cost",
+              purchaseOrderId: null,
+            },
+          ],
+        }),
+      ),
+    );
+    rc(<ProjectLedgerPage projectId={4} />);
+
+    const links = await screen.findAllByRole("link", { name: /View the purchase order behind/ });
+    // Only the purchase that came from an order gets a link; one recorded directly
+    // has no order to show.
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/vendors/purchase-orders/77");
   });
 });

@@ -10,6 +10,7 @@ import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { ProjectPicker } from "@/features/projects/project-picker";
 import type { ProjectListItem } from "@/features/projects/types";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -232,74 +233,79 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
           </label>
         </div>
 
-        <table className="w-full text-sm">
-          <thead className="text-muted-foreground">
-            <tr className="text-left">
-              <th className="py-1 font-medium">Item</th>
-              <th className="py-1 font-medium">Qty</th>
-              <th className="py-1 font-medium">Unit</th>
-              <th className="py-1 font-medium">Rate</th>
-              <th className="py-1 font-medium">Tax</th>
-              <th className="py-1 font-medium">Line total</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, i) => (
-              <tr key={i}>
-                <td className="py-1 pr-2">
-                  <ItemPicker
-                    selected={row.item}
-                    ariaLabel={`itemName ${i + 1}`}
-                    onSelect={(item) =>
-                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, item } : r)))
-                    }
-                  />
-                </td>
-                {(["quantity", "unit", "rate", "taxAmount"] as const).map((field) => {
-                  const numeric = field === "quantity" || field === "rate" || field === "taxAmount";
-                  return (
-                    <td key={field} className="py-1 pr-2">
-                      {numeric ? (
-                        <AmountInput
-                          value={row[field]}
-                          aria-label={`${field} ${i + 1}`}
-                          onChange={(v) =>
-                            setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [field]: v } : r)))
-                          }
-                        />
-                      ) : (
-                        <Input
-                          value={row[field]}
-                          aria-label={`${field} ${i + 1}`}
-                          onChange={(e) =>
-                            setRows((rs) =>
-                              rs.map((r, j) => (j === i ? { ...r, [field]: e.target.value } : r)),
-                            )
-                          }
-                        />
-                      )}
-                    </td>
-                  );
-                })}
-                <td className="py-1 pr-2 tabular-nums">{formatINR(lineTotal(row))}</td>
-                <td className="py-1">
-                  {rows.length > 1 && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="xs"
-                      aria-label={`Remove line ${i + 1}`}
-                      onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
-                    >
-                      ✕
-                    </Button>
-                  )}
-                </td>
+        <div data-table-scroll className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-muted-foreground">
+              <tr className="text-left">
+                <th className="py-1 font-medium">Item</th>
+                <th className="py-1 font-medium">Qty</th>
+                <th className="py-1 font-medium">Unit</th>
+                <th className="py-1 font-medium">Rate</th>
+                <th className="py-1 font-medium">Tax</th>
+                <th className="py-1 font-medium">Line total</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={i}>
+                  <td className="py-1 pr-2">
+                    <ItemPicker
+                      selected={row.item}
+                      ariaLabel={`itemName ${i + 1}`}
+                      onSelect={(item) =>
+                        setRows((rs) => rs.map((r, j) => (j === i ? { ...r, item } : r)))
+                      }
+                    />
+                  </td>
+                  {(["quantity", "unit", "rate", "taxAmount"] as const).map((field) => {
+                    const numeric =
+                      field === "quantity" || field === "rate" || field === "taxAmount";
+                    return (
+                      <td key={field} className="py-1 pr-2">
+                        {numeric ? (
+                          <AmountInput
+                            value={row[field]}
+                            aria-label={`${field} ${i + 1}`}
+                            onChange={(v) =>
+                              setRows((rs) =>
+                                rs.map((r, j) => (j === i ? { ...r, [field]: v } : r)),
+                              )
+                            }
+                          />
+                        ) : (
+                          <Input
+                            value={row[field]}
+                            aria-label={`${field} ${i + 1}`}
+                            onChange={(e) =>
+                              setRows((rs) =>
+                                rs.map((r, j) => (j === i ? { ...r, [field]: e.target.value } : r)),
+                              )
+                            }
+                          />
+                        )}
+                      </td>
+                    );
+                  })}
+                  <td className="py-1 pr-2 tabular-nums">{formatINR(lineTotal(row))}</td>
+                  <td className="py-1">
+                    {rows.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        aria-label={`Remove line ${i + 1}`}
+                        onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <div className="flex items-center justify-between">
           <Button
@@ -315,9 +321,9 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
           </p>
         </div>
 
-        <Button type="submit" disabled={!ready || record.isPending}>
+        <SubmitButton type="submit" disabled={!ready} mutation={record}>
           Record purchase
-        </Button>
+        </SubmitButton>
       </form>
 
       <div className="space-y-3">
@@ -345,7 +351,7 @@ function PurchaseForm({ projectId, partyType }: { projectId: number; partyType: 
                     type="button"
                     variant="ghost"
                     size="xs"
-                    disabled={reverse.isPending}
+                    loading={reverse.isPending}
                     onClick={() => void handleReverse(p.id)}
                   >
                     Reverse

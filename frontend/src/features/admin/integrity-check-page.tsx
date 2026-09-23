@@ -77,29 +77,31 @@ export function IntegrityCheckPage() {
                 </div>
                 <p className="text-muted-foreground mt-1 text-xs">{c.formula}</p>
                 {c.violations.length > 0 && (
-                  <table className="mt-2 w-full text-sm">
-                    <thead className="text-muted-foreground text-left">
-                      <tr>
-                        <th className="py-1 pr-2 font-medium">Record</th>
-                        <th className="py-1 pr-2 font-medium">Expected</th>
-                        <th className="py-1 pr-2 font-medium">Actual</th>
-                        <th className="py-1 font-medium">Detail</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {c.violations.map((v) => (
-                        <tr key={`${v.entity}-${v.id}`}>
-                          <td className="py-1 pr-2">
-                            {v.entity} #{v.id}
-                            {v.name ? ` — ${v.name}` : ""}
-                          </td>
-                          <td className="py-1 pr-2 tabular-nums">{formatINR(v.expected)}</td>
-                          <td className="py-1 pr-2 tabular-nums">{formatINR(v.actual)}</td>
-                          <td className="text-muted-foreground py-1">{v.detail}</td>
+                  <div data-table-scroll className="overflow-x-auto">
+                    <table className="mt-2 w-full text-sm">
+                      <thead className="text-muted-foreground text-left">
+                        <tr>
+                          <th className="py-1 pr-2 font-medium">Record</th>
+                          <th className="py-1 pr-2 font-medium">Expected</th>
+                          <th className="py-1 pr-2 font-medium">Actual</th>
+                          <th className="py-1 font-medium">Detail</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {c.violations.map((v) => (
+                          <tr key={`${v.entity}-${v.id}`}>
+                            <td className="py-1 pr-2">
+                              {v.entity} #{v.id}
+                              {v.name ? ` — ${v.name}` : ""}
+                            </td>
+                            <td className="py-1 pr-2 tabular-nums">{formatINR(v.expected)}</td>
+                            <td className="py-1 pr-2 tabular-nums">{formatINR(v.actual)}</td>
+                            <td className="text-muted-foreground py-1">{v.detail}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             ))}

@@ -65,7 +65,10 @@ export function TeamStatementPage() {
 
       {team &&
         (dataState({ isEmpty: rows.length === 0, emptyLabel: "No activity yet." }) ?? (
-          <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+          <div
+            data-table-scroll
+            className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+          >
             <table className="w-full text-sm">
               <thead className="bg-secondary/60 text-muted-foreground">
                 <tr className="border-b text-left">
@@ -79,7 +82,9 @@ export function TeamStatementPage() {
               <tbody>
                 {rows.map((r, i) => (
                   <tr key={i} className="border-b last:border-0">
-                    <td className="p-2">{formatDate(r.date)}</td>
+                    <td data-nowrap className="p-2">
+                      {formatDate(r.date)}
+                    </td>
                     <td className="text-muted-foreground p-2">
                       {r.kind} — {r.reference}
                     </td>

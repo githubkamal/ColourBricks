@@ -7,8 +7,8 @@ import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
-import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
@@ -163,12 +163,17 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
           onSelect={setBankTx}
           accountId={accountId === "" ? null : accountId}
         />
-        <Button type="button" disabled={!canSave || save.isPending} onClick={() => save.mutate()}>
+        <SubmitButton
+          type="button"
+          disabled={!canSave}
+          mutation={save}
+          onClick={() => save.mutate()}
+        >
           Record
-        </Button>
+        </SubmitButton>
       </div>
 
-      <div className="bg-card rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -187,7 +192,9 @@ export function CommonExpensesPage({ type }: { type: CommonExpenseType }) {
             )}
             {pageRows.map((r) => (
               <tr key={r.id} className="border-b last:border-0">
-                <td className="p-2">{formatDate(r.date)}</td>
+                <td data-nowrap className="p-2">
+                  {formatDate(r.date)}
+                </td>
                 <td className="p-2">{r.subCategory}</td>
                 <td className="p-2 tabular-nums">{formatINR(r.amount)}</td>
               </tr>

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
@@ -69,12 +70,12 @@ export function PaymentModesPage() {
           placeholder="e.g. Cheque"
           aria-label="New payment mode"
         />
-        <Button type="submit" disabled={add.isPending || !name.trim()}>
+        <SubmitButton type="submit" disabled={!name.trim()} mutation={add} successLabel="Added">
           Add
-        </Button>
+        </SubmitButton>
       </form>
 
-      <div className="bg-card rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -110,7 +111,7 @@ export function PaymentModesPage() {
                     type="button"
                     variant="ghost"
                     size="xs"
-                    disabled={toggle.isPending}
+                    loading={toggle.isPending}
                     onClick={() => toggle.mutate(mode)}
                   >
                     {mode.isActive ? "Deactivate" : "Reactivate"}

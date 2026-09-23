@@ -48,7 +48,44 @@ public sealed class PurchaseOrder : BaseEntity
 
     public string? Notes { get; set; }
 
+    /// <summary>
+    /// A manual adjustment applied to the invoice total at submit time (client
+    /// request, 2026-09-23) — the few paise a vendor's own invoice is rounded by.
+    /// May be negative. Nothing derives it; the accountant types what the invoice
+    /// says.
+    /// </summary>
+    public decimal RoundOff { get; set; }
+
     public List<PurchaseOrderLine> Lines { get; } = [];
+
+    public List<PurchaseOrderCharge> Charges { get; } = [];
+}
+
+/// <summary>
+/// An invoice charge that isn't one of the ordered items — transport, handling,
+/// loading, unloading (client request, 2026-09-23). Optional, order-wide rather
+/// than per-line, and taxed the same two ways a line is (a flat figure or a GST
+/// percentage of the charge). Captured at submit time, alongside the pricing.
+/// </summary>
+public sealed class PurchaseOrderCharge : BaseEntity
+{
+    public long PurchaseOrderId { get; set; }
+
+    /// <summary>What the charge is — "Transport", "Handling", or anything typed.</summary>
+    public required string ChargeType { get; set; }
+
+    public decimal Amount { get; set; }
+
+    public PurchaseOrderTaxType TaxType { get; set; } = PurchaseOrderTaxType.Amount;
+
+    /// <summary>The tax rate (%) when <see cref="TaxType"/> is Percentage.</summary>
+    public decimal? TaxRate { get; set; }
+
+    /// <summary>Always the resolved currency figure, regardless of <see cref="TaxType"/>.</summary>
+    public decimal TaxAmount { get; set; }
+
+    /// <summary><see cref="Amount"/> + <see cref="TaxAmount"/>.</summary>
+    public decimal Total { get; set; }
 }
 
 /// <summary>

@@ -7,6 +7,7 @@ import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ export function DonationOutstandingPanel({ projectId }: { projectId: number }) {
   return (
     <div className="space-y-2">
       <h2 className="text-sm font-semibold">Donation outstanding by temple</h2>
-      <div className="bg-card rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -197,9 +198,9 @@ function TempleRow({
                   accountId={accountId === "" ? null : accountId}
                 />
               </div>
-              <Button type="submit" size="xs" disabled={pay.isPending}>
+              <SubmitButton type="submit" size="xs" mutation={pay}>
                 Save payment
-              </Button>
+              </SubmitButton>
             </form>
           </td>
         </tr>

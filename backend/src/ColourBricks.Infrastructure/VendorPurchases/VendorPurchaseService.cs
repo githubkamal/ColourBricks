@@ -39,14 +39,25 @@ public sealed class VendorPurchaseService(
             .ToList();
 
         decimal linesTotal = Money.Round(lines.Sum(l => l.LineTotal));
-        if (linesTotal != Money.Round(request.Total))
+        // A round-off is a manual adjustment on top of the lines (client request,
+        // 2026-09-23), so the header total is Σ lines + round-off. With no round-off
+        // — every caller but a purchase order — this is the original equality.
+        decimal roundOff = Money.Round(request.RoundOff);
+        decimal purchaseTotal = Money.Round(linesTotal + roundOff);
+        if (purchaseTotal != Money.Round(request.Total))
         {
             throw Fail("total",
-                $"Line totals ({linesTotal:0.00}) do not sum to the header total ({request.Total:0.00}).");
+                $"Line totals ({linesTotal:0.00}) plus round-off ({roundOff:0.00}) do not sum to "
+                + $"the header total ({request.Total:0.00}).");
+        }
+
+        if (purchaseTotal <= 0m)
+        {
+            throw Fail("roundOff", "The round-off cannot cancel out the whole purchase.");
         }
 
         decimal partPayment = request.PartPayment ?? 0m;
-        if (partPayment > linesTotal)
+        if (partPayment > purchaseTotal)
         {
             throw Fail("partPayment", "The part-payment cannot exceed the purchase total.");
         }
@@ -67,7 +78,8 @@ public sealed class VendorPurchaseService(
             ProjectId = request.ProjectId,
             PartyId = request.VendorId,
             Date = request.Date,
-            Amount = linesTotal,
+            Amount = purchaseTotal,
+            RoundOff = roundOff,
             Reference = request.InvoiceNumber,
             Description = request.Description,
             CategoryId = expenseCategory,
@@ -92,8 +104,8 @@ public sealed class VendorPurchaseService(
         // Obligation posting: debit project expense, credit vendor payable. No cash.
         await ledger.PostAsync(new LedgerPosting(PurchaseSource, obligation.Id, request.Date,
         [
-            new LedgerLeg(expenseCategory, Debit: linesTotal, Credit: 0m, ProjectId: request.ProjectId),
-            new LedgerLeg(payableCategory, Debit: 0m, Credit: linesTotal,
+            new LedgerLeg(expenseCategory, Debit: purchaseTotal, Credit: 0m, ProjectId: request.ProjectId),
+            new LedgerLeg(payableCategory, Debit: 0m, Credit: purchaseTotal,
                 ProjectId: request.ProjectId, PartyId: request.VendorId),
         ]), cancellationToken);
 
@@ -246,7 +258,7 @@ public sealed class VendorPurchaseService(
 
         return new VendorPurchaseDto(
             o.Id, o.ProjectId, o.PartyId!.Value, vendorName, o.Date, o.Reference,
-            o.Amount, partPaid, outstanding, o.Status.ToString(), lines);
+            o.Amount, partPaid, outstanding, o.Status.ToString(), lines, o.RoundOff);
     }
 
     private static ValidationException Fail(string field, string message) =>

@@ -18,6 +18,21 @@ export interface PurchaseOrderLine {
   lineTotal: number | null;
 }
 
+/**
+ * An invoice charge that isn't one of the ordered items — transport, handling,
+ * loading (client request, 2026-09-23). Order-wide, optional, and taxed the same
+ * two ways a line is.
+ */
+export interface PurchaseOrderCharge {
+  id: number;
+  chargeType: string;
+  amount: number;
+  taxType: PurchaseOrderTaxType;
+  taxRate: number | null;
+  taxAmount: number;
+  total: number;
+}
+
 export interface PurchaseOrder {
   id: number;
   poNumber: string;
@@ -32,6 +47,13 @@ export interface PurchaseOrder {
   taxTotal: number;
   total: number;
   lines: PurchaseOrderLine[];
+  charges: PurchaseOrderCharge[];
+  /** Sum of every charge's amount, before its GST. */
+  chargesSubtotal: number;
+  /** Sum of every charge's GST amount. */
+  chargesTax: number;
+  /** The manual adjustment folded into `total`; may be negative. */
+  roundOff: number;
   obligationIds: number[];
   concurrencyStamp: string;
 }
@@ -67,9 +89,21 @@ export interface SubmitPurchaseOrderLineInput {
   taxAmount: number;
 }
 
+export interface PurchaseOrderChargeInput {
+  chargeType: string;
+  amount: number;
+  taxType: PurchaseOrderTaxType;
+  taxRate?: number | null;
+  taxAmount: number;
+}
+
 export interface SubmitPurchaseOrderInput {
   invoiceNumber: string;
   lines: SubmitPurchaseOrderLineInput[];
+  /** Extra charges — omitted entirely when the invoice has none. */
+  charges?: PurchaseOrderChargeInput[];
+  /** Manual adjustment to the invoice total; may be negative. */
+  roundOff?: number;
 }
 
 export function createPurchaseOrder(input: CreatePurchaseOrderInput): Promise<PurchaseOrder> {

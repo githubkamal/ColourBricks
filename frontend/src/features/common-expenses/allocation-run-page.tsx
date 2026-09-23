@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/ui/pagination-bar";
@@ -120,14 +120,15 @@ export function AllocationRunPage() {
             <option value="Manual">Manual</option>
           </Select>
         </label>
-        <Button
+        <SubmitButton
           type="button"
           variant="secondary"
-          disabled={!canPreview || previewMut.isPending}
+          disabled={!canPreview}
+          mutation={previewMut}
           onClick={() => previewMut.mutate()}
         >
           Preview
-        </Button>
+        </SubmitButton>
       </div>
 
       {preview && (
@@ -141,37 +142,40 @@ export function AllocationRunPage() {
               {preview.balances ? "balances" : "does not balance"}
             </span>
           </p>
-          <table className="w-full text-sm">
-            <thead className="text-muted-foreground text-left">
-              <tr>
-                <th className="py-1 font-medium">Project</th>
-                <th className="py-1 font-medium">Before</th>
-                <th className="py-1 font-medium">Allocated</th>
-                <th className="py-1 font-medium">After</th>
-              </tr>
-            </thead>
-            <tbody>
-              {preview.lines.map((l) => (
-                <tr key={l.projectId} className="border-b last:border-0">
-                  <td className="py-1">{l.projectName}</td>
-                  <td className="py-1 tabular-nums">{formatINR(l.before)}</td>
-                  <td className="py-1 tabular-nums">{formatINR(l.allocated)}</td>
-                  <td className="py-1 tabular-nums">{formatINR(l.after)}</td>
+          <div data-table-scroll className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-muted-foreground text-left">
+                <tr>
+                  <th className="py-1 font-medium">Project</th>
+                  <th className="py-1 font-medium">Before</th>
+                  <th className="py-1 font-medium">Allocated</th>
+                  <th className="py-1 font-medium">After</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <Button
+              </thead>
+              <tbody>
+                {preview.lines.map((l) => (
+                  <tr key={l.projectId} className="border-b last:border-0">
+                    <td className="py-1">{l.projectName}</td>
+                    <td className="py-1 tabular-nums">{formatINR(l.before)}</td>
+                    <td className="py-1 tabular-nums">{formatINR(l.allocated)}</td>
+                    <td className="py-1 tabular-nums">{formatINR(l.after)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <SubmitButton
             type="button"
-            disabled={!preview.balances || commitMut.isPending}
+            disabled={!preview.balances}
+            mutation={commitMut}
             onClick={() => commitMut.mutate()}
           >
             Commit allocation
-          </Button>
+          </SubmitButton>
         </div>
       )}
 
-      <div className="bg-card rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -186,7 +190,7 @@ export function AllocationRunPage() {
           <tbody>
             {pagedRuns.map((r) => (
               <tr key={r.id} className="border-b last:border-0">
-                <td className="p-2">
+                <td data-nowrap className="p-2">
                   {formatDate(r.periodFrom)} – {formatDate(r.periodTo)}
                 </td>
                 <td className="p-2">{r.types}</td>

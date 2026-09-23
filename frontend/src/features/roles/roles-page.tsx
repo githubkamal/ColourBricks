@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
@@ -107,9 +108,9 @@ export function RolesPage() {
             placeholder="New role"
             aria-label="New role"
           />
-          <Button type="submit" size="xs" disabled={add.isPending || !newName.trim()}>
+          <SubmitButton type="submit" size="xs" disabled={!newName.trim()} mutation={add}>
             Add
-          </Button>
+          </SubmitButton>
         </form>
       </div>
 
@@ -211,7 +212,7 @@ function MatrixEditor({
   return (
     <div className="space-y-3">
       <h2 className="text-sm font-semibold">{roleName} — permission matrix</h2>
-      <div className="bg-card overflow-x-auto rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr>
@@ -260,9 +261,9 @@ function MatrixEditor({
           </tbody>
         </table>
       </div>
-      <Button type="button" disabled={save.isPending} onClick={() => save.mutate()}>
+      <SubmitButton type="button" mutation={save} onClick={() => save.mutate()}>
         Save permissions
-      </Button>
+      </SubmitButton>
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -251,9 +252,9 @@ function DonationEditor({
         </p>
       </div>
 
-      <Button type="submit" disabled={save.isPending || !balanced || !templesChosen}>
+      <SubmitButton type="submit" disabled={!balanced || !templesChosen} mutation={save}>
         Save donation
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

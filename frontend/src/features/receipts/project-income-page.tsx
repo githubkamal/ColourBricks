@@ -7,6 +7,7 @@ import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { ProjectPicker } from "@/features/projects/project-picker";
 import type { ProjectListItem } from "@/features/projects/types";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -193,9 +194,9 @@ export function ProjectIncome({ projectId }: { projectId: number }) {
           />
         </label>
         <div className="col-span-2">
-          <Button type="submit" disabled={!ready || record.isPending}>
+          <SubmitButton type="submit" disabled={!ready} mutation={record}>
             Record receipt
-          </Button>
+          </SubmitButton>
         </div>
       </form>
 
@@ -203,7 +204,7 @@ export function ProjectIncome({ projectId }: { projectId: number }) {
         Total income: <span className="font-semibold">{formatINR(total?.total ?? 0)}</span>
       </p>
 
-      <div className="bg-card rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -225,7 +226,9 @@ export function ProjectIncome({ projectId }: { projectId: number }) {
             )}
             {pagedReceipts.map((r) => (
               <tr key={r.id} className="border-b last:border-0">
-                <td className="p-2">{formatDate(r.date)}</td>
+                <td data-nowrap className="p-2">
+                  {formatDate(r.date)}
+                </td>
                 <td className="text-muted-foreground p-2">{INCOME_TYPE_LABELS[r.type]}</td>
                 <td className="p-2">{formatINR(r.amount)}</td>
                 <td className="text-muted-foreground p-2">{r.paymentModeName}</td>
@@ -236,7 +239,7 @@ export function ProjectIncome({ projectId }: { projectId: number }) {
                       type="button"
                       variant="ghost"
                       size="xs"
-                      disabled={reverse.isPending}
+                      loading={reverse.isPending}
                       onClick={() => handleReverse(r.id)}
                     >
                       Reverse

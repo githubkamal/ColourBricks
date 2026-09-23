@@ -43,7 +43,14 @@ public sealed record ProjectLedgerLineDto(
     /// moved any cash yet — it nets to zero against its own purchase-time leg — so the
     /// UI should label it distinctly from a real cash Credit/Debit.
     /// </summary>
-    string Bucket);
+    string Bucket,
+    /// <summary>
+    /// The purchase order behind this line, when it has one (client request,
+    /// 2026-09-23) — set on the vendor-purchase rows created by submitting a PO, so
+    /// the ledger can offer a "View PO" link straight from the entry. Null for every
+    /// other row, including a vendor purchase recorded directly.
+    /// </summary>
+    long? PurchaseOrderId = null);
 
 public sealed record ProjectLedgerViewDto(
     long ProjectId,

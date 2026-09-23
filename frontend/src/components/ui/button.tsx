@@ -1,5 +1,6 @@
 import { Button as ButtonPrimitive } from "@base-ui/react/button";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -58,18 +59,39 @@ const buttonVariants = cva(
   },
 );
 
+export type ButtonProps = ButtonPrimitive.Props &
+  VariantProps<typeof buttonVariants> & {
+    /**
+     * Shows a spinner in place of the button's leading icon and blocks further
+     * clicks — pass a mutation's `isPending` straight in (client request,
+     * 2026-09-23: every action button must say "working" while it works). The
+     * button stays disabled for the duration, so callers don't have to repeat
+     * `disabled={… || x.isPending}` on top of this.
+     */
+    loading?: boolean;
+  };
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  loading = false,
+  disabled,
+  children,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ButtonProps) {
   return (
     <ButtonPrimitive
       data-slot="button"
+      data-loading={loading || undefined}
+      aria-busy={loading || undefined}
+      disabled={disabled || loading}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
-    />
+    >
+      {loading && <Loader2 aria-hidden="true" className="animate-spin" />}
+      {children}
+    </ButtonPrimitive>
   );
 }
 

@@ -4754,5 +4754,135 @@ DELIMITER ;
 CALL MigrationsScript();
 DROP PROCEDURE MigrationsScript;
 
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260909105108_P11T01_AddPurchaseOrderTaxType') THEN
+
+    ALTER TABLE `PurchaseOrderLine` ADD `TaxRate` decimal(18,3) NULL;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260909105108_P11T01_AddPurchaseOrderTaxType') THEN
+
+    ALTER TABLE `PurchaseOrderLine` ADD `TaxType` tinyint NOT NULL DEFAULT 2;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260909105108_P11T01_AddPurchaseOrderTaxType') THEN
+
+    INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+    VALUES ('20260909105108_P11T01_AddPurchaseOrderTaxType', '9.0.0');
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260923083635_P12T01_AddPurchaseOrderChargesAndRoundOff') THEN
+
+    ALTER TABLE `PurchaseOrder` ADD `RoundOff` decimal(18,3) NOT NULL DEFAULT 0.0;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260923083635_P12T01_AddPurchaseOrderChargesAndRoundOff') THEN
+
+    ALTER TABLE `Obligation` ADD `RoundOff` decimal(18,3) NOT NULL DEFAULT 0.0;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260923083635_P12T01_AddPurchaseOrderChargesAndRoundOff') THEN
+
+    CREATE TABLE `PurchaseOrderCharge` (
+        `Id` bigint NOT NULL AUTO_INCREMENT,
+        `PurchaseOrderId` bigint NOT NULL,
+        `ChargeType` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+        `Amount` decimal(18,3) NOT NULL,
+        `TaxType` tinyint NOT NULL,
+        `TaxRate` decimal(18,3) NULL,
+        `TaxAmount` decimal(18,3) NOT NULL,
+        `Total` decimal(18,3) NOT NULL,
+        `CreatedAtUtc` datetime(6) NOT NULL,
+        `CreatedByUserId` bigint NULL,
+        `UpdatedAtUtc` datetime(6) NULL,
+        `UpdatedByUserId` bigint NULL,
+        `ConcurrencyStamp` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+        CONSTRAINT `PK_PurchaseOrderCharge` PRIMARY KEY (`Id`),
+        CONSTRAINT `FK_PurchaseOrderCharge_PurchaseOrder_PurchaseOrderId` FOREIGN KEY (`PurchaseOrderId`) REFERENCES `PurchaseOrder` (`Id`) ON DELETE CASCADE
+    ) CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260923083635_P12T01_AddPurchaseOrderChargesAndRoundOff') THEN
+
+    CREATE INDEX `IX_PurchaseOrderCharge_PurchaseOrderId` ON `PurchaseOrderCharge` (`PurchaseOrderId`);
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20260923083635_P12T01_AddPurchaseOrderChargesAndRoundOff') THEN
+
+    INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+    VALUES ('20260923083635_P12T01_AddPurchaseOrderChargesAndRoundOff', '9.0.0');
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
 COMMIT;
 

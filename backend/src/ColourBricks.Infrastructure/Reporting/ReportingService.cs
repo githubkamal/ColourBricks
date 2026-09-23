@@ -21,6 +21,9 @@ public sealed class ReportingService(
     IProjectScopeFilter scopeFilter,
     TimeProvider clock) : IReportingService
 {
+    /// <summary>Matches <c>VendorPurchaseService.PurchaseSource</c> — the SourceType a vendor purchase posts under.</summary>
+    private const string VendorPurchaseSource = "VendorPurchase";
+
     private static readonly string[] DashboardBuckets =
     [
         "Building Construction / Mesthri", "Interior", "Plumbing", "Electrical", "Materials",
@@ -100,6 +103,16 @@ public sealed class ReportingService(
             .Where(p => partyIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
 
+        // A vendor-purchase row's SourceId is the obligation it came from; when that
+        // obligation was created by submitting a purchase order, the ledger can link
+        // straight back to the order (client request, 2026-09-23).
+        List<long> purchaseIds = all
+            .Where(x => x.SourceType == VendorPurchaseSource)
+            .Select(x => x.SourceId).Distinct().ToList();
+        Dictionary<long, long> purchaseOrderIds = await db.Obligations.AsNoTracking()
+            .Where(o => purchaseIds.Contains(o.Id) && o.PurchaseOrderId != null)
+            .ToDictionaryAsync(o => o.Id, o => o.PurchaseOrderId!.Value, ct);
+
         // A purchase/work-recorded posting (VendorPurchase, SubcontractorWork, CustomWork, …)
         // pairs a Cost debit leg with a Liability credit leg in the very same posting — the
         // Liability leg is the Cost leg's own "not yet paid" flip side, not a separate event,
@@ -155,7 +168,10 @@ public sealed class ReportingService(
             lines.Add(new ProjectLedgerLineDto(
                 x.Id, x.EntryDate, description, Money.Round(credit), Money.Round(debit),
                 Money.Round(running), x.SourceType, x.SourceId, x.IsReversal,
-                x.CategoryId, x.Name, x.PartyId, party, x.Bucket));
+                x.CategoryId, x.Name, x.PartyId, party, x.Bucket,
+                x.SourceType == VendorPurchaseSource
+                    ? purchaseOrderIds.GetValueOrDefault(x.SourceId) is var poId and not 0 ? poId : null
+                    : null));
         }
 
         decimal closing = lines.Count == 0 ? Money.Round(opening) : lines[^1].RunningBalance;

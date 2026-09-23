@@ -6,11 +6,13 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { AttachmentPanel } from "@/features/attachments/attachment-panel";
 import { ProjectPicker, type ProjectPickerSelection } from "@/features/projects/project-picker";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { TableScroll } from "@/components/ui/table-scroll";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import {
@@ -20,6 +22,7 @@ import {
   updatePurchaseOrder,
   type PurchaseOrder,
   type PurchaseOrderLineInput,
+  type PurchaseOrderChargeInput,
   type PurchaseOrderTaxType,
   type SubmitPurchaseOrderLineInput,
 } from "./api";
@@ -43,6 +46,42 @@ interface SubmitRow {
   /** The GST % when taxType is Percentage, or the flat currency figure when Amount. */
   taxValue: string;
 }
+
+/**
+ * An extra charge on the vendor's invoice that isn't one of the ordered items —
+ * transport, handling, loading (client request, 2026-09-23). Wholly optional:
+ * an invoice with none simply has no rows here, and a row's GST may be zero.
+ */
+interface ChargeRow {
+  /** Stable across re-renders so React keeps each row's inputs focused. */
+  key: number;
+  chargeType: string;
+  amount: string;
+  taxType: PurchaseOrderTaxType;
+  /** The GST % when taxType is Percentage, or the flat currency figure when Amount. */
+  taxValue: string;
+}
+
+/** What vendors usually bill on top of the goods; the field still accepts anything typed. */
+const CHARGE_TYPES = [
+  "Transport",
+  "Freight",
+  "Handling",
+  "Loading",
+  "Unloading",
+  "Packing",
+  "Insurance",
+  "Other",
+];
+
+let nextChargeKey = 1;
+const newChargeRow = (): ChargeRow => ({
+  key: nextChargeKey++,
+  chargeType: "Transport",
+  amount: "",
+  taxType: "Amount",
+  taxValue: "0",
+});
 
 export function PurchaseOrderDetailPage({ id }: { id: number }) {
   const queryClient = useQueryClient();
@@ -155,7 +194,7 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
 
   return (
     <div className="space-y-4">
-      <div className="bg-card rounded border p-4">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border p-4">
         <table className="w-full text-sm">
           <thead className="text-muted-foreground">
             <tr className="text-left">
@@ -231,13 +270,14 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
           >
             + Add line
           </Button>
-          <Button
+          <SubmitButton
             type="button"
-            disabled={!linesReady || save.isPending}
+            disabled={!linesReady}
+            mutation={save}
             onClick={() => save.mutate()}
           >
             Save changes
-          </Button>
+          </SubmitButton>
         </div>
       </div>
 
@@ -280,6 +320,12 @@ function SubmitForm({
     })),
   );
 
+  const [charges, setCharges] = useState<ChargeRow[]>([]);
+  // Typed, not derived: a round-off exists precisely because the vendor's own
+  // total disagrees with the arithmetic by a few paise. "-" alone is allowed
+  // mid-typing so a negative adjustment can be entered left to right.
+  const [roundOffText, setRoundOffText] = useState("");
+
   const round3 = (n: number) => Math.round((n + Number.EPSILON) * 1000) / 1000;
   const subtotal = (r: SubmitRow) => round3((Number(r.quantity) || 0) * (Number(r.rate) || 0));
   const taxAmount = (r: SubmitRow) => {
@@ -289,7 +335,18 @@ function SubmitForm({
   const lineTotal = (r: SubmitRow) => round3(subtotal(r) + taxAmount(r));
   const subtotalTotal = round3(rows.reduce((s, r) => s + subtotal(r), 0));
   const taxTotal = round3(rows.reduce((s, r) => s + taxAmount(r), 0));
-  const total = round3(subtotalTotal + taxTotal);
+
+  const chargeAmount = (c: ChargeRow) => round3(Number(c.amount) || 0);
+  const chargeTax = (c: ChargeRow) => {
+    const value = Number(c.taxValue) || 0;
+    return c.taxType === "Percentage" ? round3(chargeAmount(c) * (value / 100)) : round3(value);
+  };
+  const chargeTotal = (c: ChargeRow) => round3(chargeAmount(c) + chargeTax(c));
+  const chargesSubtotal = round3(charges.reduce((s, c) => s + chargeAmount(c), 0));
+  const chargesTax = round3(charges.reduce((s, c) => s + chargeTax(c), 0));
+
+  const roundOff = roundOffText === "" || roundOffText === "-" ? 0 : round3(Number(roundOffText));
+  const total = round3(subtotalTotal + taxTotal + chargesSubtotal + chargesTax + roundOff);
 
   const submit = useMutation({
     mutationFn: () =>
@@ -303,6 +360,14 @@ function SubmitForm({
           taxRate: r.taxType === "Percentage" ? Number(r.taxValue) || 0 : null,
           taxAmount: taxAmount(r),
         })),
+        charges: charges.map<PurchaseOrderChargeInput>((c) => ({
+          chargeType: c.chargeType.trim(),
+          amount: chargeAmount(c),
+          taxType: c.taxType,
+          taxRate: c.taxType === "Percentage" ? Number(c.taxValue) || 0 : null,
+          taxAmount: chargeTax(c),
+        })),
+        roundOff,
       }),
     onSuccess: (submitted) => {
       toast.success(
@@ -318,15 +383,20 @@ function SubmitForm({
       ),
   });
 
+  const roundOffValid = roundOffText === "" || /^-?\d*(\.\d{0,3})?$/.test(roundOffText);
+
   const ready =
     invoiceNumber.trim() !== "" &&
+    roundOffValid &&
+    total > 0 &&
     rows.every(
       (r) =>
         Number(r.quantity) > 0 &&
         Number(r.rate) >= 0 &&
         Number(r.taxValue) >= 0 &&
         (r.taxType !== "Percentage" || Number(r.taxValue) >= 0),
-    );
+    ) &&
+    charges.every((c) => c.chargeType.trim() !== "" && Number(c.amount) >= 0);
 
   return (
     <div className="bg-card space-y-3 rounded border p-4">
@@ -345,75 +415,212 @@ function SubmitForm({
         />
       </label>
 
-      <table className="w-full text-sm">
-        <thead className="text-muted-foreground">
-          <tr className="text-left">
-            <th className="py-1 font-medium">Project</th>
-            <th className="py-1 font-medium">Item</th>
-            <th className="py-1 font-medium">Qty</th>
-            <th className="py-1 font-medium">Rate</th>
-            <th className="py-1 font-medium">Subtotal</th>
-            <th className="py-1 font-medium">Tax type</th>
-            <th className="py-1 font-medium">Tax (GST)</th>
-            <th className="py-1 font-medium">GST amount</th>
-            <th className="py-1 font-medium">Line total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => (
-            <tr key={row.lineId}>
-              <td className="py-1 pr-2">{row.projectName}</td>
-              <td className="py-1 pr-2">
-                {row.itemName} <span className="text-muted-foreground">({row.unit})</span>
-              </td>
-              {(["quantity", "rate"] as const).map((field) => (
-                <td key={field} className="py-1 pr-2">
+      <div data-table-scroll className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-muted-foreground">
+            <tr className="text-left">
+              <th className="py-1 font-medium">Project</th>
+              <th className="py-1 font-medium">Item</th>
+              <th className="py-1 font-medium">Qty</th>
+              <th className="py-1 font-medium">Rate</th>
+              <th className="py-1 font-medium">Subtotal</th>
+              <th className="py-1 font-medium">Tax type</th>
+              <th className="py-1 font-medium">Tax (GST)</th>
+              <th className="py-1 font-medium">GST amount</th>
+              <th className="py-1 font-medium">Line total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => (
+              <tr key={row.lineId}>
+                <td className="py-1 pr-2">{row.projectName}</td>
+                <td className="py-1 pr-2">
+                  {row.itemName} <span className="text-muted-foreground">({row.unit})</span>
+                </td>
+                {(["quantity", "rate"] as const).map((field) => (
+                  <td key={field} className="py-1 pr-2">
+                    <AmountInput
+                      className="w-24"
+                      value={row[field]}
+                      aria-label={`${field} ${i + 1}`}
+                      onChange={(v) =>
+                        setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [field]: v } : r)))
+                      }
+                    />
+                  </td>
+                ))}
+                <td className="py-1 pr-2 tabular-nums">{formatINR(subtotal(row))}</td>
+                <td className="py-1 pr-2">
+                  <Select
+                    className="w-28"
+                    value={row.taxType}
+                    aria-label={`taxType ${i + 1}`}
+                    onChange={(e) =>
+                      setRows((rs) =>
+                        rs.map((r, j) =>
+                          j === i ? { ...r, taxType: e.target.value as PurchaseOrderTaxType } : r,
+                        ),
+                      )
+                    }
+                  >
+                    <option value="Amount">₹ Amount</option>
+                    <option value="Percentage">% Percentage</option>
+                  </Select>
+                </td>
+                <td className="py-1 pr-2">
                   <AmountInput
                     className="w-24"
-                    value={row[field]}
-                    aria-label={`${field} ${i + 1}`}
+                    value={row.taxValue}
+                    aria-label={`taxValue ${i + 1}`}
                     onChange={(v) =>
-                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, [field]: v } : r)))
+                      setRows((rs) => rs.map((r, j) => (j === i ? { ...r, taxValue: v } : r)))
                     }
                   />
                 </td>
-              ))}
-              <td className="py-1 pr-2 tabular-nums">{formatINR(subtotal(row))}</td>
-              <td className="py-1 pr-2">
-                <Select
-                  className="w-28"
-                  value={row.taxType}
-                  aria-label={`taxType ${i + 1}`}
-                  onChange={(e) =>
-                    setRows((rs) =>
-                      rs.map((r, j) =>
-                        j === i ? { ...r, taxType: e.target.value as PurchaseOrderTaxType } : r,
-                      ),
-                    )
-                  }
-                >
-                  <option value="Amount">₹ Amount</option>
-                  <option value="Percentage">% Percentage</option>
-                </Select>
-              </td>
-              <td className="py-1 pr-2">
-                <AmountInput
-                  className="w-24"
-                  value={row.taxValue}
-                  aria-label={`taxValue ${i + 1}`}
-                  onChange={(v) =>
-                    setRows((rs) => rs.map((r, j) => (j === i ? { ...r, taxValue: v } : r)))
-                  }
-                />
-              </td>
-              <td className="py-1 pr-2 tabular-nums">{formatINR(taxAmount(row))}</td>
-              <td className="py-1 pr-2 tabular-nums">{formatINR(lineTotal(row))}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                <td className="py-1 pr-2 tabular-nums">{formatINR(taxAmount(row))}</td>
+                <td className="py-1 pr-2 tabular-nums">{formatINR(lineTotal(row))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      <div className="flex items-center justify-between">
+      <div className="space-y-2 border-t pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium">Other charges</p>
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={() => setCharges((cs) => [...cs, newChargeRow()])}
+          >
+            + Add charge
+          </Button>
+        </div>
+        <p className="text-muted-foreground text-xs">
+          Transport, handling and anything else the invoice bills on top of the goods — all
+          optional, and so is each charge&apos;s GST. On an order spanning several projects each
+          charge is split between them in proportion to what they ordered.
+        </p>
+
+        {charges.length > 0 && (
+          <TableScroll className="rounded border-none shadow-none">
+            <table className="w-full text-sm">
+              <thead className="text-muted-foreground">
+                <tr className="text-left">
+                  <th className="py-1 pr-2 font-medium">Type</th>
+                  <th className="py-1 pr-2 font-medium">Amount</th>
+                  <th className="py-1 pr-2 font-medium">Tax type</th>
+                  <th className="py-1 pr-2 font-medium">Tax (GST)</th>
+                  <th className="py-1 pr-2 font-medium">GST amount</th>
+                  <th className="py-1 pr-2 font-medium">Total</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {charges.map((charge, i) => (
+                  <tr key={charge.key}>
+                    <td className="py-1 pr-2">
+                      <Select
+                        className="w-36"
+                        value={charge.chargeType}
+                        aria-label={`chargeType ${i + 1}`}
+                        onChange={(e) =>
+                          setCharges((cs) =>
+                            cs.map((c, j) => (j === i ? { ...c, chargeType: e.target.value } : c)),
+                          )
+                        }
+                      >
+                        {CHARGE_TYPES.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </Select>
+                    </td>
+                    <td className="py-1 pr-2">
+                      <AmountInput
+                        className="w-28"
+                        value={charge.amount}
+                        aria-label={`chargeAmount ${i + 1}`}
+                        onChange={(v) =>
+                          setCharges((cs) => cs.map((c, j) => (j === i ? { ...c, amount: v } : c)))
+                        }
+                      />
+                    </td>
+                    <td className="py-1 pr-2">
+                      <Select
+                        className="w-28"
+                        value={charge.taxType}
+                        aria-label={`chargeTaxType ${i + 1}`}
+                        onChange={(e) =>
+                          setCharges((cs) =>
+                            cs.map((c, j) =>
+                              j === i
+                                ? { ...c, taxType: e.target.value as PurchaseOrderTaxType }
+                                : c,
+                            ),
+                          )
+                        }
+                      >
+                        <option value="Amount">₹ Amount</option>
+                        <option value="Percentage">% Percentage</option>
+                      </Select>
+                    </td>
+                    <td className="py-1 pr-2">
+                      <AmountInput
+                        className="w-24"
+                        value={charge.taxValue}
+                        aria-label={`chargeTaxValue ${i + 1}`}
+                        onChange={(v) =>
+                          setCharges((cs) =>
+                            cs.map((c, j) => (j === i ? { ...c, taxValue: v } : c)),
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="py-1 pr-2 tabular-nums">{formatINR(chargeTax(charge))}</td>
+                    <td className="py-1 pr-2 tabular-nums">{formatINR(chargeTotal(charge))}</td>
+                    <td className="py-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        aria-label={`Remove charge ${i + 1}`}
+                        onClick={() => setCharges((cs) => cs.filter((_, j) => j !== i))}
+                      >
+                        ✕
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+
+        <label className="flex flex-wrap items-center gap-2 pt-1">
+          <span className="text-sm font-medium">Round off</span>
+          <Input
+            className="w-28"
+            inputMode="decimal"
+            aria-label="Round off"
+            placeholder="0.000"
+            value={roundOffText}
+            onChange={(e) => setRoundOffText(e.target.value)}
+          />
+          <span className="text-muted-foreground text-xs">
+            Optional, and may be negative — whatever it takes to match the invoice&apos;s own total.
+          </span>
+        </label>
+        {!roundOffValid && (
+          <p className="text-destructive text-xs">
+            Enter a number, optionally negative, with at most three decimals.
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
         <div className="space-y-1 text-sm">
           <p className="text-muted-foreground">
             Subtotal (excl. GST): <span className="tabular-nums">{formatINR(subtotalTotal)}</span>
@@ -421,6 +628,22 @@ function SubmitForm({
           <p className="text-muted-foreground">
             GST: <span className="tabular-nums">{formatINR(taxTotal)}</span>
           </p>
+          {charges.length > 0 && (
+            <p className="text-muted-foreground">
+              Other charges (incl. GST):{" "}
+              <span className="tabular-nums" data-testid="submit-charges-total">
+                {formatINR(round3(chargesSubtotal + chargesTax))}
+              </span>
+            </p>
+          )}
+          {roundOff !== 0 && (
+            <p className="text-muted-foreground">
+              Round off:{" "}
+              <span className="tabular-nums" data-testid="submit-round-off">
+                {formatINR(roundOff)}
+              </span>
+            </p>
+          )}
           <p className="font-semibold" data-testid="submit-total">
             Total: {formatINR(total)}
           </p>
@@ -429,13 +652,14 @@ function SubmitForm({
           <Button type="button" variant="ghost" onClick={onCancel}>
             Back
           </Button>
-          <Button
+          <SubmitButton
             type="button"
-            disabled={!ready || submit.isPending}
+            disabled={!ready}
+            mutation={submit}
             onClick={() => submit.mutate()}
           >
             Submit order
-          </Button>
+          </SubmitButton>
         </div>
       </div>
     </div>
@@ -459,6 +683,15 @@ function SubmittedView({ po }: { po: PurchaseOrder }) {
         </p>
         <p className="text-muted-foreground">Subtotal (excl. GST): {formatINR(po.subtotalTotal)}</p>
         <p className="text-muted-foreground">GST: {formatINR(po.taxTotal)}</p>
+        {po.charges.map((c) => (
+          <p key={c.id} className="text-muted-foreground">
+            {c.chargeType}: {formatINR(c.amount)}
+            {c.taxAmount !== 0 && ` + GST ${formatINR(c.taxAmount)}`}
+          </p>
+        ))}
+        {po.roundOff !== 0 && (
+          <p className="text-muted-foreground">Round off: {formatINR(po.roundOff)}</p>
+        )}
         <p className="text-lg font-semibold">Total: {formatINR(po.total)}</p>
       </div>
 
@@ -477,30 +710,32 @@ function SubmittedView({ po }: { po: PurchaseOrder }) {
               {formatINR(group.lines.reduce((s, l) => s + (l.lineTotal ?? 0), 0))}
             </span>
           </div>
-          <table className="w-full text-sm">
-            <thead className="text-muted-foreground">
-              <tr className="text-left">
-                <th className="py-1 font-medium">Item</th>
-                <th className="py-1 font-medium">Qty</th>
-                <th className="py-1 font-medium">Rate</th>
-                <th className="py-1 font-medium">Tax</th>
-                <th className="py-1 font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {group.lines.map((l) => (
-                <tr key={l.id} className="border-t">
-                  <td className="py-1">
-                    {l.itemName} <span className="text-muted-foreground">({l.unit})</span>
-                  </td>
-                  <td className="py-1">{l.quantity}</td>
-                  <td className="py-1">{formatINR(l.rate ?? 0)}</td>
-                  <td className="py-1">{formatINR(l.taxAmount ?? 0)}</td>
-                  <td className="py-1">{formatINR(l.lineTotal ?? 0)}</td>
+          <div data-table-scroll className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-muted-foreground">
+                <tr className="text-left">
+                  <th className="py-1 font-medium">Item</th>
+                  <th className="py-1 font-medium">Qty</th>
+                  <th className="py-1 font-medium">Rate</th>
+                  <th className="py-1 font-medium">Tax</th>
+                  <th className="py-1 font-medium">Total</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {group.lines.map((l) => (
+                  <tr key={l.id} className="border-t">
+                    <td className="py-1">
+                      {l.itemName} <span className="text-muted-foreground">({l.unit})</span>
+                    </td>
+                    <td className="py-1">{l.quantity}</td>
+                    <td className="py-1">{formatINR(l.rate ?? 0)}</td>
+                    <td className="py-1">{formatINR(l.taxAmount ?? 0)}</td>
+                    <td className="py-1">{formatINR(l.lineTotal ?? 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ))}
     </div>

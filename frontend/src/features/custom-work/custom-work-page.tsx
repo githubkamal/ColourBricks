@@ -11,8 +11,8 @@ import { ProjectPicker } from "@/features/projects/project-picker";
 import type { ProjectListItem } from "@/features/projects/types";
 import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
-import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
@@ -164,13 +164,16 @@ function CustomWorkForm({ projectId }: { projectId: number }) {
         <p className="text-muted-foreground text-xs" data-testid="variance-preview">
           Variance (actual − estimated): {formatINR(variancePreview)}
         </p>
-        <Button type="submit" disabled={!ready || record.isPending}>
+        <SubmitButton type="submit" disabled={!ready} mutation={record}>
           Record custom work
-        </Button>
+        </SubmitButton>
       </form>
 
       {dataState({ isEmpty: entries.length === 0, emptyLabel: "No custom work yet." }) ?? (
-        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+        <div
+          data-table-scroll
+          className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+        >
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">
@@ -227,7 +230,9 @@ function CustomWorkRow({ work: w, projectId }: { work: CustomWork; projectId: nu
     <>
       {dialog}
       <tr className="border-b last:border-0">
-        <td className="p-2">{formatDate(w.date)}</td>
+        <td data-nowrap className="p-2">
+          {formatDate(w.date)}
+        </td>
         <td className="p-2">{w.workType ?? "—"}</td>
         <td className="p-2">{w.partyName ?? "—"}</td>
         <td className="text-muted-foreground p-2 tabular-nums">{formatINR(w.estimatedCost)}</td>
@@ -410,9 +415,9 @@ function CustomWorkPaymentForm({
           accountId={accountId === "" ? null : accountId}
         />
       </div>
-      <Button type="button" disabled={!ready || pay.isPending} onClick={() => pay.mutate()}>
+      <SubmitButton type="button" disabled={!ready} mutation={pay} onClick={() => pay.mutate()}>
         Record payment
-      </Button>
+      </SubmitButton>
     </div>
   );
 }

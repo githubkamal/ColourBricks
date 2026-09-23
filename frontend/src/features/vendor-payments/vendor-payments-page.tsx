@@ -9,6 +9,7 @@ import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
 import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Button } from "@/components/ui/button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -217,14 +218,17 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
           />
         </div>
         <div className="col-span-2">
-          <Button type="submit" disabled={!ready || pay.isPending}>
+          <SubmitButton type="submit" disabled={!ready} mutation={pay}>
             Record payment
-          </Button>
+          </SubmitButton>
         </div>
       </form>
 
       {dataState({ isEmpty: payments.length === 0, emptyLabel: "No payments yet." }) ?? (
-        <div className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs">
+        <div
+          data-table-scroll
+          className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+        >
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">
@@ -237,7 +241,9 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
             <tbody>
               {pagedPayments.map((p) => (
                 <tr key={p.id} className="border-b last:border-0">
-                  <td className="p-2">{formatDate(p.date)}</td>
+                  <td data-nowrap className="p-2">
+                    {formatDate(p.date)}
+                  </td>
                   <td className="p-2">{formatINR(p.amount)}</td>
                   <td className="p-2">
                     <StatusBadge status={p.status} />
@@ -248,7 +254,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
                         type="button"
                         variant="ghost"
                         size="xs"
-                        disabled={reverse.isPending}
+                        loading={reverse.isPending}
                         onClick={() => {
                           void confirm({
                             title: "Reverse this payment?",

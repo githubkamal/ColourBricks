@@ -5,6 +5,7 @@ import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { listProjects } from "@/features/projects/api";
 import { ProjectPicker, type ProjectPickerSelection } from "@/features/projects/project-picker";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -96,7 +97,7 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
 
       <Counts batch={batch} />
 
-      <div className="bg-card overflow-x-auto rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -126,17 +127,18 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
 
       {isDraft && (
         <div className="flex items-center gap-3">
-          <Button
+          <SubmitButton
             type="button"
-            disabled={!canCommit || commit.isPending}
+            disabled={!canCommit}
+            mutation={commit}
             onClick={() => commit.mutate()}
           >
             Commit {live.filter((r) => r.readyToCommit).length} transaction(s)
-          </Button>
+          </SubmitButton>
           <Button
             type="button"
             variant="secondary"
-            disabled={discard.isPending}
+            loading={discard.isPending}
             onClick={async () => {
               const { confirmed } = await confirm({
                 title: "Discard this import?",
@@ -345,14 +347,15 @@ function RowLine({
               >
                 allocated {formatINR(allocated)} of {formatINR(target)}
               </div>
-              <Button
+              <SubmitButton
                 type="button"
                 className="h-7 px-2 text-xs"
-                disabled={!balanced || save.isPending || lines.some((l) => l.project === null)}
+                disabled={!balanced || lines.some((l) => l.project === null)}
+                mutation={save}
                 onClick={() => save.mutate()}
               >
                 Save mapping
-              </Button>
+              </SubmitButton>
             </div>
           ) : (
             <ul className="text-xs">

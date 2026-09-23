@@ -10,6 +10,7 @@ import { ProjectPicker } from "@/features/projects/project-picker";
 import type { ProjectListItem } from "@/features/projects/types";
 import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -289,9 +290,9 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
           </>
         )}
         <div className="col-span-2 flex gap-2">
-          <Button type="submit" disabled={!ready || record.isPending}>
+          <SubmitButton type="submit" disabled={!ready} mutation={record}>
             {editingExpense ? "Save changes" : "Record expense"}
-          </Button>
+          </SubmitButton>
           {editingExpense && (
             <Button type="button" variant="outline" onClick={cancelEdit}>
               Cancel edit
@@ -300,7 +301,7 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
         </div>
       </form>
 
-      <div className="bg-card overflow-x-auto rounded border">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
           <thead className="bg-secondary/60 text-muted-foreground">
             <tr className="border-b text-left">
@@ -322,7 +323,9 @@ export function ExpenseForm({ projectId }: { projectId: number }) {
             )}
             {pagedExpenses.map((x) => (
               <tr key={x.id} className="border-b last:border-0">
-                <td className="p-2">{formatDate(x.date)}</td>
+                <td data-nowrap className="p-2">
+                  {formatDate(x.date)}
+                </td>
                 <td className="p-2">{x.categoryName}</td>
                 <td className="text-muted-foreground p-2">{x.bucket}</td>
                 <td className="p-2 tabular-nums">{formatINR(x.amount)}</td>
@@ -458,9 +461,9 @@ function PayExpenseForm({
         <Input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} />
       </label>
       <div className="flex justify-end gap-2 pt-2">
-        <Button type="submit" disabled={!ready || pay.isPending}>
+        <SubmitButton type="submit" disabled={!ready} mutation={pay}>
           Pay
-        </Button>
+        </SubmitButton>
       </div>
     </form>
   );

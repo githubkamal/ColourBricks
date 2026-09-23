@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import {
@@ -59,20 +59,20 @@ export function NotificationChannelsPage() {
             never reaches a role, regardless of this setting.
           </p>
         </div>
-        <Button
+        <SubmitButton
           type="button"
           variant="outline"
           onClick={() => evaluate.mutate()}
-          disabled={evaluate.isPending}
+          mutation={evaluate}
         >
           Run evaluation now
-        </Button>
+        </SubmitButton>
       </div>
 
       {isPending && <p className="text-muted-foreground text-sm">Loading…</p>}
 
       {!isPending && (
-        <div className="bg-card overflow-x-auto rounded border">
+        <div data-table-scroll className="bg-card overflow-x-auto rounded border">
           <table className="w-full text-sm">
             <thead className="bg-secondary/60 text-muted-foreground">
               <tr className="border-b text-left">

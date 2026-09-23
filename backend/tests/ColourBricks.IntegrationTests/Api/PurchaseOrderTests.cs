@@ -244,4 +244,166 @@ public sealed class PurchaseOrderTests(IntegrationFixture fixture) : Integration
         // The bank-settled payment reduces outstanding; the remainder is what's still owed.
         (await VendorOutstanding(c, vendor)).Should().Be(vendorBefore + 4_000m);
     }
+
+    // ── Other charges and round-off (client request, 2026-09-23) ─────────────
+
+    [Fact]
+    public async Task SubmitPurchaseOrder_OtherChargesAndRoundOff_ReachTheProjectAndVendorOutstanding()
+    {
+        HttpClient c = Admin;
+        long vendor = await Vendor(c);
+        long p1 = await Project(c);
+        decimal p1Before = await ActualCost(c, p1);
+        decimal vendorBefore = await VendorOutstanding(c, vendor);
+
+        long poId = (await CreateDraft(c, vendor, (p1, 10m))).GetProperty("id").GetInt64();
+        long lineId = (await Json(await c.GetAsync($"/api/v1/purchase-orders/{poId}")))
+            .GetProperty("lines").EnumerateArray().First().GetProperty("id").GetInt64();
+
+        JsonElement submitted = await Json(await c.PostAsJsonAsync($"/api/v1/purchase-orders/{poId}/submit", new
+        {
+            invoiceNumber = $"INV-{poId}",
+            lines = new[] { new { lineId, quantity = 10m, rate = 400m, taxAmount = 0m } }, // 4,000
+            charges = new object[]
+            {
+                new { chargeType = "Transport", amount = 500m, taxType = "Percentage", taxRate = 18m }, // 590
+                new { chargeType = "Handling", amount = 200m, taxAmount = 0m },                         // 200
+            },
+            roundOff = -0.4m,
+        }));
+
+        submitted.GetProperty("chargesSubtotal").GetDecimal().Should().Be(700m);
+        submitted.GetProperty("chargesTax").GetDecimal().Should().Be(90m);
+        submitted.GetProperty("roundOff").GetDecimal().Should().Be(-0.4m);
+        submitted.GetProperty("total").GetDecimal().Should().Be(4_789.6m);
+        submitted.GetProperty("charges").GetArrayLength().Should().Be(2);
+
+        // Charges and the round-off are real cost, not decoration — they land on the
+        // project's expenses and the vendor's outstanding like the goods do.
+        (await ActualCost(c, p1)).Should().Be(p1Before + 4_789.6m);
+        (await VendorOutstanding(c, vendor)).Should().Be(vendorBefore + 4_789.6m);
+    }
+
+    [Fact]
+    public async Task SubmitPurchaseOrder_OtherCharges_SplitAcrossProjectsByItemValue()
+    {
+        HttpClient c = Admin;
+        long vendor = await Vendor(c);
+        long p1 = await Project(c);
+        long p2 = await Project(c);
+        decimal p1Before = await ActualCost(c, p1);
+        decimal p2Before = await ActualCost(c, p2);
+
+        long poId = (await CreateDraft(c, vendor, (p1, 30m), (p2, 10m))).GetProperty("id").GetInt64();
+        var lineIds = (await Json(await c.GetAsync($"/api/v1/purchase-orders/{poId}")))
+            .GetProperty("lines").EnumerateArray()
+            .ToDictionary(l => l.GetProperty("projectId").GetInt64(), l => l.GetProperty("id").GetInt64());
+
+        JsonElement submitted = await Json(await c.PostAsJsonAsync($"/api/v1/purchase-orders/{poId}/submit", new
+        {
+            invoiceNumber = $"INV-{poId}",
+            lines = new[]
+            {
+                new { lineId = lineIds[p1], quantity = 30m, rate = 100m, taxAmount = 0m }, // 3,000 — 75%
+                new { lineId = lineIds[p2], quantity = 10m, rate = 100m, taxAmount = 0m }, // 1,000 — 25%
+            },
+            charges = new object[] { new { chargeType = "Transport", amount = 400m, taxAmount = 0m } },
+        }));
+
+        submitted.GetProperty("total").GetDecimal().Should().Be(4_400m);
+
+        // The ₹400 transport follows the goods: 75/25, and the two shares add back up.
+        (await ActualCost(c, p1)).Should().Be(p1Before + 3_300m);
+        (await ActualCost(c, p2)).Should().Be(p2Before + 1_100m);
+    }
+
+    [Fact]
+    public async Task SubmitPurchaseOrder_WithoutChargesOrRoundOff_IsUnchanged()
+    {
+        HttpClient c = Admin;
+        long vendor = await Vendor(c);
+        long p1 = await Project(c);
+        decimal p1Before = await ActualCost(c, p1);
+
+        long poId = (await CreateDraft(c, vendor, (p1, 4m))).GetProperty("id").GetInt64();
+        long lineId = (await Json(await c.GetAsync($"/api/v1/purchase-orders/{poId}")))
+            .GetProperty("lines").EnumerateArray().First().GetProperty("id").GetInt64();
+
+        JsonElement submitted = await Json(await c.PostAsJsonAsync($"/api/v1/purchase-orders/{poId}/submit", new
+        {
+            invoiceNumber = $"INV-{poId}",
+            lines = new[] { new { lineId, quantity = 4m, rate = 250m, taxAmount = 0m } },
+        }));
+
+        submitted.GetProperty("charges").GetArrayLength().Should().Be(0);
+        submitted.GetProperty("roundOff").GetDecimal().Should().Be(0m);
+        submitted.GetProperty("total").GetDecimal().Should().Be(1_000m);
+        (await ActualCost(c, p1)).Should().Be(p1Before + 1_000m);
+    }
+
+    [Fact]
+    public async Task SubmitPurchaseOrder_NegativeCharge_Returns400()
+    {
+        HttpClient c = Admin;
+        long vendor = await Vendor(c);
+        long p1 = await Project(c);
+        long poId = (await CreateDraft(c, vendor, (p1, 4m))).GetProperty("id").GetInt64();
+        long lineId = (await Json(await c.GetAsync($"/api/v1/purchase-orders/{poId}")))
+            .GetProperty("lines").EnumerateArray().First().GetProperty("id").GetInt64();
+
+        HttpResponseMessage response = await c.PostAsJsonAsync($"/api/v1/purchase-orders/{poId}/submit", new
+        {
+            invoiceNumber = $"INV-{poId}",
+            lines = new[] { new { lineId, quantity = 4m, rate = 250m, taxAmount = 0m } },
+            charges = new object[] { new { chargeType = "Transport", amount = -50m, taxAmount = 0m } },
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task SubmitPurchaseOrder_RoundOffCancellingTheWholeOrder_Returns400()
+    {
+        HttpClient c = Admin;
+        long vendor = await Vendor(c);
+        long p1 = await Project(c);
+        long poId = (await CreateDraft(c, vendor, (p1, 4m))).GetProperty("id").GetInt64();
+        long lineId = (await Json(await c.GetAsync($"/api/v1/purchase-orders/{poId}")))
+            .GetProperty("lines").EnumerateArray().First().GetProperty("id").GetInt64();
+
+        HttpResponseMessage response = await c.PostAsJsonAsync($"/api/v1/purchase-orders/{poId}/submit", new
+        {
+            invoiceNumber = $"INV-{poId}",
+            lines = new[] { new { lineId, quantity = 4m, rate = 250m, taxAmount = 0m } }, // 1,000
+            roundOff = -1_000m,
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task ProjectLedger_VendorPurchaseFromAPo_CarriesThatOrdersId()
+    {
+        HttpClient c = Admin;
+        long vendor = await Vendor(c);
+        long p1 = await Project(c);
+        long poId = (await CreateDraft(c, vendor, (p1, 5m))).GetProperty("id").GetInt64();
+        long lineId = (await Json(await c.GetAsync($"/api/v1/purchase-orders/{poId}")))
+            .GetProperty("lines").EnumerateArray().First().GetProperty("id").GetInt64();
+
+        await c.PostAsJsonAsync($"/api/v1/purchase-orders/{poId}/submit", new
+        {
+            invoiceNumber = $"INV-{poId}",
+            lines = new[] { new { lineId, quantity = 5m, rate = 200m, taxAmount = 0m } },
+        });
+
+        JsonElement ledger = await Json(await c.GetAsync(
+            $"/api/v1/projects/{p1}/financial-ledger?dateFrom=2026-04-01&dateTo=2027-03-31"));
+
+        // The ledger row for the purchase points back at the order it came from, so
+        // the UI can offer "View PO" without a second lookup.
+        ledger.GetProperty("lines").EnumerateArray()
+            .Where(l => l.GetProperty("sourceType").GetString() == "VendorPurchase")
+            .Should().Contain(l => l.GetProperty("purchaseOrderId").GetInt64() == poId);
+    }
 }

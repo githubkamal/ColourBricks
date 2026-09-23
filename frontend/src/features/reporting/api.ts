@@ -72,6 +72,12 @@ export interface ProjectLedgerLine {
   partyName: string | null;
   /** Accounting bucket for the line's category — "Cost" | "Income" | "Liability" | "Asset". */
   bucket: string;
+  /**
+   * The purchase order behind this line, when it has one — set on vendor-purchase
+   * rows created by submitting a PO, so the ledger can link straight to the order.
+   * Null for every other row, including a vendor purchase recorded directly.
+   */
+  purchaseOrderId: number | null;
 }
 export interface ProjectLedgerView {
   projectId: number;
