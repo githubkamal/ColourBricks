@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Outfit, Public_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { Suspense } from "react";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/providers";
@@ -13,16 +13,22 @@ import "./globals.css";
 // paying DNS + TCP + TLS after the fact (GTmetrix: "Preconnect to required origins").
 const apiOrigin = new URL(apiBaseUrl).origin;
 
-// The Adminto theme's body/heading pairing (client request, 2026-09-06).
-const publicSans = Public_Sans({
+// The Adminto theme's body/heading pairing (client request, 2026-09-06). Self-hosted
+// variable fonts (OFL, from github.com/google/fonts) rather than next/font/google:
+// Turbopack fails the build whenever Google Fonts answers with an extensionless
+// `/l/font?kit=…&skey=…` URL (vercel/next.js#99114), so the build must not fetch them.
+const publicSans = localFont({
+  src: "./fonts/PublicSans-Variable.woff2",
   variable: "--font-sans",
-  subsets: ["latin"],
+  weight: "100 900",
+  display: "swap",
 });
 
-const outfit = Outfit({
+const outfit = localFont({
+  src: "./fonts/Outfit-Variable.woff2",
   variable: "--font-display",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
