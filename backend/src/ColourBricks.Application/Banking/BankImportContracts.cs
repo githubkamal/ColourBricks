@@ -1,3 +1,5 @@
+using ColourBricks.Domain.Banking;
+
 namespace ColourBricks.Application.Banking;
 
 /// <summary>One extracted statement line handed to the staging service (P4-T02 parses these; tests post them directly).</summary>
@@ -31,11 +33,29 @@ public sealed record PreviewBankImportRowDto(
     string? ParseError,
     bool ExistsInDb);
 
-public sealed record ProjectAllocationInput(long ProjectId, decimal Amount);
+/// <summary>
+/// One slice of a staged row's mapping. <see cref="Target"/> defaults to
+/// <see cref="BankRowMappingTarget.Project"/> so a plain <c>{ projectId, amount }</c> still works.
+/// </summary>
+public sealed record BankRowMappingInput(
+    decimal Amount,
+    long? ProjectId = null,
+    long? PartyId = null,
+    BankRowMappingTarget Target = BankRowMappingTarget.Project);
 
-public sealed record SetRowAllocationsRequest(IReadOnlyList<ProjectAllocationInput> Allocations);
+public sealed record SetRowAllocationsRequest(IReadOnlyList<BankRowMappingInput> Allocations);
 
 public sealed record ProjectAllocationDto(long ProjectId, string ProjectName, decimal Amount);
+
+/// <summary>A staged-row slice or a committed transaction's hint. <see cref="ProjectName"/> and
+/// <see cref="PartyName"/> are empty when the target carries no project / party.</summary>
+public sealed record BankRowMappingDto(
+    string Target,
+    long? ProjectId,
+    string ProjectName,
+    long? PartyId,
+    string PartyName,
+    decimal Amount);
 
 public sealed record StagedBankRowDto(
     long Id,
@@ -50,7 +70,7 @@ public sealed record StagedBankRowDto(
     string? ParseError,
     long? DuplicateOfBankTransactionId,
     bool IsRemoved,
-    IReadOnlyList<ProjectAllocationDto> Allocations,
+    IReadOnlyList<BankRowMappingDto> Allocations,
     decimal AllocatedTotal,
     bool ReadyToCommit,
     string? BlockedReason);
@@ -94,7 +114,7 @@ public sealed record BankTransactionDto(
     int OccurrenceIndex,
     string Status,
     string? ExclusionReason,
-    IReadOnlyList<ProjectAllocationDto> ProjectHints);
+    IReadOnlyList<BankRowMappingDto> ProjectHints);
 
 public sealed record ExcludeBankTransactionRequest(string Reason);
 

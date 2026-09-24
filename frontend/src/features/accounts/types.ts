@@ -8,6 +8,9 @@ export interface AccountListItem {
   bankName: string | null;
   accountNumber: string | null;
   isActive: boolean;
+  openingBalance: number;
+  /** Opening balance + credits − debits of every committed statement row (excluded rows left out). */
+  statementBalance: number;
 }
 
 export interface AccountDetail {
@@ -23,6 +26,10 @@ export interface AccountDetail {
   openingBalanceLocked: boolean;
   isActive: boolean;
   concurrencyStamp: string;
+  /** Opening balance + credits − debits of every committed statement row (excluded rows left out). */
+  statementBalance: number;
+  statementCredits: number;
+  statementDebits: number;
 }
 
 export interface CreateAccountInput {

@@ -3,23 +3,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Fragment, useState } from "react";
 import { toast } from "sonner";
-import { listProjects } from "@/features/projects/api";
+import { getAccount } from "@/features/accounts/api";
+import { PartyPicker } from "@/features/parties/party-picker";
+import type { PartySearchItem, PartyType } from "@/features/parties/types";
 import { ProjectPicker, type ProjectPickerSelection } from "@/features/projects/project-picker";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import {
   commitBankImport,
   discardBankImport,
   getBankImport,
+  MAPPING_TARGETS,
   removeStagedRow,
   setRowAllocations,
   type BankImportBatch,
+  type MappingTarget,
   type StagedBankRow,
+  type StagedProjectAllocation,
 } from "./api";
+import { BalanceSummary } from "./balance-summary";
 
 const round3 = (n: number) => Math.round((n + Number.EPSILON) * 1000) / 1000;
 
@@ -32,9 +39,10 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
     queryFn: () => getBankImport(batchId),
   });
 
-  const { data: projects } = useQuery({
-    queryKey: ["projects", "for-bank-import"],
-    queryFn: () => listProjects({ status: "Ongoing", pageSize: 200 }),
+  const { data: account } = useQuery({
+    queryKey: ["accounts", batch?.accountId],
+    queryFn: () => getAccount(batch!.accountId),
+    enabled: batch !== undefined,
   });
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: ["bank-import", batchId] });
@@ -46,6 +54,7 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
         `Committed ${r.committed} transaction(s) — ${r.removed} removed, ${r.duplicate} duplicate, ${r.parseError} parse error`,
       );
       void refresh();
+      void queryClient.invalidateQueries({ queryKey: ["accounts"] });
     },
     onError: (e) =>
       toast.error(
@@ -66,8 +75,11 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
     return <p className="p-4 text-sm">Loading import…</p>;
   }
 
-  const projectOptions = (projects?.items ?? []).map((p) => ({ id: p.id, name: p.name }));
   const live = batch.rows.filter((r) => !r.isRemoved);
+  // Rows that will land in the account on commit — the same set the server promotes.
+  const incoming = live.filter(
+    (r) => r.parseState === "Parsed" && r.duplicateOfBankTransactionId === null,
+  );
   // A duplicate row now blocks commit until it's explicitly removed, exactly like an
   // unmapped row — it doesn't just get silently skipped anymore (client request,
   // 2026-09-04).
@@ -90,12 +102,29 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
       <div>
         <h1 className="text-lg font-semibold">Review import — {batch.fileName}</h1>
         <p className="text-muted-foreground text-sm">
-          Status {batch.status}. Map every row you keep to project(s); remove the rest. Nothing is
-          saved to the ledger until you commit.
+          Status {batch.status}. Map every row you keep to a project, vendor, field officer, labour
+          team, client or bucket; remove the rest. Nothing is saved to the ledger until you commit.
         </p>
       </div>
 
       <Counts batch={batch} />
+
+      {account &&
+        (isDraft ? (
+          <BalanceSummary
+            currentBalance={account.statementBalance}
+            rows={incoming}
+            currentLabel={`${account.name} balance now`}
+            resultLabel="Balance after commit"
+          />
+        ) : (
+          <p className="text-sm" data-testid="balance-summary">
+            <span className="text-muted-foreground">{account.name} balance:</span>{" "}
+            <span className="font-semibold tabular-nums">
+              {formatINR(account.statementBalance)}
+            </span>
+          </p>
+        ))}
 
       <div data-table-scroll className="bg-card overflow-x-auto rounded border">
         <table className="w-full text-sm">
@@ -106,7 +135,7 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
               <th className="p-2 font-medium">Narration</th>
               <th className="p-2 font-medium">Debit</th>
               <th className="p-2 font-medium">Credit</th>
-              <th className="p-2 font-medium">Project mapping</th>
+              <th className="p-2 font-medium">Mapping</th>
               <th className="p-2 font-medium" />
             </tr>
           </thead>
@@ -117,7 +146,6 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
                 batchId={batchId}
                 row={row}
                 editable={isDraft}
-                projects={projectOptions}
                 onChanged={refresh}
               />
             ))}
@@ -159,7 +187,7 @@ export function BankImportReviewPage({ batchId }: { batchId: number }) {
           )}
           {unmapped.length > 0 && (
             <span className="text-attention text-sm">
-              {unmapped.length} row(s) still need a project mapping
+              {unmapped.length} row(s) still need a mapping
             </span>
           )}
         </div>
@@ -191,20 +219,82 @@ function Counts({ batch }: { batch: BankImportBatch }) {
   );
 }
 
-type ProjectOption = { id: number; name: string };
-type Line = { project: ProjectPickerSelection | null; amount: string };
+const TARGET_LABELS: Record<MappingTarget, string> = {
+  Project: "Project",
+  Vendor: "Vendor",
+  FieldOfficer: "Field officer",
+  Labour: "Labour team",
+  Client: "Client",
+  Personal: "Personal",
+  Office: "Office",
+  Savings: "Savings",
+  Other: "Other",
+};
+
+/** Party targets and the party role each one searches; the rest are buckets or a project. */
+const PARTY_TYPE: Partial<Record<MappingTarget, PartyType>> = {
+  Vendor: "Vendor",
+  FieldOfficer: "FieldOfficer",
+  Labour: "Subcontractor",
+  Client: "Client",
+};
+
+type Line = {
+  target: MappingTarget;
+  project: ProjectPickerSelection | null;
+  party: PartySearchItem | null;
+  amount: string;
+};
+
+const blankLine = (amount = ""): Line => ({
+  target: "Project",
+  project: null,
+  party: null,
+  amount,
+});
+
+function lineFromAllocation(a: StagedProjectAllocation): Line {
+  const partyType = PARTY_TYPE[a.target];
+  return {
+    target: a.target,
+    project: a.projectId !== null ? { id: a.projectId, name: a.projectName } : null,
+    party:
+      a.partyId !== null
+        ? {
+            id: a.partyId,
+            name: a.partyName,
+            types: partyType ? [partyType] : [],
+            category: null,
+            isActive: true,
+          }
+        : null,
+    amount: String(a.amount),
+  };
+}
+
+/** A line is complete once it names whatever its target needs. */
+function lineComplete(l: Line): boolean {
+  if (l.target === "Project") return l.project !== null;
+  if (PARTY_TYPE[l.target]) return l.party !== null;
+  return true;
+}
+
+function describe(a: StagedProjectAllocation): string {
+  const label = TARGET_LABELS[a.target] ?? a.target;
+  if (a.target === "Project") return a.projectName;
+  const who = a.partyName ? `${label}: ${a.partyName}` : label;
+  return a.projectName ? `${who} (${a.projectName})` : who;
+}
 
 function RowLine({
   batchId,
   row,
   editable,
-  projects,
   onChanged,
 }: {
   batchId: number;
   row: StagedBankRow;
   editable: boolean;
-  projects: ProjectOption[];
   onChanged: () => void;
 }) {
   const isCredit = row.credit > 0;
@@ -212,24 +302,25 @@ function RowLine({
 
   const [lines, setLines] = useState<Line[]>(() =>
     row.allocations.length > 0
-      ? row.allocations.map((a) => ({
-          project: {
-            id: a.projectId,
-            name: projects.find((p) => p.id === a.projectId)?.name ?? "",
-          },
-          amount: String(a.amount),
-        }))
-      : [{ project: null, amount: isCredit ? String(target) : "" }],
+      ? row.allocations.map(lineFromAllocation)
+      : [blankLine(isCredit ? String(target) : "")],
   );
+
+  const updateLine = (i: number, patch: Partial<Line>) =>
+    setLines((cur) => cur.map((x, xi) => (xi === i ? { ...x, ...patch } : x)));
 
   const save = useMutation({
     mutationFn: () =>
       setRowAllocations(
         batchId,
         row.id,
-        lines
-          .filter((l) => l.project !== null)
-          .map((l) => ({ projectId: l.project!.id, amount: Number(l.amount) })),
+        lines.map((l) => ({
+          target: l.target,
+          amount: Number(l.amount),
+          projectId:
+            l.target === "Project" || PARTY_TYPE[l.target] ? (l.project?.id ?? null) : null,
+          partyId: PARTY_TYPE[l.target] ? (l.party?.id ?? null) : null,
+        })),
       ),
     onSuccess: () => {
       toast.success(`Line ${row.sourceLineNo} mapped`);
@@ -296,46 +387,77 @@ function RowLine({
             <span className="text-muted-foreground text-xs">not applicable</span>
           ) : editable ? (
             <div className="space-y-1">
-              {lines.map((l, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <ProjectPicker
-                    status="Ongoing"
-                    ariaLabel={`Line ${row.sourceLineNo} project ${i + 1}`}
-                    selected={l.project}
-                    onSelect={(p) =>
-                      setLines((cur) =>
-                        cur.map((x, xi) =>
-                          xi === i ? { ...x, project: p ? { id: p.id, name: p.name } : null } : x,
-                        ),
-                      )
-                    }
-                  />
-                  <AmountInput
-                    className="w-28"
-                    aria-label={`Line ${row.sourceLineNo} amount ${i + 1}`}
-                    value={l.amount}
-                    onChange={(v) =>
-                      setLines((cur) => cur.map((x, xi) => (xi === i ? { ...x, amount: v } : x)))
-                    }
-                  />
-                  {!isCredit && lines.length > 1 && (
-                    <button
-                      type="button"
-                      className="text-muted-foreground text-xs"
-                      onClick={() => setLines((cur) => cur.filter((_, xi) => xi !== i))}
+              {lines.map((l, i) => {
+                const partyType = PARTY_TYPE[l.target];
+                return (
+                  <div key={i} className="flex flex-wrap items-center gap-2">
+                    <Select
+                      className="h-8 w-32 text-xs"
+                      aria-label={`Line ${row.sourceLineNo} map to ${i + 1}`}
+                      value={l.target}
+                      onChange={(e) =>
+                        updateLine(i, {
+                          target: e.target.value as MappingTarget,
+                          party: null,
+                        })
+                      }
                     >
-                      remove
-                    </button>
-                  )}
-                </div>
-              ))}
+                      {MAPPING_TARGETS.map((t) => (
+                        <option key={t} value={t}>
+                          {TARGET_LABELS[t]}
+                        </option>
+                      ))}
+                    </Select>
+                    {partyType && (
+                      <div className="w-48">
+                        <PartyPicker
+                          key={l.target}
+                          type={partyType}
+                          ariaLabel={`Line ${row.sourceLineNo} ${TARGET_LABELS[l.target].toLowerCase()} ${i + 1}`}
+                          selected={l.party}
+                          onSelect={(p) => updateLine(i, { party: p })}
+                        />
+                      </div>
+                    )}
+                    {(l.target === "Project" || partyType) && (
+                      <div className="w-48">
+                        <ProjectPicker
+                          status="Ongoing"
+                          ariaLabel={`Line ${row.sourceLineNo} project ${i + 1}${
+                            partyType ? " (optional)" : ""
+                          }`}
+                          selected={l.project}
+                          onSelect={(p) =>
+                            updateLine(i, { project: p ? { id: p.id, name: p.name } : null })
+                          }
+                        />
+                      </div>
+                    )}
+                    <AmountInput
+                      className="w-28"
+                      aria-label={`Line ${row.sourceLineNo} amount ${i + 1}`}
+                      value={l.amount}
+                      onChange={(v) => updateLine(i, { amount: v })}
+                    />
+                    {!isCredit && lines.length > 1 && (
+                      <button
+                        type="button"
+                        className="text-muted-foreground text-xs"
+                        onClick={() => setLines((cur) => cur.filter((_, xi) => xi !== i))}
+                      >
+                        remove
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
               {!isCredit && (
                 <button
                   type="button"
                   className="text-xs underline"
-                  onClick={() => setLines((cur) => [...cur, { project: null, amount: "" }])}
+                  onClick={() => setLines((cur) => [...cur, blankLine()])}
                 >
-                  + project
+                  + line
                 </button>
               )}
               <div
@@ -350,7 +472,7 @@ function RowLine({
               <SubmitButton
                 type="button"
                 className="h-7 px-2 text-xs"
-                disabled={!balanced || lines.some((l) => l.project === null)}
+                disabled={!balanced || !lines.every(lineComplete)}
                 mutation={save}
                 onClick={() => save.mutate()}
               >
@@ -361,7 +483,7 @@ function RowLine({
             <ul className="text-xs">
               {row.allocations.map((a, i) => (
                 <li key={i} className="tabular-nums">
-                  {a.projectName}: {formatINR(a.amount)}
+                  {describe(a)}: {formatINR(a.amount)}
                 </li>
               ))}
             </ul>

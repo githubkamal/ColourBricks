@@ -35,6 +35,7 @@ import {
   type DetectedColumns,
   type PreviewBankImportRow,
 } from "./api";
+import { BalanceSummary } from "./balance-summary";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
@@ -503,6 +504,12 @@ export function BankStatementUploadPage() {
           {accountId !== "" && (
             <span className="text-muted-foreground block text-xs">
               Account number {selectedAccount?.accountNumber ?? "—"}
+              {selectedAccount && (
+                <>
+                  {" · "}opening {formatINR(selectedAccount.openingBalance)} · balance{" "}
+                  {formatINR(selectedAccount.statementBalance)}
+                </>
+              )}
             </span>
           )}
         </label>
@@ -767,6 +774,15 @@ export function BankStatementUploadPage() {
                     }}
                   />
                 </div>
+              )}
+
+              {rows.length > 0 && selectedAccount && (
+                <BalanceSummary
+                  currentBalance={selectedAccount.statementBalance}
+                  rows={rows.filter((r) => selection.ids.has(r.sourceLineNo))}
+                  currentLabel="Current balance"
+                  resultLabel="Balance after import"
+                />
               )}
 
               <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">

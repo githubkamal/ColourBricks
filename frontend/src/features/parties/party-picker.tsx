@@ -41,9 +41,11 @@ export interface PartyPickerProps {
   selected: PartySearchItem | null;
   onSelect: (party: PartySearchItem | null) => void;
   label?: string;
+  /** Accessible name when no visible `label` is wanted. Falls back to `label`, then "Party". */
+  ariaLabel?: string;
 }
 
-export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProps) {
+export function PartyPicker({ type, selected, onSelect, label, ariaLabel }: PartyPickerProps) {
   const queryClient = useQueryClient();
   const [term, setTerm] = useState("");
   const [debounced, setDebounced] = useState("");
@@ -206,7 +208,7 @@ export function PartyPicker({ type, selected, onSelect, label }: PartyPickerProp
           onFocus={() => setOpen(true)}
           onKeyDown={handleInputKeyDown}
           placeholder="Search or add…"
-          aria-label={label ?? "Party"}
+          aria-label={ariaLabel ?? label ?? "Party"}
           role="combobox"
           aria-expanded={open}
           aria-controls={listboxId}

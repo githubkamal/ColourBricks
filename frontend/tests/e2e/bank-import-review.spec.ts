@@ -94,7 +94,7 @@ test("staged bank import: map rows to projects, remove junk, commit", async ({ p
   const line1 = page.getByRole("row", { name: /NEFT MULTI VENDOR/ });
   await page.getByLabel("Line 1 project 1").selectOption({ label: `Import A ${stamp}` });
   await page.getByLabel("Line 1 amount 1").fill("25000");
-  await line1.getByRole("button", { name: "+ project" }).click();
+  await line1.getByRole("button", { name: "+ line" }).click();
   await page.getByLabel("Line 1 project 2").selectOption({ label: `Import B ${stamp}` });
   await page.getByLabel("Line 1 amount 2").fill("75000");
   await page

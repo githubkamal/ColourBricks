@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AmountInput } from "@/components/ui/amount-input";
 import { Button } from "@/components/ui/button";
 import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
@@ -11,7 +12,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
-import { formatDate, formatINR } from "@/lib/format";
+import { formatDate, formatINR, parseAmount } from "@/lib/format";
 import { getAccount, updateAccount } from "./api";
 import type { AccountDetail as AccountDetailDto } from "./types";
 
@@ -32,17 +33,12 @@ export function AccountDetail({ id }: { id: number }) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["accounts"] });
 
   const save = useMutation({
-    mutationFn: (input: {
-      name: string;
-      bankName: string | null;
-      accountNumber: string | null;
-      ifsc: string | null;
-    }) =>
+    mutationFn: (input: EditInput) =>
       updateAccount(id, {
         name: input.name,
         type: account!.type,
-        openingBalance: account!.openingBalance,
-        openingBalanceDate: account!.openingBalanceDate,
+        openingBalance: input.openingBalance,
+        openingBalanceDate: input.openingBalanceDate,
         bankName: input.bankName,
         accountNumber: input.accountNumber,
         ifsc: input.ifsc,
@@ -124,6 +120,20 @@ export function AccountDetail({ id }: { id: number }) {
         </div>
       </div>
 
+      {account.type === "Bank" && (
+        <div
+          className="bg-card border-border rounded-xl border p-4 shadow-xs"
+          data-testid="statement-balance"
+        >
+          <p className="text-muted-foreground text-xs uppercase">Bank balance (from statements)</p>
+          <p className="text-2xl font-semibold">{formatINR(account.statementBalance)}</p>
+          <p className="text-muted-foreground mt-1 text-xs tabular-nums">
+            Opening {formatINR(account.openingBalance)} + credits{" "}
+            {formatINR(account.statementCredits)} − debits {formatINR(account.statementDebits)}
+          </p>
+        </div>
+      )}
+
       <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
         <p className="text-muted-foreground text-xs uppercase">Balance (derived from ledger)</p>
         <p className="text-2xl font-semibold">{formatINR(account.balance)}</p>
@@ -173,21 +183,27 @@ export function AccountDetail({ id }: { id: number }) {
   );
 }
 
+interface EditInput {
+  name: string;
+  bankName: string | null;
+  accountNumber: string | null;
+  ifsc: string | null;
+  openingBalance: number;
+  openingBalanceDate: string;
+}
+
 function EditAccountForm({
   account,
   onSave,
   saving,
 }: {
   account: AccountDetailDto;
-  onSave: (input: {
-    name: string;
-    bankName: string | null;
-    accountNumber: string | null;
-    ifsc: string | null;
-  }) => void;
+  onSave: (input: EditInput) => void;
   saving: boolean;
 }) {
   const [name, setName] = useState(account.name);
+  const [openingBalance, setOpeningBalance] = useState(String(account.openingBalance));
+  const [openingBalanceDate, setOpeningBalanceDate] = useState(account.openingBalanceDate);
   const [bankName, setBankName] = useState(account.bankName ?? "");
   const [accountNumber, setAccountNumber] = useState(account.accountNumber ?? "");
   const [ifsc, setIfsc] = useState(account.ifsc ?? "");
@@ -203,6 +219,8 @@ function EditAccountForm({
           bankName: bankName.trim() || null,
           accountNumber: accountNumber.trim() || null,
           ifsc: ifsc.trim() || null,
+          openingBalance: openingBalance.trim() ? parseAmount(openingBalance) : 0,
+          openingBalanceDate,
         });
       }}
     >
@@ -225,6 +243,31 @@ function EditAccountForm({
             <Input value={ifsc} onChange={(e) => setIfsc(e.target.value)} />
           </div>
         </>
+      )}
+      {account.openingBalanceLocked ? (
+        <p className="text-muted-foreground text-xs">
+          The opening balance is locked because this account already has transactions.
+        </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-sm font-medium">Opening balance</label>
+            <AmountInput
+              value={openingBalance}
+              onChange={setOpeningBalance}
+              aria-label="Opening balance"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-sm font-medium">As of</label>
+            <Input
+              type="date"
+              value={openingBalanceDate}
+              onChange={(e) => setOpeningBalanceDate(e.target.value)}
+              aria-label="Opening balance date"
+            />
+          </div>
+        </div>
       )}
       <div className="flex justify-end gap-2 pt-2">
         <Button type="submit" disabled={saving || !name.trim()}>

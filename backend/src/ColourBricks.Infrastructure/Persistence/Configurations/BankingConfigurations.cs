@@ -1,5 +1,6 @@
 using ColourBricks.Domain.Accounts;
 using ColourBricks.Domain.Banking;
+using ColourBricks.Domain.Parties;
 using ColourBricks.Domain.Projects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -45,6 +46,7 @@ internal sealed class StagedBankRowAllocationConfiguration : IEntityTypeConfigur
         builder.ToTable("StagedBankRowAllocation");
         builder.HasIndex(x => x.StagedBankRowId);
         builder.HasOne<Project>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Party>().WithMany().HasForeignKey(x => x.PartyId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 
@@ -78,6 +80,7 @@ internal sealed class BankTransactionProjectHintConfiguration : IEntityTypeConfi
         builder.ToTable("BankTransactionProjectHint");
         builder.HasIndex(x => x.BankTransactionId);
         builder.HasOne<Project>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne<Party>().WithMany().HasForeignKey(x => x.PartyId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

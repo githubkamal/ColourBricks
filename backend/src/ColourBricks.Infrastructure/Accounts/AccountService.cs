@@ -1,6 +1,7 @@
 using ColourBricks.Application.Accounts;
 using ColourBricks.Application.Ledger;
 using ColourBricks.Domain.Accounts;
+using ColourBricks.Domain.Banking;
 using ColourBricks.Domain.Services;
 using ColourBricks.Infrastructure.Persistence;
 using FluentValidation;
@@ -29,9 +30,22 @@ public sealed class AccountService(AppDbContext db, ILedgerQueryService ledger) 
             .OrderBy(a => a.Type).ThenBy(a => a.Name)
             .ToListAsync(cancellationToken);
 
+        List<long> ids = rows.Select(a => a.Id).ToList();
+        Dictionary<long, (decimal Credit, decimal Debit)> statement =
+            (await StatementRows(ids)
+                .GroupBy(t => t.AccountId)
+                .Select(g => new { g.Key, Credit = g.Sum(t => t.Credit), Debit = g.Sum(t => t.Debit) })
+                .ToListAsync(cancellationToken))
+            .ToDictionary(x => x.Key, x => (x.Credit, x.Debit));
+
         return rows
-            .Select(a => new AccountListItemDto(
-                a.Id, a.Name, a.Type, a.BankName, Number(a.AccountNumber, unmasked), a.IsActive))
+            .Select(a =>
+            {
+                (decimal credit, decimal debit) = statement.GetValueOrDefault(a.Id);
+                return new AccountListItemDto(
+                    a.Id, a.Name, a.Type, a.BankName, Number(a.AccountNumber, unmasked), a.IsActive,
+                    a.OpeningBalance, a.OpeningBalance + credit - debit);
+            })
             .ToList();
     }
 
@@ -137,10 +151,28 @@ public sealed class AccountService(AppDbContext db, ILedgerQueryService ledger) 
         decimal balance = await ledger.GetAccountBalanceAsync(a.Id, cancellationToken);
         bool locked = await db.LedgerEntries.AnyAsync(l => l.AccountId == a.Id, cancellationToken);
 
+        var totals = await StatementRows([a.Id])
+            .GroupBy(_ => 1)
+            .Select(g => new { Credit = g.Sum(t => t.Credit), Debit = g.Sum(t => t.Debit) })
+            .FirstOrDefaultAsync(cancellationToken);
+        decimal credits = totals?.Credit ?? 0m;
+        decimal debits = totals?.Debit ?? 0m;
+
         return new AccountDto(
             a.Id, a.Name, a.Type, a.BankName, Number(a.AccountNumber, unmasked), a.Ifsc,
-            a.OpeningBalance, a.OpeningBalanceDate, balance, locked, a.IsActive, a.ConcurrencyStamp);
+            a.OpeningBalance, a.OpeningBalanceDate, balance, locked, a.IsActive, a.ConcurrencyStamp,
+            a.OpeningBalance + credits - debits, credits, debits);
     }
+
+    /// <summary>
+    /// Committed statement rows that count toward the bank-side balance. Excluded rows are
+    /// the accountant saying "this line should not count", so they are left out; every
+    /// other status — pending, on hold, reconciled, internal transfer — is real money the
+    /// bank moved. Derived, never stored (plan.md §5.3).
+    /// </summary>
+    private IQueryable<BankTransaction> StatementRows(List<long> accountIds) =>
+        db.BankTransactions.AsNoTracking()
+            .Where(t => accountIds.Contains(t.AccountId) && t.Status != BankTransactionStatus.Excluded);
 
     private static string? Number(string? accountNumber, bool unmasked)
     {

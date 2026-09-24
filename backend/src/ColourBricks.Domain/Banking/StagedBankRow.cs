@@ -44,13 +44,20 @@ public sealed class StagedBankRow : BaseEntity
     public ICollection<StagedBankRowAllocation> Allocations { get; set; } = [];
 }
 
-/// <summary>One project slice of a staged row (P4-T01). Debit rows may have many
-/// (summing to the debit); credit rows have exactly one (BRD §34 / rule 46).</summary>
+/// <summary>One slice of a staged row (P4-T01) — a project, a party (vendor, field
+/// officer, labour team, client) or a common bucket; see <see cref="Target"/>. Debit rows
+/// may have many (summing to the debit); credit rows have exactly one (BRD §34 / rule 46).</summary>
 public sealed class StagedBankRowAllocation : BaseEntity
 {
     public long StagedBankRowId { get; set; }
 
-    public long ProjectId { get; set; }
+    public BankRowMappingTarget Target { get; set; } = BankRowMappingTarget.Project;
+
+    /// <summary>Required for <see cref="BankRowMappingTarget.Project"/>; optional for party targets.</summary>
+    public long? ProjectId { get; set; }
+
+    /// <summary>Required for the party targets (vendor, field officer, labour, client).</summary>
+    public long? PartyId { get; set; }
 
     public decimal Amount { get; set; }
 }

@@ -1,10 +1,34 @@
 import { apiBaseUrl } from "@/lib/config";
 import { ApiError, apiClient } from "@/lib/api";
 
+/** What one slice of an imported row is mapped to — a project, a party or a common bucket. */
+export const MAPPING_TARGETS = [
+  "Project",
+  "Vendor",
+  "FieldOfficer",
+  "Labour",
+  "Client",
+  "Personal",
+  "Office",
+  "Savings",
+  "Other",
+] as const;
+export type MappingTarget = (typeof MAPPING_TARGETS)[number];
+
 export interface StagedProjectAllocation {
-  projectId: number;
+  target: MappingTarget;
+  projectId: number | null;
   projectName: string;
+  partyId: number | null;
+  partyName: string;
   amount: number;
+}
+
+export interface RowMappingInput {
+  target: MappingTarget;
+  amount: number;
+  projectId?: number | null;
+  partyId?: number | null;
 }
 
 export interface StagedBankRow {
@@ -62,7 +86,7 @@ export function getBankImport(batchId: number): Promise<BankImportBatch> {
 export function setRowAllocations(
   batchId: number,
   rowId: number,
-  allocations: { projectId: number; amount: number }[],
+  allocations: RowMappingInput[],
 ): Promise<StagedBankRow> {
   return apiClient.put<StagedBankRow>(`/bank-imports/${batchId}/rows/${rowId}/allocations`, {
     allocations,

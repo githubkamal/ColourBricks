@@ -32,3 +32,24 @@ public enum BankTransactionStatus : byte
     Excluded = 4,
     InternalTransfer = 5,
 }
+
+/// <summary>
+/// What one slice of an imported bank row is mapped to at import review (client request,
+/// 2026-09-24 — a row can go to a vendor, field officer, labour team, client or a common
+/// bucket, not only a project). TINYINT. Party targets carry a <c>PartyId</c> and an
+/// optional project; <see cref="Project"/> carries a project only; the buckets carry neither.
+/// </summary>
+public enum BankRowMappingTarget : byte
+{
+    Project = 1,
+    Vendor = 2,
+    FieldOfficer = 3,
+
+    /// <summary>A labour team — a <c>Party</c> with the Subcontractor role.</summary>
+    Labour = 4,
+    Client = 5,
+    Personal = 6,
+    Office = 7,
+    Savings = 8,
+    Other = 9,
+}

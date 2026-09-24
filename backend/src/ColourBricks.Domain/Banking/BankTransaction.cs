@@ -46,13 +46,17 @@ public sealed class BankTransaction : BaseEntity
     public ICollection<BankTransactionProjectHint> ProjectHints { get; set; } = [];
 }
 
-/// <summary>The import-review project mapping, carried as a hint only (P4-T01).
+/// <summary>The import-review mapping, carried as a hint only (P4-T01).
 /// Pre-fills the reconciliation screen; it is not a settlement or an allocation.</summary>
 public sealed class BankTransactionProjectHint : BaseEntity
 {
     public long BankTransactionId { get; set; }
 
-    public long ProjectId { get; set; }
+    public BankRowMappingTarget Target { get; set; } = BankRowMappingTarget.Project;
+
+    public long? ProjectId { get; set; }
+
+    public long? PartyId { get; set; }
 
     public decimal Amount { get; set; }
 }

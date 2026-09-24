@@ -73,14 +73,29 @@ public sealed class ReconciliationService(
         Dictionary<string, string> accountNames = await db.Accounts.AsNoTracking()
             .ToDictionaryAsync(a => a.Id.ToString(), a => a.Name, ct);
 
-        var hints = (await db.BankTransactionProjectHints.AsNoTracking()
-                .Where(h => ids.Contains(h.BankTransactionId))
-                .Join(db.Projects.AsNoTracking(), h => h.ProjectId, p => p.Id,
-                    (h, p) => new { h.BankTransactionId, h.ProjectId, p.Name, h.Amount })
-                .ToListAsync(ct))
+        // Import-review hints can now name a party or a bucket instead of a project
+        // (client request, 2026-09-24): only project hints feed the project detail, but
+        // every hint counts toward "allocated", and a party hint names the counterparty.
+        List<BankTransactionProjectHint> allHints = await db.BankTransactionProjectHints.AsNoTracking()
+            .Where(h => ids.Contains(h.BankTransactionId))
+            .ToListAsync(ct);
+        List<long> hintProjectIds = allHints.Select(h => h.ProjectId).OfType<long>().Distinct().ToList();
+        List<long> hintPartyIds = allHints.Select(h => h.PartyId).OfType<long>().Distinct().ToList();
+        Dictionary<long, string> hintProjectNames = await db.Projects.AsNoTracking()
+            .Where(p => hintProjectIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+        Dictionary<long, string> hintPartyNames = await db.Parties.AsNoTracking()
+            .Where(p => hintPartyIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+        Dictionary<long, List<BankTransactionProjectHint>> hintsByTx = allHints
             .GroupBy(h => h.BankTransactionId)
-            .ToDictionary(g => g.Key, g => g.Select(x =>
-                new ProjectAllocationDto(x.ProjectId, x.Name, x.Amount)).ToList());
+            .ToDictionary(g => g.Key, g => g.OrderBy(h => h.Id).ToList());
+        Dictionary<long, List<ProjectAllocationDto>> hints = hintsByTx
+            .ToDictionary(kv => kv.Key, kv => kv.Value
+                .Where(h => h.ProjectId is not null)
+                .Select(h => new ProjectAllocationDto(
+                    h.ProjectId!.Value, hintProjectNames.GetValueOrDefault(h.ProjectId.Value, ""), h.Amount))
+                .ToList());
 
         // A transaction can now carry several active links — a split map across vendors
         // and/or Personal/Office/Savings (client request, 2026-09-04) — so group rather
@@ -107,18 +122,31 @@ public sealed class ReconciliationService(
 
         var items = rows.Select(r =>
         {
-            List<ProjectAllocationDto> detail =
-                settlementIdsByTx.TryGetValue(r.Id, out List<long>? sids)
-                    ? sids.SelectMany(sid => linkedAlloc.GetValueOrDefault(sid, [])).ToList()
-                    : hints.GetValueOrDefault(r.Id, []);
-            decimal allocated = Money.Round(detail.Sum(d => d.Amount));
+            bool linked = settlementIdsByTx.TryGetValue(r.Id, out List<long>? sids);
+            List<ProjectAllocationDto> detail = linked
+                ? sids!.SelectMany(sid => linkedAlloc.GetValueOrDefault(sid, [])).ToList()
+                : hints.GetValueOrDefault(r.Id, []);
+            List<BankTransactionProjectHint> rowHints = hintsByTx.GetValueOrDefault(r.Id, []);
+            decimal allocated = Money.Round(linked ? detail.Sum(d => d.Amount) : rowHints.Sum(h => h.Amount));
             decimal amount = r.Debit > 0m ? r.Debit : r.Credit;
             string projects = detail.Count switch { 0 => "", 1 => detail[0].ProjectName, var n => $"{n} Projects" };
+            List<string> hintParties = rowHints
+                .Where(h => h.PartyId is not null)
+                .Select(h => hintPartyNames.GetValueOrDefault(h.PartyId!.Value, ""))
+                .Where(n => n.Length > 0)
+                .Distinct()
+                .ToList();
+            string? counterparty = hintParties.Count switch
+            {
+                0 => null,
+                1 => hintParties[0],
+                var n => $"{n} parties",
+            };
 
             return new ReconciliationRowDto(
                 r.Id, r.ValueDate, accountNames.GetValueOrDefault(r.AccountId.ToString(), ""),
                 r.Narration, r.Debit > 0m ? "Debit" : "Credit", r.Credit, r.Debit,
-                null, projects, allocated,
+                counterparty, projects, allocated,
                 r.Status == BankTransactionStatus.Reconciled ? 0m : Money.Round(amount - allocated),
                 r.Status.ToString(), detail);
         }).ToList();
@@ -132,9 +160,9 @@ public sealed class ReconciliationService(
         decimal amount = tx.Debit > 0m ? tx.Debit : tx.Credit;
 
         List<ProjectAllocationDto> hints = (await db.BankTransactionProjectHints.AsNoTracking()
-                .Where(h => h.BankTransactionId == bankTransactionId)
-                .Join(db.Projects.AsNoTracking(), h => h.ProjectId, p => p.Id,
-                    (h, p) => new ProjectAllocationDto(h.ProjectId, p.Name, h.Amount))
+                .Where(h => h.BankTransactionId == bankTransactionId && h.ProjectId != null)
+                .Join(db.Projects.AsNoTracking(), h => h.ProjectId!.Value, p => p.Id,
+                    (h, p) => new ProjectAllocationDto(p.Id, p.Name, h.Amount))
                 .ToListAsync(ct));
 
         List<ProjectAllocationDto> fifo = [];

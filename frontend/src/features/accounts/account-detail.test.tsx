@@ -31,6 +31,9 @@ const account: AccountDetailDto = {
   openingBalanceLocked: true,
   isActive: true,
   concurrencyStamp: "abc",
+  statementBalance: 125000,
+  statementCredits: 40000,
+  statementDebits: 15000,
 };
 
 describe("AccountDetail", () => {

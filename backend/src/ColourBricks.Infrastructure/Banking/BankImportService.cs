@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using ColourBricks.Application.Abstractions;
 using ColourBricks.Application.Banking;
 using ColourBricks.Domain.Banking;
+using ColourBricks.Domain.Parties;
 using ColourBricks.Domain.Services;
 using ColourBricks.Infrastructure.Persistence;
 using FluentValidation;
@@ -15,9 +16,10 @@ namespace ColourBricks.Infrastructure.Banking;
 
 /// <summary>
 /// P4-T01 — staged bank-statement import. Parsing lands rows in a Draft
-/// <see cref="ImportBatch"/>; the accountant maps each row to project(s) and removes
-/// the rest; <c>Commit</c> promotes the survivors to <c>BankTransaction (Pending)</c>
-/// with project hints. No settlement or ledger entry is created here.
+/// <see cref="ImportBatch"/>; the accountant maps each row to project(s), parties
+/// (vendor, field officer, labour team, client) or a common bucket and removes the
+/// rest; <c>Commit</c> promotes the survivors to <c>BankTransaction (Pending)</c> with
+/// those mappings as hints. No settlement or ledger entry is created here.
 /// </summary>
 public sealed partial class BankImportService(
     AppDbContext db,
@@ -145,14 +147,14 @@ public sealed partial class BankImportService(
             return null;
         }
 
-        Dictionary<long, string> projectNames = await ProjectNamesForBatchAsync(batch, cancellationToken);
+        MappingNames names = await NamesForBatchAsync(batch, cancellationToken);
         int committed = batch.Status == ImportBatchStatus.Committed
             ? await db.BankTransactions.CountAsync(t => t.ImportBatchId == batchId, cancellationToken)
             : 0;
 
         List<StagedBankRowDto> rows = batch.Rows
             .OrderBy(r => r.SourceLineNo)
-            .Select(r => ToRowDto(r, projectNames))
+            .Select(r => ToRowDto(r, names))
             .ToList();
 
         var counts = new BankImportOutcomeCountsDto(
@@ -183,41 +185,78 @@ public sealed partial class BankImportService(
         decimal target = row.Debit > 0m ? row.Debit : row.Credit;
         bool isCredit = row.Credit > 0m;
 
-        List<ProjectAllocationInput> allocations = request.Allocations
-            .Where(a => a.ProjectId > 0)
+        // A bucket never carries a project or party, and a project line never carries a
+        // party — drop any stray id the client sent rather than storing it.
+        List<BankRowMappingInput> allocations = request.Allocations
+            .Select(a => IsBucket(a.Target) ? a with { ProjectId = null, PartyId = null } : a)
+            .Select(a => a.Target == BankRowMappingTarget.Project ? a with { PartyId = null } : a)
             .ToList();
 
         if (allocations.Count == 0)
         {
-            throw Fail("allocations", "Assign the row to at least one project.");
+            throw Fail("allocations", "Map the row to at least one project, party or bucket.");
         }
 
         if (isCredit && allocations.Count > 1)
         {
-            throw Fail("allocations", "A credit must be assigned to exactly one project (BRD §34).");
+            throw Fail("allocations", "A credit must be mapped to exactly one line (BRD §34).");
+        }
+
+        if (allocations.Any(a => !Enum.IsDefined(a.Target)))
+        {
+            throw Fail("allocations", "Unknown mapping target.");
         }
 
         if (allocations.Any(a => a.Amount <= 0m))
         {
-            throw Fail("allocations", "Every project amount must be greater than zero.");
+            throw Fail("allocations", "Every amount must be greater than zero.");
         }
 
-        var projectIds = allocations.Select(a => a.ProjectId).Distinct().ToList();
-        if (projectIds.Count != allocations.Count)
+        if (allocations.Any(a => a.Target == BankRowMappingTarget.Project && a.ProjectId is not > 0))
         {
-            throw Fail("allocations", "A project appears more than once.");
+            throw Fail("allocations", "Pick a project for every project line.");
         }
 
-        int known = await db.Projects.CountAsync(p => projectIds.Contains(p.Id), cancellationToken);
-        if (known != projectIds.Count)
+        if (allocations.Any(a => IsParty(a.Target) && a.PartyId is not > 0))
+        {
+            throw Fail("allocations", "Pick a vendor, field officer, labour team or client for every party line.");
+        }
+
+        if (allocations.GroupBy(a => (a.Target, a.ProjectId, a.PartyId)).Any(g => g.Count() > 1))
+        {
+            throw Fail("allocations", "The same mapping appears more than once.");
+        }
+
+        var projectIds = allocations.Where(a => a.ProjectId is not null)
+            .Select(a => a.ProjectId!.Value).Distinct().ToList();
+        int knownProjects = await db.Projects.CountAsync(p => projectIds.Contains(p.Id), cancellationToken);
+        if (knownProjects != projectIds.Count)
         {
             throw Fail("allocations", "One of the projects does not exist.");
+        }
+
+        var partyIds = allocations.Where(a => a.PartyId is not null)
+            .Select(a => a.PartyId!.Value).Distinct().ToList();
+        Dictionary<long, PartyType> partyTypes = await db.Parties.AsNoTracking()
+            .Where(p => partyIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.Types, cancellationToken);
+        foreach (BankRowMappingInput a in allocations.Where(a => a.PartyId is not null))
+        {
+            if (!partyTypes.TryGetValue(a.PartyId!.Value, out PartyType types))
+            {
+                throw Fail("allocations", "One of the parties does not exist.");
+            }
+
+            if ((types & RequiredPartyType(a.Target)) == 0)
+            {
+                throw Fail("allocations", $"That party is not a {TargetLabel(a.Target)}.");
+            }
         }
 
         if (Money.Round(allocations.Sum(a => a.Amount)) != Money.Round(target))
         {
             throw Fail("allocations",
-                $"The project amounts total {allocations.Sum(a => a.Amount):0.00} but the row is {target:0.00}.");
+                $"The mapped amounts total {allocations.Sum(a => a.Amount):0.00} but the row is {target:0.00}.");
         }
 
         db.StagedBankRowAllocations.RemoveRange(row.Allocations);
@@ -225,14 +264,16 @@ public sealed partial class BankImportService(
             .Select(a => new StagedBankRowAllocation
             {
                 StagedBankRowId = row.Id,
+                Target = a.Target,
                 ProjectId = a.ProjectId,
+                PartyId = a.PartyId,
                 Amount = Money.Round(a.Amount),
             })
             .ToList();
 
         await db.SaveChangesAsync(cancellationToken);
 
-        Dictionary<long, string> names = await ProjectNamesForBatchAsync(batch, cancellationToken);
+        MappingNames names = await NamesForBatchAsync(batch, cancellationToken);
         return ToRowDto(row, names);
     }
 
@@ -290,7 +331,7 @@ public sealed partial class BankImportService(
         if (blocked.Count > 0)
         {
             throw Fail("rows",
-                "Every kept row must be mapped to project(s) and be free of duplicates before "
+                "Every kept row must be mapped and be free of duplicates before "
                 + "commit — remove any duplicate or unmapped row first. "
                 + string.Join("; ", blocked));
         }
@@ -327,7 +368,13 @@ public sealed partial class BankImportService(
                     RowHash = Hash(sig, occurrenceIndex),
                     Status = BankTransactionStatus.Pending,
                     ProjectHints = r.Allocations
-                        .Select(a => new BankTransactionProjectHint { ProjectId = a.ProjectId, Amount = a.Amount })
+                        .Select(a => new BankTransactionProjectHint
+                        {
+                            Target = a.Target,
+                            ProjectId = a.ProjectId,
+                            PartyId = a.PartyId,
+                            Amount = a.Amount,
+                        })
                         .ToList(),
                 });
             }
@@ -413,16 +460,15 @@ public sealed partial class BankImportService(
             return null;
         }
 
-        List<long> projectIds = t.ProjectHints.Select(h => h.ProjectId).Distinct().ToList();
-        Dictionary<long, string> names = await db.Projects.AsNoTracking()
-            .Where(p => projectIds.Contains(p.Id))
-            .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+        MappingNames names = await NamesAsync(
+            t.ProjectHints.Select(h => h.ProjectId), t.ProjectHints.Select(h => h.PartyId), cancellationToken);
 
         return new BankTransactionDto(
             t.Id, t.ImportBatchId, t.AccountId, t.ValueDate, t.Narration, t.Debit, t.Credit,
             t.RunningBalance, t.BankReference, t.OccurrenceIndex, t.Status.ToString(), t.ExclusionReason,
             t.ProjectHints
-                .Select(h => new ProjectAllocationDto(h.ProjectId, names.GetValueOrDefault(h.ProjectId, ""), h.Amount))
+                .OrderBy(h => h.Id)
+                .Select(h => names.Dto(h.Target, h.ProjectId, h.PartyId, h.Amount))
                 .ToList());
     }
 
@@ -528,24 +574,64 @@ public sealed partial class BankImportService(
         return (batch, row);
     }
 
-    private async Task<Dictionary<long, string>> ProjectNamesForBatchAsync(
-        ImportBatch batch, CancellationToken cancellationToken)
+    private Task<MappingNames> NamesForBatchAsync(ImportBatch batch, CancellationToken cancellationToken)
     {
-        List<long> ids = batch.Rows
-            .SelectMany(r => r.Allocations.Select(a => a.ProjectId))
-            .Distinct()
-            .ToList();
-        if (ids.Count == 0)
-        {
-            return [];
-        }
-
-        return await db.Projects.AsNoTracking()
-            .Where(p => ids.Contains(p.Id))
-            .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+        List<StagedBankRowAllocation> all = batch.Rows.SelectMany(r => r.Allocations).ToList();
+        return NamesAsync(all.Select(a => a.ProjectId), all.Select(a => a.PartyId), cancellationToken);
     }
 
-    private static StagedBankRowDto ToRowDto(StagedBankRow r, Dictionary<long, string> projectNames)
+    private async Task<MappingNames> NamesAsync(
+        IEnumerable<long?> projectIds, IEnumerable<long?> partyIds, CancellationToken cancellationToken)
+    {
+        List<long> pids = projectIds.OfType<long>().Distinct().ToList();
+        List<long> parties = partyIds.OfType<long>().Distinct().ToList();
+
+        Dictionary<long, string> projectNames = pids.Count == 0
+            ? []
+            : await db.Projects.AsNoTracking()
+                .Where(p => pids.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+        Dictionary<long, string> partyNames = parties.Count == 0
+            ? []
+            : await db.Parties.AsNoTracking()
+                .Where(p => parties.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+        return new MappingNames(projectNames, partyNames);
+    }
+
+    private sealed record MappingNames(Dictionary<long, string> Projects, Dictionary<long, string> Parties)
+    {
+        public BankRowMappingDto Dto(BankRowMappingTarget target, long? projectId, long? partyId, decimal amount) =>
+            new(target.ToString(),
+                projectId, projectId is { } p ? Projects.GetValueOrDefault(p, "") : "",
+                partyId, partyId is { } q ? Parties.GetValueOrDefault(q, "") : "",
+                amount);
+    }
+
+    private static bool IsParty(BankRowMappingTarget target) => RequiredPartyType(target) != PartyType.None;
+
+    private static bool IsBucket(BankRowMappingTarget target) =>
+        target is BankRowMappingTarget.Personal or BankRowMappingTarget.Office
+            or BankRowMappingTarget.Savings or BankRowMappingTarget.Other;
+
+    private static PartyType RequiredPartyType(BankRowMappingTarget target) => target switch
+    {
+        BankRowMappingTarget.Vendor => PartyType.Vendor,
+        BankRowMappingTarget.FieldOfficer => PartyType.FieldOfficer,
+        BankRowMappingTarget.Labour => PartyType.Subcontractor,
+        BankRowMappingTarget.Client => PartyType.Client,
+        _ => PartyType.None,
+    };
+
+    private static string TargetLabel(BankRowMappingTarget target) => target switch
+    {
+        BankRowMappingTarget.FieldOfficer => "field officer",
+        BankRowMappingTarget.Labour => "labour team",
+        _ => target.ToString().ToLowerInvariant(),
+    };
+
+    private static StagedBankRowDto ToRowDto(StagedBankRow r, MappingNames names)
     {
         decimal allocated = Money.Round(r.Allocations.Sum(a => a.Amount));
         bool ready = Ready(r);
@@ -554,8 +640,7 @@ public sealed partial class BankImportService(
             r.ParseState.ToString(), r.ParseError, r.DuplicateOfBankTransactionId, r.IsRemoved,
             r.Allocations
                 .OrderBy(a => a.Id)
-                .Select(a => new ProjectAllocationDto(
-                    a.ProjectId, projectNames.GetValueOrDefault(a.ProjectId, ""), a.Amount))
+                .Select(a => names.Dto(a.Target, a.ProjectId, a.PartyId, a.Amount))
                 .ToList(),
             allocated,
             ready,
@@ -603,15 +688,15 @@ public sealed partial class BankImportService(
 
         if (r.Allocations.Count == 0)
         {
-            return "not mapped to a project";
+            return "not mapped";
         }
 
         if (r.Credit > 0m && r.Allocations.Count != 1)
         {
-            return "a credit must be a single project";
+            return "a credit must be mapped to a single line";
         }
 
-        return $"project amounts total {r.Allocations.Sum(a => a.Amount):0.00}, not {target:0.00}";
+        return $"mapped amounts total {r.Allocations.Sum(a => a.Amount):0.00}, not {target:0.00}";
     }
 
     private static string Signature(

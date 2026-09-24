@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AmountInput } from "@/components/ui/amount-input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
@@ -11,13 +12,20 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
+import { formatINR, parseAmount } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
 import { createAccount, listAccounts } from "./api";
 import type { AccountType } from "./types";
 
+const today = () => new Date().toISOString().slice(0, 10);
+
 export function AccountsPage({ type }: { type: AccountType }) {
   const queryClient = useQueryClient();
   const [name, setName] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
+  const [openingBalance, setOpeningBalance] = useState("");
+  const [openingBalanceDate, setOpeningBalanceDate] = useState(today);
 
   const { data, isPending } = useQuery({
     queryKey: ["accounts", { type }],
@@ -30,13 +38,19 @@ export function AccountsPage({ type }: { type: AccountType }) {
       createAccount({
         name: name.trim(),
         type,
-        openingBalance: 0,
-        openingBalanceDate: new Date().toISOString().slice(0, 10),
+        openingBalance: openingBalance.trim() ? parseAmount(openingBalance) : 0,
+        openingBalanceDate,
+        bankName: type === "Bank" ? bankName.trim() || null : null,
+        accountNumber: type === "Bank" ? accountNumber.trim() || null : null,
       }),
     onSuccess: (outcome) => {
       if (outcome.kind === "created") {
         toast.success(`${outcome.account.name} added`);
         setName("");
+        setBankName("");
+        setAccountNumber("");
+        setOpeningBalance("");
+        setOpeningBalanceDate(today());
         void queryClient.invalidateQueries({ queryKey: ["accounts"] });
       } else {
         toast.message("That account already exists");
@@ -51,21 +65,64 @@ export function AccountsPage({ type }: { type: AccountType }) {
       <PageHeader title={`${type} Accounts`} />
 
       <form
-        className="flex gap-2"
+        className="bg-card border-border grid gap-3 rounded-xl border p-4 shadow-xs sm:grid-cols-2"
         onSubmit={(e) => {
           e.preventDefault();
           if (name.trim()) add.mutate();
         }}
       >
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={type === "Cash" ? "e.g. Office Cash" : "e.g. HDFC"}
-          aria-label={`New ${type.toLowerCase()} account name`}
-        />
-        <SubmitButton type="submit" disabled={!name.trim()} mutation={add}>
-          Add
-        </SubmitButton>
+        <label className="space-y-1 sm:col-span-2">
+          <span className="text-sm font-medium">Name</span>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={type === "Cash" ? "e.g. Office Cash" : "e.g. HDFC"}
+            aria-label={`New ${type.toLowerCase()} account name`}
+          />
+        </label>
+        {type === "Bank" && (
+          <>
+            <label className="space-y-1">
+              <span className="text-sm font-medium">Bank</span>
+              <Input
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
+                aria-label="Bank name"
+              />
+            </label>
+            <label className="space-y-1">
+              <span className="text-sm font-medium">Account number</span>
+              <Input
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
+                aria-label="Account number"
+              />
+            </label>
+          </>
+        )}
+        <label className="space-y-1">
+          <span className="text-sm font-medium">Opening balance</span>
+          <AmountInput
+            value={openingBalance}
+            onChange={setOpeningBalance}
+            placeholder="0.00"
+            aria-label="Opening balance"
+          />
+        </label>
+        <label className="space-y-1">
+          <span className="text-sm font-medium">As of</span>
+          <Input
+            type="date"
+            value={openingBalanceDate}
+            onChange={(e) => setOpeningBalanceDate(e.target.value)}
+            aria-label="Opening balance date"
+          />
+        </label>
+        <div className="flex justify-end sm:col-span-2">
+          <SubmitButton type="submit" disabled={!name.trim() || !openingBalanceDate} mutation={add}>
+            Add
+          </SubmitButton>
+        </div>
       </form>
 
       {dataState({
@@ -83,6 +140,15 @@ export function AccountsPage({ type }: { type: AccountType }) {
                 <th className="p-2 font-medium">Name</th>
                 {type === "Bank" && <th className="p-2 font-medium">Bank</th>}
                 {type === "Bank" && <th className="p-2 font-medium">Number</th>}
+                {type === "Bank" && <th className="p-2 text-right font-medium">Opening</th>}
+                {type === "Bank" && (
+                  <th
+                    className="p-2 text-right font-medium"
+                    title="Opening + statement credits − debits"
+                  >
+                    Balance
+                  </th>
+                )}
                 <th className="p-2 font-medium">Status</th>
                 <th className="p-2 font-medium" />
               </tr>
@@ -96,6 +162,16 @@ export function AccountsPage({ type }: { type: AccountType }) {
                   )}
                   {type === "Bank" && (
                     <td className="text-muted-foreground p-2">{account.accountNumber ?? "—"}</td>
+                  )}
+                  {type === "Bank" && (
+                    <td className="text-muted-foreground p-2 text-right tabular-nums">
+                      {formatINR(account.openingBalance)}
+                    </td>
+                  )}
+                  {type === "Bank" && (
+                    <td className="p-2 text-right font-medium tabular-nums">
+                      {formatINR(account.statementBalance)}
+                    </td>
                   )}
                   <td className="p-2">
                     <StatusBadge status={account.isActive ? "Active" : "Inactive"} />

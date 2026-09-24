@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { describe, expect, it } from "vitest";
 import { apiBaseUrl } from "@/lib/config";
@@ -20,6 +20,24 @@ const projects = {
   pageSize: 200,
   totalCount: 2,
   totalPages: 1,
+};
+
+const account = {
+  id: 3,
+  name: "HDFC Current",
+  type: "Bank",
+  bankName: "HDFC Bank",
+  accountNumber: "****1234",
+  ifsc: null,
+  openingBalance: 200000,
+  openingBalanceDate: "2026-04-01",
+  balance: 200000,
+  openingBalanceLocked: false,
+  isActive: true,
+  concurrencyStamp: "abc",
+  statementBalance: 250000,
+  statementCredits: 50000,
+  statementDebits: 0,
 };
 
 function batch(rows: unknown[], overrides: Record<string, unknown> = {}) {
@@ -60,7 +78,7 @@ const debitRow = {
   allocations: [],
   allocatedTotal: 0,
   readyToCommit: false,
-  blockedReason: "not mapped to a project",
+  blockedReason: "not mapped",
 };
 
 const creditRowReady = {
@@ -76,7 +94,16 @@ const creditRowReady = {
   parseError: null,
   duplicateOfBankTransactionId: null,
   isRemoved: false,
-  allocations: [{ projectId: 1, projectName: "Project A", amount: 500000 }],
+  allocations: [
+    {
+      target: "Project",
+      projectId: 1,
+      projectName: "Project A",
+      partyId: null,
+      partyName: "",
+      amount: 500000,
+    },
+  ],
   allocatedTotal: 500000,
   readyToCommit: true,
   blockedReason: null,
@@ -89,11 +116,12 @@ describe("BankImportReviewPage", () => {
         HttpResponse.json(batch([debitRow, creditRowReady])),
       ),
       http.get(`${apiBaseUrl}/projects`, () => HttpResponse.json(projects)),
+      http.get(`${apiBaseUrl}/accounts/3`, () => HttpResponse.json(account)),
     );
     renderWithClient(<BankImportReviewPage batchId={7} />);
 
     expect(await screen.findByTestId("import-counts")).toBeInTheDocument();
-    expect(screen.getByText(/1 row\(s\) still need a project mapping/)).toBeInTheDocument();
+    expect(screen.getByText(/1 row\(s\) still need a mapping/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Commit 1 transaction/ })).toBeDisabled();
 
     // The credit row offers a single project slot — no "+ project" — and it's
@@ -113,12 +141,22 @@ describe("BankImportReviewPage", () => {
               allocatedTotal: 100000,
               readyToCommit: true,
               blockedReason: null,
-              allocations: [{ projectId: 1, projectName: "Project A", amount: 100000 }],
+              allocations: [
+                {
+                  target: "Project",
+                  projectId: 1,
+                  projectName: "Project A",
+                  partyId: null,
+                  partyName: "",
+                  amount: 100000,
+                },
+              ],
             },
           ]),
         ),
       ),
       http.get(`${apiBaseUrl}/projects`, () => HttpResponse.json(projects)),
+      http.get(`${apiBaseUrl}/accounts/3`, () => HttpResponse.json(account)),
     );
     renderWithClient(<BankImportReviewPage batchId={7} />);
 
@@ -139,6 +177,7 @@ describe("BankImportReviewPage", () => {
         HttpResponse.json(batch([creditRowReady, duplicateRow])),
       ),
       http.get(`${apiBaseUrl}/projects`, () => HttpResponse.json(projects)),
+      http.get(`${apiBaseUrl}/accounts/3`, () => HttpResponse.json(account)),
     );
     renderWithClient(<BankImportReviewPage batchId={7} />);
 
@@ -148,5 +187,76 @@ describe("BankImportReviewPage", () => {
     expect(screen.getByRole("button", { name: /Commit 1 transaction/ })).toBeDisabled();
     // The duplicate row shows no mapping controls — nothing to map, it needs removing.
     expect(screen.getByText("not applicable")).toBeInTheDocument();
+  });
+
+  it("BankImportReview_ShowsBalanceAfterCommit_FromCurrentBalancePlusCreditsMinusDebits", async () => {
+    server.use(
+      http.get(`${apiBaseUrl}/bank-imports/7`, () =>
+        HttpResponse.json(batch([debitRow, creditRowReady])),
+      ),
+      http.get(`${apiBaseUrl}/accounts/3`, () => HttpResponse.json(account)),
+    );
+    renderWithClient(<BankImportReviewPage batchId={7} />);
+
+    // 2,50,000 now + 5,00,000 credit − 1,00,000 debit = 6,50,000 after commit.
+    const summary = await screen.findByTestId("balance-summary");
+    expect(summary).toHaveTextContent("HDFC Current balance now");
+    expect(summary).toHaveTextContent("2,50,000");
+    expect(summary).toHaveTextContent("5,00,000");
+    expect(summary).toHaveTextContent("1,00,000");
+    expect(summary).toHaveTextContent("6,50,000");
+  });
+
+  it("BankImportReview_SavesAVendorMapping_WithPartyAndOptionalProject", async () => {
+    const vendorRow = {
+      ...debitRow,
+      allocations: [
+        {
+          target: "Vendor",
+          projectId: null,
+          projectName: "",
+          partyId: 55,
+          partyName: "ABC Hardware",
+          amount: 100000,
+        },
+      ],
+      allocatedTotal: 100000,
+    };
+    let body: unknown = null;
+    server.use(
+      http.get(`${apiBaseUrl}/bank-imports/7`, () => HttpResponse.json(batch([vendorRow]))),
+      http.get(`${apiBaseUrl}/accounts/3`, () => HttpResponse.json(account)),
+      http.put(`${apiBaseUrl}/bank-imports/7/rows/11/allocations`, async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ ...vendorRow, readyToCommit: true });
+      }),
+    );
+    renderWithClient(<BankImportReviewPage batchId={7} />);
+
+    expect(await screen.findByText("ABC Hardware")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Line 1 map to 1" })).toHaveValue("Vendor");
+
+    fireEvent.click(screen.getByRole("button", { name: "Save mapping" }));
+
+    await waitFor(() =>
+      expect(body).toEqual({
+        allocations: [{ target: "Vendor", amount: 100000, projectId: null, partyId: 55 }],
+      }),
+    );
+  });
+
+  it("BankImportReview_BucketTarget_NeedsNoProjectOrParty", async () => {
+    server.use(
+      http.get(`${apiBaseUrl}/bank-imports/7`, () => HttpResponse.json(batch([debitRow]))),
+      http.get(`${apiBaseUrl}/accounts/3`, () => HttpResponse.json(account)),
+    );
+    renderWithClient(<BankImportReviewPage batchId={7} />);
+
+    const target = await screen.findByRole("combobox", { name: "Line 1 map to 1" });
+    fireEvent.change(target, { target: { value: "Office" } });
+    fireEvent.change(screen.getByLabelText("Line 1 amount 1"), { target: { value: "100000" } });
+
+    expect(screen.queryByLabelText("Line 1 project 1")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save mapping" })).toBeEnabled();
   });
 });
