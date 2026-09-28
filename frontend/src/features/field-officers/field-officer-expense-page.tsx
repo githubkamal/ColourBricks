@@ -69,7 +69,8 @@ export function FieldOfficerExpensePage() {
 
   const { data: bills = [] } = useQuery({
     queryKey: ["field-officer-expenses", officer?.id],
-    queryFn: async () => (await listFieldOfficerExpenses(officer!.id)).filter((b) => b.projectId === null),
+    queryFn: async () =>
+      (await listFieldOfficerExpenses(officer!.id)).filter((b) => b.projectId === null),
     enabled: officer !== null,
   });
   const { pageRows: pagedBills, page, setPage, pageCount, total } = usePagination(bills, 20);

@@ -176,8 +176,9 @@ export function ProjectForm() {
           className="border-attention/50 bg-attention/10 space-y-1 rounded-lg border p-3 text-sm"
         >
           <p className="font-medium">
-            A project with this {duplicates.some((d) => d.matchedOn === "name") ? "name" : "site address"}{" "}
-            already exists. Check before creating a duplicate site:
+            A project with this{" "}
+            {duplicates.some((d) => d.matchedOn === "name") ? "name" : "site address"} already
+            exists. Check before creating a duplicate site:
           </p>
           <ul className="list-inside list-disc">
             {duplicates.map((d) => (
@@ -185,7 +186,9 @@ export function ProjectForm() {
                 <Link href={`/projects/${d.id}`} target="_blank" className="underline">
                   {d.code} — {d.name}
                 </Link>
-                {d.siteAddress ? <span className="text-muted-foreground"> · {d.siteAddress}</span> : null}
+                {d.siteAddress ? (
+                  <span className="text-muted-foreground"> · {d.siteAddress}</span>
+                ) : null}
               </li>
             ))}
           </ul>

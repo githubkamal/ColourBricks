@@ -67,7 +67,9 @@ export function FieldOfficerProjectPaymentPage() {
 
   function refresh() {
     void queryClient.invalidateQueries({ queryKey: ["field-officer-summary", officer?.id] });
-    void queryClient.invalidateQueries({ queryKey: ["field-officer-project-payments", officer?.id] });
+    void queryClient.invalidateQueries({
+      queryKey: ["field-officer-project-payments", officer?.id],
+    });
     // The mapped project's spend, P&L, ledger and budget-vs-actual all derive from the
     // ledger — refetch them rather than guess which cached screen shows the figure.
     void queryClient.invalidateQueries({ queryKey: ["project"] });

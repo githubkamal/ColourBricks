@@ -189,10 +189,13 @@ export function ProjectList() {
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <label className="text-muted-foreground flex items-center gap-1.5 text-sm">
             Sort
-            <Select value={sortBy} onChange={(e) => {
+            <Select
+              value={sortBy}
+              onChange={(e) => {
                 setSortBy(e.target.value as SortKey);
                 setPage(1);
-              }}>
+              }}
+            >
               {Object.entries(SORT_LABELS).map(([key, label]) => (
                 <option key={key} value={key}>
                   {label}

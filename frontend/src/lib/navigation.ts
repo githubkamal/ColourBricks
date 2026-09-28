@@ -93,7 +93,11 @@ export const navigation: NavSection[] = [
         href: "/reports/explorer?report=field-officer-outstanding",
         permission: "reports.view",
       },
-      { label: "Project Payments", href: "/field-officers/project-payments", permission: "vendors.view" },
+      {
+        label: "Project Payments",
+        href: "/field-officers/project-payments",
+        permission: "vendors.view",
+      },
       { label: "No-project Bills", href: "/field-officers/bills", permission: "vendors.view" },
       { label: "Statement", href: "/field-officers/statements", permission: "vendors.view" },
     ],
