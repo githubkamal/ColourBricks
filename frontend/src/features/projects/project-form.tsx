@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -69,7 +69,7 @@ export function ProjectForm() {
     handleSubmit,
     setError,
     setFocus,
-    watch,
+    control,
     formState: { errors, isDirty, isSubmitSuccessful },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -78,8 +78,8 @@ export function ProjectForm() {
 
   // "This site already exists" check — runs as the name / site address are typed, so
   // the warning shows before the user fills in the rest of the form.
-  const debouncedName = useDebouncedValue(watch("name") ?? "", 400);
-  const debouncedSite = useDebouncedValue(watch("siteAddress") ?? "", 400);
+  const debouncedName = useDebouncedValue(useWatch({ control, name: "name" }) ?? "", 400);
+  const debouncedSite = useDebouncedValue(useWatch({ control, name: "siteAddress" }) ?? "", 400);
   const { data: duplicates = [] } = useQuery({
     queryKey: ["project-duplicates", debouncedName, debouncedSite],
     queryFn: () => findProjectDuplicates(debouncedName, debouncedSite),
