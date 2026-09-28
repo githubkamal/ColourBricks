@@ -26,6 +26,7 @@ import {
   listVendorPayments,
   recordVendorPayment,
   reverseVendorPayment,
+  vendorOpenPurchases,
   vendorOutstandingSummary,
 } from "./api";
 
@@ -65,6 +66,10 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
     queryKey: ["vendor-outstanding-summary", vendorId],
     queryFn: () => vendorOutstandingSummary(vendorId),
   });
+  const { data: openPurchases = [] } = useQuery({
+    queryKey: ["vendor-open-purchases", vendorId],
+    queryFn: () => vendorOpenPurchases(vendorId),
+  });
   const { data: accounts = [] } = useQuery({
     queryKey: ["accounts", { all: true }],
     queryFn: () => listAccounts(),
@@ -89,6 +94,7 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
   const invalidate = () => {
     void queryClient.invalidateQueries({ queryKey: ["vendor-outstanding-summary", vendorId] });
     void queryClient.invalidateQueries({ queryKey: ["vendor-payments", vendorId] });
+    void queryClient.invalidateQueries({ queryKey: ["vendor-open-purchases", vendorId] });
   };
 
   const pay = useMutation({
@@ -153,6 +159,46 @@ function VendorPay({ vendorId, vendorName }: { vendorId: number; vendorName: str
           ))}
         </ul>
       </div>
+
+      {openPurchases.length > 0 && (
+        <div
+          data-table-scroll
+          className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+        >
+          <table className="w-full text-sm">
+            <thead className="bg-secondary/60 text-muted-foreground">
+              <tr className="border-b text-left">
+                <th className="p-2 font-medium">PO no.</th>
+                <th className="p-2 font-medium">PO date</th>
+                <th className="p-2 font-medium">Purchase date</th>
+                <th className="p-2 font-medium">Project</th>
+                <th className="p-2 text-right font-medium">Outstanding</th>
+                <th className="p-2 text-right font-medium">Days</th>
+              </tr>
+            </thead>
+            <tbody>
+              {openPurchases.map((p) => (
+                <tr key={p.obligationId} className="border-b last:border-0">
+                  <td className="p-2">{p.poNumber ?? "—"}</td>
+                  <td data-nowrap className="p-2">
+                    {p.poDate ? formatDate(p.poDate) : "—"}
+                  </td>
+                  <td data-nowrap className="p-2">
+                    {formatDate(p.purchaseDate)}
+                  </td>
+                  <td className="p-2">{p.projectName}</td>
+                  <td className="p-2 text-right tabular-nums">{formatINR(p.outstanding)}</td>
+                  <td
+                    className={`p-2 text-right tabular-nums ${p.daysSincePurchase > 60 ? "text-negative" : p.daysSincePurchase > 30 ? "text-attention" : ""}`}
+                  >
+                    {p.daysSincePurchase}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <form
         className="bg-card border-border grid grid-cols-2 gap-3 rounded-xl border p-4 shadow-xs"

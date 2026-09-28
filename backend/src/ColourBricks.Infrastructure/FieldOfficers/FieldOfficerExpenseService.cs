@@ -42,9 +42,30 @@ public sealed class FieldOfficerExpenseService(
             throw Fail("fieldOfficerId", "This party is not marked as a field officer.");
         }
 
-        if (!Enum.TryParse(request.Type, ignoreCase: true, out CommonExpenseType type))
+        // A project-mapped bill isn't one of the four company buckets — its Type column
+        // is just Custom and the category below carries the real classification.
+        CommonExpenseType type = CommonExpenseType.Custom;
+        if (request.ProjectId is null
+            && !Enum.TryParse(request.Type, ignoreCase: true, out type))
         {
             throw Fail("type", "Type must be Personal, Office, Savings or Custom.");
+        }
+
+        long? categoryId = null;
+        if (request.ProjectId is { } projectId)
+        {
+            if (!await db.Projects.AnyAsync(p => p.Id == projectId && p.IsActive, ct))
+            {
+                throw Fail("projectId", "The project does not exist.");
+            }
+
+            categoryId = request.CategoryId ?? await categories.RequireIdAsync("other_expenses", ct);
+            var category = await db.ExpenseCategories.AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == categoryId, ct);
+            if (category is null || !category.IsCost)
+            {
+                throw Fail("categoryId", "Choose a valid expense category.");
+            }
         }
 
         if (request.Amount <= 0m)
@@ -61,22 +82,26 @@ public sealed class FieldOfficerExpenseService(
             ReferenceNo = request.ReferenceNo,
             Description = request.Description,
             Status = FieldOfficerExpenseStatus.Active,
+            ProjectId = request.ProjectId,
+            CategoryId = categoryId,
         };
         db.Set<FieldOfficerExpense>().Add(expense);
         await db.SaveChangesAsync(ct);
 
-        long expenseCategory = await categories.RequireIdAsync(CategorySlug[type], ct);
+        long expenseCategory = categoryId ?? await categories.RequireIdAsync(CategorySlug[type], ct);
         long payableCategory = await categories.RequireIdAsync("vendor_payable", ct);
 
         await ledger.PostAsync(new LedgerPosting(SourceType, expense.Id, request.Date,
         [
             // Company-level: no project, exactly like a Personal/Office/Savings/Custom
             // common expense — but credited to the officer's payable, not cash.
-            new LedgerLeg(expenseCategory, Debit: expense.Amount, Credit: 0m),
-            new LedgerLeg(payableCategory, Debit: 0m, Credit: expense.Amount, PartyId: request.FieldOfficerId),
+            new LedgerLeg(expenseCategory, Debit: expense.Amount, Credit: 0m, ProjectId: expense.ProjectId),
+            new LedgerLeg(payableCategory, Debit: 0m, Credit: expense.Amount,
+                ProjectId: expense.ProjectId, PartyId: request.FieldOfficerId),
         ]), ct);
 
-        return ToDto(expense);
+        return (await ListAsync(new FieldOfficerExpenseQuery(request.FieldOfficerId), ct))
+            .First(e => e.Id == expense.Id);
     }
 
     public async Task<IReadOnlyList<FieldOfficerExpenseDto>> ListAsync(FieldOfficerExpenseQuery q, CancellationToken ct)
@@ -85,13 +110,20 @@ public sealed class FieldOfficerExpenseService(
 
         if (q.FieldOfficerId is { } id) query = query.Where(e => e.FieldOfficerId == id);
         if (Enum.TryParse(q.Type, ignoreCase: true, out CommonExpenseType t)) query = query.Where(e => e.Type == t);
+        if (q.ProjectId is { } pid) query = query.Where(e => e.ProjectId == pid);
         if (q.DateFrom is { } from) query = query.Where(e => e.Date >= from);
         if (q.DateTo is { } to) query = query.Where(e => e.Date <= to);
 
         List<FieldOfficerExpense> rows = await query
             .OrderByDescending(e => e.Date).ThenByDescending(e => e.Id)
             .ToListAsync(ct);
-        return rows.Select(ToDto).ToList();
+
+        List<long> projectIds = rows.Where(r => r.ProjectId != null).Select(r => r.ProjectId!.Value).Distinct().ToList();
+        Dictionary<long, string> projectNames = await db.Projects.AsNoTracking()
+            .Where(p => projectIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, p => p.Name, ct);
+
+        return rows.Select(e => ToDto(e, e.ProjectId is { } id ? projectNames.GetValueOrDefault(id) : null)).ToList();
     }
 
     public async Task<bool> ReverseAsync(long id, string reason, CancellationToken ct)
@@ -114,8 +146,9 @@ public sealed class FieldOfficerExpenseService(
         return true;
     }
 
-    private static FieldOfficerExpenseDto ToDto(FieldOfficerExpense e) => new(
-        e.Id, e.FieldOfficerId, e.Type.ToString(), e.Date, e.Amount, e.ReferenceNo, e.Description, e.Status.ToString());
+    private static FieldOfficerExpenseDto ToDto(FieldOfficerExpense e, string? projectName) => new(
+        e.Id, e.FieldOfficerId, e.Type.ToString(), e.Date, e.Amount, e.ReferenceNo, e.Description,
+        e.Status.ToString(), e.ProjectId, projectName, e.CategoryId);
 
     private static ValidationException Fail(string field, string message) =>
         new([new ValidationFailure(field, message)]);

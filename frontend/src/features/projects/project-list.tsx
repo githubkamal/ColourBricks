@@ -27,6 +27,8 @@ import {
   type ProjectStatus,
 } from "./types";
 
+const PAGE_SIZES = [12, 24, 48, 96];
+
 type SortKey = "code" | "name" | "startDate" | "contractValue" | "status";
 
 const SORT_LABELS: Record<SortKey, string> = {
@@ -111,12 +113,14 @@ export function ProjectList() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 300);
   const [page, setPage] = useState(1);
-  const [sortBy, setSortBy] = useState<SortKey>("code");
+  const [pageSize, setPageSize] = useState(PAGE_SIZES[0]);
+  const [sortBy, setSortBy] = useState<SortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const { data, isPending, isError } = useQuery({
-    queryKey: ["projects", { status, search: debouncedSearch, page, sortBy, sortDir }],
-    queryFn: () => listProjects({ status, search: debouncedSearch, page, sortBy, sortDir }),
+    queryKey: ["projects", { status, search: debouncedSearch, page, pageSize, sortBy, sortDir }],
+    queryFn: () =>
+      listProjects({ status, search: debouncedSearch, page, pageSize, sortBy, sortDir }),
     placeholderData: keepPreviousData,
   });
 
@@ -185,7 +189,10 @@ export function ProjectList() {
         <div className="ml-auto flex flex-wrap items-center gap-2">
           <label className="text-muted-foreground flex items-center gap-1.5 text-sm">
             Sort
-            <Select value={sortBy} onChange={(e) => setSortBy(e.target.value as SortKey)}>
+            <Select value={sortBy} onChange={(e) => {
+                setSortBy(e.target.value as SortKey);
+                setPage(1);
+              }}>
               {Object.entries(SORT_LABELS).map(([key, label]) => (
                 <option key={key} value={key}>
                   {label}
@@ -248,13 +255,29 @@ export function ProjectList() {
         </div>
       )}
 
-      {data && data.totalPages > 1 && (
+      {data && data.totalCount > PAGE_SIZES[0] && (
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">
             {data.totalCount} project{data.totalCount === 1 ? "" : "s"} · page {data.page} of{" "}
             {data.totalPages}
           </span>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <label className="text-muted-foreground flex items-center gap-1.5">
+              Per page
+              <Select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setPage(1);
+                }}
+              >
+                {PAGE_SIZES.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </Select>
+            </label>
             <button
               type="button"
               disabled={data.page <= 1}

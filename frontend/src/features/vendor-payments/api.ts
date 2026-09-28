@@ -13,6 +13,19 @@ export interface VendorOutstandingSummary {
   advance: number;
 }
 
+export interface VendorOpenPurchase {
+  obligationId: number;
+  projectId: number;
+  projectName: string;
+  poNumber: string | null;
+  poDate: string | null;
+  purchaseDate: string;
+  invoiceReference: string | null;
+  amount: number;
+  outstanding: number;
+  daysSincePurchase: number;
+}
+
 export interface VendorPayment {
   id: number;
   vendorId: number;
@@ -69,6 +82,10 @@ export interface RecordVendorPaymentInput {
 
 export function vendorOutstandingSummary(vendorId: number): Promise<VendorOutstandingSummary> {
   return apiClient.get<VendorOutstandingSummary>(`/vendors/${vendorId}/outstanding-summary`);
+}
+
+export function vendorOpenPurchases(vendorId: number): Promise<VendorOpenPurchase[]> {
+  return apiClient.get<VendorOpenPurchase[]>(`/vendors/${vendorId}/open-purchases`);
 }
 
 export function recordVendorPayment(input: RecordVendorPaymentInput): Promise<VendorPayment> {

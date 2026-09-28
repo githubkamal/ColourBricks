@@ -1,5 +1,6 @@
 using ColourBricks.Domain.FieldOfficers;
 using ColourBricks.Domain.Parties;
+using ColourBricks.Domain.Projects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -15,6 +16,9 @@ internal sealed class FieldOfficerExpenseConfiguration : IEntityTypeConfiguratio
 
         builder.HasIndex(x => new { x.FieldOfficerId, x.Date });
 
+        builder.HasIndex(x => x.ProjectId);
+
+        builder.HasOne<Project>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Party>().WithMany().HasForeignKey(x => x.FieldOfficerId).OnDelete(DeleteBehavior.Restrict);
     }
 }

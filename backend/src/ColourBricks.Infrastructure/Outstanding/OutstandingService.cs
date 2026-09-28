@@ -63,6 +63,63 @@ public sealed class OutstandingService(
             vendorId, Money.Round(byProject.Sum(l => l.Outstanding) + projectLessPayable), byProject, advance);
     }
 
+    public async Task<IReadOnlyList<VendorOpenPurchaseDto>> VendorOpenPurchasesAsync(
+        long vendorId, CancellationToken cancellationToken)
+    {
+        IReadOnlyList<ProjectOutstandingLineDto> byProject =
+            await VendorByProjectAsync(vendorId, cancellationToken);
+        if (byProject.Count == 0)
+        {
+            return [];
+        }
+
+        var projectIds = byProject.Where(l => l.Outstanding > 0m).Select(l => l.ProjectId).ToList();
+        var purchases = await db.Obligations.AsNoTracking()
+            .Where(o => o.PartyId == vendorId
+                && o.Type == ObligationType.VendorPurchase
+                && o.Status == ObligationStatus.Active
+                && projectIds.Contains(o.ProjectId))
+            .Select(o => new { o.Id, o.ProjectId, o.Date, o.Amount, o.Reference, o.PurchaseOrderId })
+            .ToListAsync(cancellationToken);
+
+        List<long> poIds = purchases.Where(p => p.PurchaseOrderId != null)
+            .Select(p => p.PurchaseOrderId!.Value).Distinct().ToList();
+        var orders = await db.PurchaseOrders.AsNoTracking()
+            .Where(po => poIds.Contains(po.Id))
+            .Select(po => new { po.Id, po.PoNumber, po.OrderDate })
+            .ToDictionaryAsync(po => po.Id, cancellationToken);
+
+        DateOnly today = DateOnly.FromDateTime(timeProvider.GetUtcNow().UtcDateTime);
+        var result = new List<VendorOpenPurchaseDto>();
+
+        foreach (ProjectOutstandingLineDto line in byProject.Where(l => l.Outstanding > 0m))
+        {
+            var rows = purchases.Where(p => p.ProjectId == line.ProjectId)
+                .OrderBy(p => p.Date).ThenBy(p => p.Id).ToList();
+            // Whatever the project's purchases exceed its outstanding by has been paid;
+            // the oldest purchases absorb it first, so the unpaid remainder is the newest.
+            decimal paid = Math.Max(0m, rows.Sum(r => r.Amount) - line.Outstanding);
+
+            foreach (var row in rows)
+            {
+                decimal settled = Math.Min(paid, row.Amount);
+                paid -= settled;
+                decimal remaining = row.Amount - settled;
+                if (remaining <= 0m)
+                {
+                    continue;
+                }
+
+                var po = row.PurchaseOrderId is { } poId ? orders.GetValueOrDefault(poId) : null;
+                result.Add(new VendorOpenPurchaseDto(
+                    row.Id, row.ProjectId, line.ProjectName, po?.PoNumber, po?.OrderDate, row.Date,
+                    row.Reference, row.Amount, Money.Round(remaining), today.DayNumber - row.Date.DayNumber));
+            }
+        }
+
+        return result.OrderBy(r => r.PurchaseDate).ThenBy(r => r.ObligationId).ToList();
+    }
+
     public async Task<decimal> SubcontractorTotalAsync(long teamId, CancellationToken cancellationToken) =>
         await PayableSumAsync(cancellationToken, "subcontractor_payable", e => e.PartyId == teamId);
 

@@ -22,6 +22,12 @@ public sealed class ProjectsController(IProjectService projects) : ControllerBas
         CancellationToken cancellationToken = default) =>
         projects.ListAsync(new ProjectListQuery(status, search, page, pageSize, sortBy, sortDir), cancellationToken);
 
+    [HttpGet("duplicates")]
+    [HasPermission("projects.add")]
+    public Task<IReadOnlyList<ProjectDuplicateDto>> Duplicates(
+        [FromQuery] string? name, [FromQuery] string? siteAddress, CancellationToken cancellationToken) =>
+        projects.FindDuplicatesAsync(name, siteAddress, cancellationToken);
+
     [HttpGet("reporting")]
     [HasPermission("projects.view")]
     public Task<IReadOnlyList<ProjectListItemDto>> ListForReporting(CancellationToken cancellationToken) =>

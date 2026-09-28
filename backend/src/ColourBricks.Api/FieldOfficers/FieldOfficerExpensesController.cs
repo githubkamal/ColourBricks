@@ -27,8 +27,9 @@ public sealed class FieldOfficerExpensesController(IFieldOfficerExpenseService e
     public Task<IReadOnlyList<FieldOfficerExpenseDto>> List(
         [FromQuery] long? fieldOfficerId, [FromQuery] string? type,
         [FromQuery] DateOnly? dateFrom, [FromQuery] DateOnly? dateTo,
+        [FromQuery] long? projectId,
         CancellationToken cancellationToken) =>
-        expenses.ListAsync(new FieldOfficerExpenseQuery(fieldOfficerId, type, dateFrom, dateTo), cancellationToken);
+        expenses.ListAsync(new FieldOfficerExpenseQuery(fieldOfficerId, type, dateFrom, dateTo, projectId), cancellationToken);
 
     [HttpPost("{id:long}/reverse")]
     [HasPermission("vendors.edit")]

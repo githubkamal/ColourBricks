@@ -1,8 +1,9 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
@@ -13,8 +14,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ApiError } from "@/lib/api";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { cn } from "@/lib/utils";
-import { createProject } from "./api";
+import { createProject, findProjectDuplicates } from "./api";
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS } from "./types";
 
 const schema = z
@@ -67,10 +69,21 @@ export function ProjectForm() {
     handleSubmit,
     setError,
     setFocus,
+    watch,
     formState: { errors, isDirty, isSubmitSuccessful },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { status: "Ongoing" },
+  });
+
+  // "This site already exists" check — runs as the name / site address are typed, so
+  // the warning shows before the user fills in the rest of the form.
+  const debouncedName = useDebouncedValue(watch("name") ?? "", 400);
+  const debouncedSite = useDebouncedValue(watch("siteAddress") ?? "", 400);
+  const { data: duplicates = [] } = useQuery({
+    queryKey: ["project-duplicates", debouncedName, debouncedSite],
+    queryFn: () => findProjectDuplicates(debouncedName, debouncedSite),
+    enabled: debouncedName.trim() !== "" || debouncedSite.trim() !== "",
   });
 
   useEffect(() => {
@@ -120,8 +133,26 @@ export function ProjectForm() {
     },
   });
 
-  function onSubmit(values: FormValues) {
+  async function onSubmit(values: FormValues) {
+    // Re-check at submit time: the typed-ahead query may be stale or still debouncing.
+    let found = duplicates;
+    try {
+      found = await findProjectDuplicates(values.name, values.siteAddress ?? "");
+    } catch {
+      // Fall back to the server-side guard, which rejects an unconfirmed duplicate.
+    }
+    if (found.length > 0) {
+      const { confirmed } = await confirm({
+        title: "This site already exists",
+        description: `${found
+          .map((d) => `${d.code} — ${d.name}`)
+          .join("; ")}. Create another project anyway?`,
+        confirmLabel: "Create anyway",
+      });
+      if (!confirmed) return;
+    }
     mutation.mutate({
+      confirmDuplicate: found.length > 0,
       name: values.name,
       code: values.code ? values.code : null,
       status: values.status,
@@ -138,6 +169,28 @@ export function ProjectForm() {
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl space-y-5" noValidate>
       {dialog}
       <h1 className="text-lg font-semibold">New project</h1>
+
+      {duplicates.length > 0 && (
+        <div
+          role="alert"
+          className="border-attention/50 bg-attention/10 space-y-1 rounded-lg border p-3 text-sm"
+        >
+          <p className="font-medium">
+            A project with this {duplicates.some((d) => d.matchedOn === "name") ? "name" : "site address"}{" "}
+            already exists. Check before creating a duplicate site:
+          </p>
+          <ul className="list-inside list-disc">
+            {duplicates.map((d) => (
+              <li key={d.id}>
+                <Link href={`/projects/${d.id}`} target="_blank" className="underline">
+                  {d.code} — {d.name}
+                </Link>
+                {d.siteAddress ? <span className="text-muted-foreground"> · {d.siteAddress}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Name" error={errors.name?.message} className="sm:col-span-2">

@@ -14,6 +14,12 @@ public sealed class OutstandingController(IOutstandingService outstanding) : Con
         long vendorId, CancellationToken cancellationToken) =>
         outstanding.VendorSummaryAsync(vendorId, cancellationToken);
 
+    [HttpGet("vendors/{vendorId:long}/open-purchases")]
+    [HasPermission("vendors.view")]
+    public Task<IReadOnlyList<VendorOpenPurchaseDto>> VendorOpenPurchases(
+        long vendorId, CancellationToken cancellationToken) =>
+        outstanding.VendorOpenPurchasesAsync(vendorId, cancellationToken);
+
     [HttpGet("vendors/{vendorId:long}/ageing")]
     [HasPermission("vendors.view")]
     public Task<AgeingBucketsDto> VendorAgeing(long vendorId, CancellationToken cancellationToken) =>

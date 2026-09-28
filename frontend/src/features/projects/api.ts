@@ -2,6 +2,7 @@ import { apiClient, type PagedResult } from "@/lib/api";
 import type {
   CreateProjectInput,
   ProjectDetail,
+  ProjectDuplicate,
   ProjectListItem,
   ProjectStatus,
   UpdateProjectInput,
@@ -29,6 +30,16 @@ export function listProjects(params: ProjectListParams): Promise<PagedResult<Pro
 
 export function getProject(id: number): Promise<ProjectDetail> {
   return apiClient.get<ProjectDetail>(`/projects/${id}`);
+}
+
+export function findProjectDuplicates(
+  name: string,
+  siteAddress: string,
+): Promise<ProjectDuplicate[]> {
+  const query = new URLSearchParams();
+  if (name.trim()) query.set("name", name.trim());
+  if (siteAddress.trim()) query.set("siteAddress", siteAddress.trim());
+  return apiClient.get<ProjectDuplicate[]>(`/projects/duplicates?${query.toString()}`);
 }
 
 export function createProject(input: CreateProjectInput): Promise<ProjectDetail> {

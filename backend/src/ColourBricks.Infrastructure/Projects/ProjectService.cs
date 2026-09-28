@@ -72,7 +72,7 @@ public sealed class ProjectService(
         }
 
         return await projects
-            .OrderBy(p => p.Code)
+            .OrderBy(p => p.Name).ThenBy(p => p.Code)
             .Select(ToListItem)
             .ToListAsync(cancellationToken);
     }
@@ -90,8 +90,48 @@ public sealed class ProjectService(
         return project is null || !project.IsActive ? null : ToDto(project);
     }
 
+    public async Task<IReadOnlyList<ProjectDuplicateDto>> FindDuplicatesAsync(
+        string? name, string? siteAddress, CancellationToken cancellationToken)
+    {
+        string? nameTerm = string.IsNullOrWhiteSpace(name) ? null : name.Trim();
+        string? siteTerm = string.IsNullOrWhiteSpace(siteAddress) ? null : siteAddress.Trim();
+        if (nameTerm is null && siteTerm is null)
+        {
+            return [];
+        }
+
+        // Deliberately unscoped by user: a restricted user creating a project must still
+        // be warned that the site exists, even if it isn't one of theirs.
+        List<Project> rows = await db.Projects.AsNoTracking()
+            .Where(p => p.IsActive
+                && ((nameTerm != null && p.Name == nameTerm)
+                    || (siteTerm != null && p.SiteAddress == siteTerm)))
+            .OrderBy(p => p.Name)
+            .Take(10)
+            .ToListAsync(cancellationToken);
+
+        return rows.Select(p => new ProjectDuplicateDto(
+            p.Id, p.Code, p.Name, p.SiteAddress, p.Status,
+            nameTerm is not null && string.Equals(p.Name, nameTerm, StringComparison.OrdinalIgnoreCase)
+                ? "name"
+                : "siteAddress")).ToList();
+    }
+
     public async Task<ProjectDto> CreateAsync(CreateProjectRequest request, CancellationToken cancellationToken)
     {
+        if (!request.ConfirmDuplicate)
+        {
+            IReadOnlyList<ProjectDuplicateDto> duplicates =
+                await FindDuplicatesAsync(request.Name, request.SiteAddress, cancellationToken);
+            if (duplicates.Count > 0)
+            {
+                ProjectDuplicateDto first = duplicates[0];
+                throw new ValidationException([new ValidationFailure(
+                    first.MatchedOn,
+                    $"A project for this site already exists: {first.Code} — {first.Name}. Confirm to create it anyway.")]);
+            }
+        }
+
         bool manualCode = !string.IsNullOrWhiteSpace(request.Code);
 
         if (manualCode
@@ -209,7 +249,9 @@ public sealed class ProjectService(
             "contractvalue" => descending
                 ? query.OrderByDescending(p => p.ContractValue)
                 : query.OrderBy(p => p.ContractValue),
-            _ => descending ? query.OrderByDescending(p => p.Code) : query.OrderBy(p => p.Code),
+            "code" => descending ? query.OrderByDescending(p => p.Code) : query.OrderBy(p => p.Code),
+            // No explicit sort = alphabetical by name (client request, 2026-09-28).
+            _ => descending ? query.OrderByDescending(p => p.Name) : query.OrderBy(p => p.Name),
         };
     }
 

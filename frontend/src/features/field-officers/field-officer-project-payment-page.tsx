@@ -1,104 +1,105 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { SubmitButton } from "@/components/ui/submit-button";
-import { useConfirmDialog } from "@/components/ui/confirm-dialog";
-import { listParties } from "@/features/parties/api";
-import { PartyPicker } from "@/features/parties/party-picker";
-import type { PartySearchItem } from "@/features/parties/types";
-import { vendorOutstandingSummary } from "@/features/vendor-payments/api";
 import { AmountInput } from "@/components/ui/amount-input";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { FieldLabel } from "@/components/ui/field-label";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Select } from "@/components/ui/select";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { listExpenseCategories } from "@/features/direct-expenses/api";
+import { PartyPicker } from "@/features/parties/party-picker";
+import type { PartySearchItem } from "@/features/parties/types";
+import { ProjectPicker } from "@/features/projects/project-picker";
+import type { ProjectListItem } from "@/features/projects/types";
+import { vendorOutstandingSummary } from "@/features/vendor-payments/api";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
-import { useQueryParamNumber } from "@/lib/use-query-param";
 import {
-  listFieldOfficerExpenses,
+  listFieldOfficerProjectPayments,
   recordFieldOfficerExpense,
   reverseFieldOfficerExpense,
-  type FieldOfficerExpenseType,
 } from "./api";
 
-const TYPES: FieldOfficerExpenseType[] = ["Personal", "Office", "Savings", "Custom"];
-
-export function FieldOfficerExpensePage() {
+/**
+ * A field officer spent money on a particular thing for a particular project (client
+ * request, 2026-09-28). Saving posts the amount to that project's expenses and to the
+ * officer's payable — the project's spend, P&L and ledger all pick it up.
+ */
+export function FieldOfficerProjectPaymentPage() {
   const queryClient = useQueryClient();
   const { confirm, dialog } = useConfirmDialog();
-  // The picker holds the full object once the user makes a choice this session; a
-  // deep-linked officerId (e.g. after a page reload) is resolved from the lookup query below.
-  const [manualOfficer, setManualOfficer] = useState<PartySearchItem | null>(null);
-  const [officerId, setOfficerId] = useQueryParamNumber("officerId", 0);
-  const [type, setType] = useState<FieldOfficerExpenseType>("Personal");
+  const [officer, setOfficer] = useState<PartySearchItem | null>(null);
+  const [project, setProject] = useState<ProjectListItem | null>(null);
+  const [categoryId, setCategoryId] = useState<number | "">("");
   const [date, setDate] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [referenceNo, setReferenceNo] = useState("");
-  const [touchedDate, setTouchedDate] = useState(false);
-  const [touchedAmount, setTouchedAmount] = useState(false);
-  const dateRef = useRef<HTMLInputElement>(null);
-  const amountRef = useRef<HTMLInputElement>(null);
 
-  const { data: fieldOfficers } = useQuery({
-    queryKey: ["parties", "FieldOfficer", "lookup"],
-    queryFn: () => listParties("FieldOfficer", undefined, 1),
-    enabled: officerId !== 0 && manualOfficer === null,
+  const { data: categories = [] } = useQuery({
+    queryKey: ["expense-categories"],
+    queryFn: () => listExpenseCategories(),
   });
-  const restoredOfficer =
-    officerId !== 0 ? (fieldOfficers?.items.find((p) => p.id === officerId) ?? null) : null;
-  const officer = manualOfficer ?? restoredOfficer;
-
-  function selectOfficer(next: PartySearchItem | null) {
-    setManualOfficer(next);
-    setOfficerId(next?.id ?? 0);
-  }
+  const costCategories = useMemo(
+    () => categories.filter((c) => c.isCost && c.isActive),
+    [categories],
+  );
 
   const { data: summary } = useQuery({
     queryKey: ["field-officer-summary", officer?.id],
     queryFn: () => vendorOutstandingSummary(officer!.id),
     enabled: officer !== null,
   });
-
-  const { data: bills = [] } = useQuery({
-    queryKey: ["field-officer-expenses", officer?.id],
-    queryFn: async () => (await listFieldOfficerExpenses(officer!.id)).filter((b) => b.projectId === null),
+  const { data: payments = [] } = useQuery({
+    queryKey: ["field-officer-project-payments", officer?.id],
+    queryFn: () => listFieldOfficerProjectPayments(officer!.id),
     enabled: officer !== null,
   });
-  const { pageRows: pagedBills, page, setPage, pageCount, total } = usePagination(bills, 20);
+  const { pageRows, page, setPage, pageCount, total } = usePagination(payments, 20);
+
+  function refresh() {
+    void queryClient.invalidateQueries({ queryKey: ["field-officer-summary", officer?.id] });
+    void queryClient.invalidateQueries({ queryKey: ["field-officer-project-payments", officer?.id] });
+    // The mapped project's spend, P&L, ledger and budget-vs-actual all derive from the
+    // ledger — refetch them rather than guess which cached screen shows the figure.
+    void queryClient.invalidateQueries({ queryKey: ["project"] });
+    void queryClient.invalidateQueries({ queryKey: ["projects"] });
+    void queryClient.invalidateQueries({ queryKey: ["project-expenses"] });
+    void queryClient.invalidateQueries({ queryKey: ["reports"] });
+  }
 
   const record = useMutation({
     mutationFn: () =>
       recordFieldOfficerExpense({
         fieldOfficerId: officer!.id,
-        type,
+        type: "Custom",
         date,
         amount: Number(amount),
+        projectId: project!.id,
+        categoryId: categoryId === "" ? null : categoryId,
         description: description.trim() || null,
         referenceNo: referenceNo.trim() || null,
       }),
     onSuccess: (bill) => {
-      toast.success(`Bill recorded: ${formatINR(bill.amount)}`);
+      toast.success(`${formatINR(bill.amount)} added to ${bill.projectName ?? "the project"}`);
       setAmount("");
       setDescription("");
       setReferenceNo("");
-      setTouchedDate(false);
-      setTouchedAmount(false);
-      void queryClient.invalidateQueries({ queryKey: ["field-officer-summary", officer?.id] });
-      void queryClient.invalidateQueries({ queryKey: ["field-officer-expenses", officer?.id] });
+      refresh();
     },
     onError: (error) =>
       toast.error(
         error instanceof ApiError
           ? (error.fieldErrors?.amount?.[0] ?? error.message)
-          : "Could not record the bill",
+          : "Could not record the payment",
       ),
   });
 
@@ -107,18 +108,16 @@ export function FieldOfficerExpensePage() {
       reverseFieldOfficerExpense(id, reason),
     onSuccess: () => {
       toast.success("Reversed");
-      void queryClient.invalidateQueries({ queryKey: ["field-officer-summary", officer?.id] });
-      void queryClient.invalidateQueries({ queryKey: ["field-officer-expenses", officer?.id] });
+      refresh();
     },
-    onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Could not reverse");
-    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not reverse"),
   });
 
   async function handleReverse(id: number) {
     const { confirmed, value: reason } = await confirm({
-      title: "Reverse this bill?",
-      description: "This cannot be undone.",
+      title: "Reverse this payment?",
+      description: "The amount is taken back off the project. This cannot be undone.",
       inputLabel: "Reason",
       destructive: true,
       confirmLabel: "Reverse",
@@ -127,47 +126,41 @@ export function FieldOfficerExpensePage() {
     reverse.mutate({ id, reason });
   }
 
-  const ready = officer !== null && date !== "" && Number(amount) > 0;
+  const ready = officer !== null && project !== null && date !== "" && Number(amount) > 0;
 
-  function focusFirstInvalid() {
-    if (date === "") {
-      dateRef.current?.focus();
-    } else if (!(Number(amount) > 0)) {
-      amountRef.current?.focus();
+  // What this officer has put on each project — active payments only.
+  const byProject = useMemo(() => {
+    const totals = new Map<number, { name: string; amount: number }>();
+    for (const p of payments) {
+      if (p.status !== "Active" || p.projectId === null) continue;
+      const row = totals.get(p.projectId) ?? { name: p.projectName ?? "", amount: 0 };
+      row.amount += p.amount;
+      totals.set(p.projectId, row);
     }
-  }
+    return [...totals.entries()]
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [payments]);
 
   return (
     <div className="max-w-3xl space-y-6">
       {dialog}
-      <PageHeader title="Field Officer Bills" />
-      <p className="text-muted-foreground text-sm">
-        For a bill tied to a project, use Material Purchases instead — pick &ldquo;Field
-        officer&rdquo; there. This page is for bills with no project: Personal, Office, Savings or
-        Custom.
-      </p>
+      <PageHeader
+        title="Field Officer Project Payments"
+        description="Record what a field officer spent on a project. The amount is added to that project's expenses."
+      />
 
       <PartyPicker
         type="FieldOfficer"
         label="Field officer"
         selected={officer}
-        onSelect={selectOfficer}
+        onSelect={setOfficer}
       />
 
       {officer && summary && (
         <div className="bg-card border-border rounded-xl border p-3 shadow-xs">
           <p className="text-muted-foreground text-xs">Total outstanding (owed to him)</p>
-          <p
-            className="text-2xl font-semibold tabular-nums"
-            data-testid="field-officer-outstanding"
-          >
-            {formatINR(summary.total)}
-          </p>
-          {summary.advance > 0 && (
-            <p className="text-attention text-xs tabular-nums" data-testid="field-officer-advance">
-              He is holding {formatINR(summary.advance)} of float / advance
-            </p>
-          )}
+          <p className="text-2xl font-semibold tabular-nums">{formatINR(summary.total)}</p>
         </div>
       )}
 
@@ -176,60 +169,48 @@ export function FieldOfficerExpensePage() {
           className="bg-card border-border space-y-3 rounded-xl border p-4 shadow-xs"
           onSubmit={(e) => {
             e.preventDefault();
-            setTouchedDate(true);
-            setTouchedAmount(true);
-            if (ready) {
-              record.mutate();
-            } else {
-              focusFirstInvalid();
-            }
+            if (ready) record.mutate();
           }}
         >
+          <ProjectPicker
+            label="Project"
+            selected={project}
+            onSelect={setProject}
+            status="Ongoing"
+          />
           <div className="flex flex-wrap items-end gap-3">
             <label className="space-y-1">
-              <FieldLabel required>Type</FieldLabel>
-              <Select
-                aria-label="Type"
-                value={type}
-                onChange={(e) => setType(e.target.value as FieldOfficerExpenseType)}
-              >
-                {TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </Select>
-            </label>
-            <label className="space-y-1">
-              <FieldLabel required error={touchedDate && date === "" ? "Required" : undefined}>
-                Date
-              </FieldLabel>
+              <FieldLabel required>Date</FieldLabel>
               <Input
-                ref={dateRef}
                 type="date"
                 aria-label="Date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                onBlur={() => setTouchedDate(true)}
               />
             </label>
             <label className="space-y-1">
-              <FieldLabel
-                required
-                error={
-                  touchedAmount && Number(amount) <= 0 ? "Must be greater than zero" : undefined
-                }
-              >
-                Amount
-              </FieldLabel>
+              <FieldLabel required>Amount</FieldLabel>
               <AmountInput
-                ref={amountRef}
                 className="w-32"
                 aria-label="Amount"
                 value={amount}
                 onChange={setAmount}
-                onBlur={() => setTouchedAmount(true)}
               />
+            </label>
+            <label className="space-y-1">
+              <FieldLabel>Category</FieldLabel>
+              <Select
+                aria-label="Category"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
+              >
+                <option value="">Other expenses</option>
+                {costCategories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </Select>
             </label>
             <label className="space-y-1">
               <FieldLabel>Reference</FieldLabel>
@@ -241,7 +222,7 @@ export function FieldOfficerExpensePage() {
             </label>
           </div>
           <label className="block space-y-1">
-            <FieldLabel>Description</FieldLabel>
+            <FieldLabel>What was it for?</FieldLabel>
             <Input
               aria-label="Description"
               value={description}
@@ -249,13 +230,26 @@ export function FieldOfficerExpensePage() {
             />
           </label>
           <SubmitButton type="submit" disabled={!ready} mutation={record}>
-            Record bill
+            Save payment
           </SubmitButton>
         </form>
       )}
 
+      {officer && byProject.length > 0 && (
+        <div className="bg-card border-border rounded-xl border p-3 text-sm shadow-xs">
+          <p className="font-medium">Spent by project</p>
+          <ul className="text-muted-foreground mt-1">
+            {byProject.map((p) => (
+              <li key={p.id}>
+                {p.name}: {formatINR(p.amount)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {officer &&
-        (dataState({ isEmpty: bills.length === 0, emptyLabel: "No bills yet." }) ?? (
+        (dataState({ isEmpty: payments.length === 0, emptyLabel: "No project payments yet." }) ?? (
           <div
             data-table-scroll
             className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
@@ -264,20 +258,20 @@ export function FieldOfficerExpensePage() {
               <thead className="bg-secondary/60 text-muted-foreground">
                 <tr className="border-b text-left">
                   <th className="p-2 font-medium">Date</th>
-                  <th className="p-2 font-medium">Type</th>
+                  <th className="p-2 font-medium">Project</th>
                   <th className="p-2 font-medium">Amount</th>
-                  <th className="p-2 font-medium">Description</th>
+                  <th className="p-2 font-medium">For</th>
                   <th className="p-2 font-medium">Status</th>
                   <th className="p-2" />
                 </tr>
               </thead>
               <tbody>
-                {pagedBills.map((b) => (
+                {pageRows.map((b) => (
                   <tr key={b.id} className="border-b last:border-0">
                     <td data-nowrap className="p-2">
                       {formatDate(b.date)}
                     </td>
-                    <td className="p-2">{b.type}</td>
+                    <td className="p-2">{b.projectName ?? "—"}</td>
                     <td className="p-2 tabular-nums">{formatINR(b.amount)}</td>
                     <td className="p-2">{b.description ?? "—"}</td>
                     <td className="p-2">
@@ -301,13 +295,13 @@ export function FieldOfficerExpensePage() {
           </div>
         ))}
 
-      {officer && bills.length > 0 && (
+      {officer && payments.length > 0 && (
         <PaginationBar
           page={page}
           pageCount={pageCount}
           total={total}
           onPageChange={setPage}
-          itemLabel="bills"
+          itemLabel="payments"
         />
       )}
     </div>

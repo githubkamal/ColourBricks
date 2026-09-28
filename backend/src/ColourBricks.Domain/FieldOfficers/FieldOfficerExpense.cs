@@ -35,4 +35,14 @@ public sealed class FieldOfficerExpense : BaseEntity
     public string? Description { get; set; }
 
     public FieldOfficerExpenseStatus Status { get; set; } = FieldOfficerExpenseStatus.Active;
+
+    /// <summary>
+    /// Set when the officer paid for something on a specific project — the amount then
+    /// lands in that project's spend (client request, 2026-09-28). Null for the
+    /// no-project Personal/Office/Savings/Custom bills.
+    /// </summary>
+    public long? ProjectId { get; set; }
+
+    /// <summary>The cost category a project-mapped bill posts under; null for no-project bills.</summary>
+    public long? CategoryId { get; set; }
 }

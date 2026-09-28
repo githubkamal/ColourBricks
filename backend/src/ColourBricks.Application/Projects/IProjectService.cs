@@ -11,6 +11,13 @@ public interface IProjectService
 
     Task<ProjectDto?> GetAsync(long id, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Active projects (any status) with the same name or the same site address — the
+    /// "this site already exists" check that runs before a project is created.
+    /// </summary>
+    Task<IReadOnlyList<ProjectDuplicateDto>> FindDuplicatesAsync(
+        string? name, string? siteAddress, CancellationToken cancellationToken);
+
     Task<ProjectDto> CreateAsync(CreateProjectRequest request, CancellationToken cancellationToken);
 
     Task<ProjectDto?> UpdateAsync(long id, UpdateProjectRequest request, CancellationToken cancellationToken);

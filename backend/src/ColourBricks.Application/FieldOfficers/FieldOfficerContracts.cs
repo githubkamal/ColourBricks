@@ -12,7 +12,10 @@ public sealed record FieldOfficerExpenseDto(
     decimal Amount,
     string? ReferenceNo,
     string? Description,
-    string Status);
+    string Status,
+    long? ProjectId = null,
+    string? ProjectName = null,
+    long? CategoryId = null);
 
 public sealed record RecordFieldOfficerExpenseRequest(
     long FieldOfficerId,
@@ -20,13 +23,16 @@ public sealed record RecordFieldOfficerExpenseRequest(
     DateOnly Date,
     decimal Amount,
     string? ReferenceNo = null,
-    string? Description = null);
+    string? Description = null,
+    long? ProjectId = null,
+    long? CategoryId = null);
 
 public sealed record FieldOfficerExpenseQuery(
     long? FieldOfficerId = null,
     string? Type = null,
     DateOnly? DateFrom = null,
-    DateOnly? DateTo = null);
+    DateOnly? DateTo = null,
+    long? ProjectId = null);
 
 public interface IFieldOfficerExpenseService
 {

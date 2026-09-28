@@ -12,6 +12,10 @@ export interface FieldOfficerExpense {
   referenceNo: string | null;
   description: string | null;
   status: string;
+  /** Set when the bill was mapped to a project; null for a no-project bill. */
+  projectId: number | null;
+  projectName: string | null;
+  categoryId: number | null;
 }
 
 export interface RecordFieldOfficerExpenseInput {
@@ -21,6 +25,9 @@ export interface RecordFieldOfficerExpenseInput {
   amount: number;
   referenceNo?: string | null;
   description?: string | null;
+  /** Maps the bill to a project — its amount then counts as that project's spend. */
+  projectId?: number | null;
+  categoryId?: number | null;
 }
 
 /**
@@ -38,6 +45,14 @@ export function listFieldOfficerExpenses(fieldOfficerId: number): Promise<FieldO
   return apiClient.get<FieldOfficerExpense[]>(
     `/field-officer-expenses?fieldOfficerId=${fieldOfficerId}`,
   );
+}
+
+/** Project payments recorded for an officer — the bills that carry a project. */
+export async function listFieldOfficerProjectPayments(
+  fieldOfficerId: number,
+): Promise<FieldOfficerExpense[]> {
+  const rows = await listFieldOfficerExpenses(fieldOfficerId);
+  return rows.filter((r) => r.projectId !== null);
 }
 
 export function reverseFieldOfficerExpense(id: number, reason: string): Promise<void> {

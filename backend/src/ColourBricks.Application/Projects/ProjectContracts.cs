@@ -47,7 +47,12 @@ public sealed record CreateProjectRequest(
     decimal? ExpectedProfit,
     ProjectStatus? Status,
     long? ManagerId,
-    string? Notes);
+    string? Notes,
+    bool ConfirmDuplicate = false);
+
+/// <summary>An existing project that shares the name or site address of one being created.</summary>
+public sealed record ProjectDuplicateDto(
+    long Id, string Code, string Name, string? SiteAddress, ProjectStatus Status, string MatchedOn);
 
 public sealed record UpdateProjectRequest(
     string Name,

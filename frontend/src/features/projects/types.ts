@@ -42,6 +42,17 @@ export interface CreateProjectInput {
   siteAddress?: string | null;
   contactDetails?: string | null;
   notes?: string | null;
+  /** Set once the user has acknowledged the "site already exists" warning. */
+  confirmDuplicate?: boolean;
+}
+
+export interface ProjectDuplicate {
+  id: number;
+  code: string;
+  name: string;
+  siteAddress: string | null;
+  status: ProjectStatus;
+  matchedOn: "name" | "siteAddress";
 }
 
 export interface UpdateProjectInput {

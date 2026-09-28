@@ -10,6 +10,23 @@ public sealed record VendorOutstandingSummaryDto(
     IReadOnlyList<ProjectOutstandingLineDto> ByProject,
     decimal Advance = 0m);
 
+/// <summary>
+/// One unpaid (or part-paid) vendor purchase for the vendor payments screen (client
+/// request, 2026-09-28). <c>PoNumber</c>/<c>PoDate</c> are null for a purchase that
+/// wasn't raised from a purchase order.
+/// </summary>
+public sealed record VendorOpenPurchaseDto(
+    long ObligationId,
+    long ProjectId,
+    string ProjectName,
+    string? PoNumber,
+    DateOnly? PoDate,
+    DateOnly PurchaseDate,
+    string? InvoiceReference,
+    decimal Amount,
+    decimal Outstanding,
+    int DaysSincePurchase);
+
 public sealed record ProjectOutstandingSummaryDto(
     long ProjectId,
     decimal VendorPayable,
@@ -40,6 +57,13 @@ public interface IOutstandingService
         long vendorId, CancellationToken cancellationToken);
 
     Task<VendorOutstandingSummaryDto> VendorSummaryAsync(long vendorId, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The vendor's purchases that still carry an unpaid balance, oldest first. A project's
+    /// outstanding is attributed FIFO — payments clear its oldest purchases first.
+    /// </summary>
+    Task<IReadOnlyList<VendorOpenPurchaseDto>> VendorOpenPurchasesAsync(
+        long vendorId, CancellationToken cancellationToken);
 
     Task<decimal> SubcontractorTotalAsync(long teamId, CancellationToken cancellationToken);
 
