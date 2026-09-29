@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useId, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { listProjects } from "./api";
@@ -68,6 +68,9 @@ export function ProjectPicker({
     queryKey: ["project-picker", { status, q: debounced }],
     queryFn: () => listProjects({ status, search: debounced || undefined, pageSize: 20 }),
     enabled: open,
+    // Keep the last results on screen while a new search loads, so an option the user
+    // is about to click doesn't vanish and get replaced mid-refetch.
+    placeholderData: keepPreviousData,
   });
   const results = data?.items ?? [];
 
@@ -147,7 +150,9 @@ export function ProjectPicker({
           role="listbox"
           className="bg-popover absolute z-20 mt-1 max-h-64 w-full overflow-y-auto rounded border p-1 text-sm shadow-md"
         >
-          {isFetching && <p className="text-muted-foreground p-2">Searching…</p>}
+          {isFetching && results.length === 0 && (
+            <p className="text-muted-foreground p-2">Searching…</p>
+          )}
           {!isFetching && results.length === 0 && (
             <p className="text-muted-foreground p-2">
               {debounced.length > 0 ? "No matching projects." : "Type to search projects…"}
