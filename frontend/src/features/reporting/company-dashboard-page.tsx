@@ -2,18 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import {
-  Bar,
-  BarChart,
-  Cell,
-  Legend,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import { commonExpenseSummary } from "@/features/common-expenses/api";
 import { loanOutstandingSummary } from "@/features/loans/api";
 import { reconciliationQueue } from "@/features/reconciliation/api";
@@ -30,76 +18,30 @@ import { hasPermission } from "@/lib/navigation";
 import { usePagination } from "@/lib/use-pagination";
 import { cn } from "@/lib/utils";
 import { companyDashboard, type CompanyDashboard, type DashboardPeriod } from "./api";
+import {
+  ATTENTION,
+  ChartCard,
+  ChartEmpty,
+  DonutChart,
+  GroupedBars,
+  NEGATIVE,
+  POSITIVE,
+  RankedBars,
+  SERIES,
+} from "./charts";
 import { tileIcon } from "./tile-icon";
 import { tileTone } from "./tile-tone";
 import { TotalRevenueChart } from "./total-revenue-chart";
 
 const COUNT_KEYS = new Set(["ongoingProjects", "completedProjects", "pendingReconciliation"]);
-const PERIODS: DashboardPeriod[] = ["Weekly", "Monthly", "Yearly", "Custom"];
-
-// Fixed, theme-independent series colours (same rationale as StatusBadge) so a
-// chart's segments read consistently regardless of the accent picker.
-const SERIES = ["#188ae2", "#10a75c", "#f0b429", "#e11d48", "#7c3aed", "#0d9488", "#ea580c"];
-const POSITIVE = "#10a75c";
-const NEGATIVE = "#ff5b5b";
-
-// A premium "glass" tooltip — rounded, bordered, matches the card surface in
-// both light and dark instead of recharts' plain white default.
-const TOOLTIP_STYLE = {
-  background: "var(--popover)",
-  border: "1px solid var(--border)",
-  borderRadius: "0.75rem",
-  boxShadow: "var(--shadow-md)",
-  fontSize: 12,
-  padding: "8px 12px",
-};
-const TOOLTIP_LABEL_STYLE = { color: "var(--popover-foreground)", fontWeight: 600 };
+// "All time" first and by default (client request, 2026-10-11): the project
+// dashboard is always all-time, so a company dashboard opening on "this month"
+// read as disagreeing with its own projects.
+const PERIODS: DashboardPeriod[] = ["Entire", "Weekly", "Monthly", "Yearly", "Custom"];
+const PERIOD_LABELS: Partial<Record<DashboardPeriod, string>> = { Entire: "All time" };
 
 function tileValue(data: CompanyDashboard, key: string): number {
   return data.tiles.find((t) => t.key === key)?.value ?? 0;
-}
-
-/**
- * Shared gradient defs (client request, 2026-09-07 — "premium design charts")
- * so every bar/pie fill reads as a soft vertical gradient instead of a flat
- * colour, without each chart re-declaring its own `<defs>`.
- */
-function ChartGradients() {
-  const stops: [string, string][] = [
-    ["positive", POSITIVE],
-    ["negative", NEGATIVE],
-    ...SERIES.map((c, i): [string, string] => [`series${i}`, c]),
-  ];
-  return (
-    <defs>
-      {stops.map(([id, color]) => (
-        <linearGradient key={id} id={`grad-${id}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.95} />
-          <stop offset="100%" stopColor={color} stopOpacity={0.55} />
-        </linearGradient>
-      ))}
-    </defs>
-  );
-}
-
-function ChartCard({
-  title,
-  right,
-  children,
-}: {
-  title: string;
-  right?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-card border-border rounded-xl border p-4 shadow-xs transition-shadow hover:shadow-md">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <p className="text-sm font-medium">{title}</p>
-        {right}
-      </div>
-      <div className="h-60 w-full">{children}</div>
-    </div>
-  );
 }
 
 function PeriodToggle({
@@ -116,12 +58,13 @@ function PeriodToggle({
           key={p}
           type="button"
           onClick={() => onChange(p)}
+          aria-pressed={p === value}
           className={cn(
             "rounded-full px-3 py-1 text-xs font-medium transition-colors",
             p === value ? "bg-primary text-primary-foreground" : "hover:bg-secondary",
           )}
         >
-          {p}
+          {PERIOD_LABELS[p] ?? p}
         </button>
       ))}
     </div>
@@ -130,7 +73,7 @@ function PeriodToggle({
 
 export function CompanyDashboardPage() {
   const user = useCurrentUser();
-  const [period, setPeriod] = useState<DashboardPeriod>("Monthly");
+  const [period, setPeriod] = useState<DashboardPeriod>("Entire");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
   const isCustom = period === "Custom";
@@ -182,7 +125,7 @@ export function CompanyDashboardPage() {
 
   if (isCustom && (customFrom === "" || customTo === "")) {
     return (
-      <div className="max-w-5xl space-y-6">
+      <div className="@container max-w-5xl space-y-6">
         {header}
         {dataState({
           isEmpty: true,
@@ -194,15 +137,16 @@ export function CompanyDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-5xl space-y-6">
+      <div className="@container max-w-5xl space-y-6">
         {header}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {Array.from({ length: 6 }, (_, i) => (
             <StatTileSkeleton key={i} />
           ))}
         </div>
-        <div className="bg-card border-border rounded-xl border p-4 shadow-xs">
-          <Skeleton className="h-60 w-full rounded-lg" />
+        <div className="grid gap-4 @4xl:grid-cols-3">
+          <Skeleton className="h-80 w-full rounded-xl @4xl:col-span-2" />
+          <Skeleton className="h-80 w-full rounded-xl" />
         </div>
       </div>
     );
@@ -210,7 +154,7 @@ export function CompanyDashboardPage() {
 
   if (isError || !data) {
     return (
-      <div className="max-w-5xl space-y-6">
+      <div className="@container max-w-5xl space-y-6">
         {header}
         {dataState({
           isError: true,
@@ -220,13 +164,27 @@ export function CompanyDashboardPage() {
     );
   }
 
+  const vendorOut = tileValue(data, "vendorOutstanding");
+  const subOut = tileValue(data, "subcontractorOutstanding");
+  // Whatever Total Outstanding carries beyond the two named payables is custom
+  // work and temple donations — the same split the project dashboard sums.
+  const otherOut = Math.max(0, tileValue(data, "totalOutstanding") - vendorOut - subOut);
   const outstandingByType = [
-    { name: "Vendor", value: tileValue(data, "vendorOutstanding") },
-    { name: "Subcontractor", value: tileValue(data, "subcontractorOutstanding") },
+    { name: "Vendors", value: vendorOut },
+    { name: "Subcontractors", value: subOut },
+    { name: "Custom work & donations", value: otherOut },
   ].filter((d) => d.value > 0);
+  const profitByProject = [...data.projectProfitability]
+    .filter((r) => r.profit !== 0)
+    .sort((a, b) => b.profit - a.profit)
+    .map((r) => ({ name: r.projectName, value: r.profit }));
+  const incomeVsCost = data.projectProfitability.filter(
+    (r) => r.revenue !== 0 || r.actualCost !== 0,
+  );
+  const barHeight = (n: number) => (n > 6 ? "h-80" : "h-64");
 
   return (
-    <div className="max-w-5xl space-y-6">
+    <div className="@container max-w-5xl space-y-6">
       {header}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3" data-testid="company-tiles">
@@ -241,41 +199,28 @@ export function CompanyDashboardPage() {
         ))}
       </div>
 
-      <TotalRevenueChart data={data.monthlyFlow} />
-
-      <div
-        data-table-scroll
-        className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
-      >
-        <table className="w-full text-sm">
-          <thead className="bg-secondary/60 text-muted-foreground">
-            <tr className="border-b text-left">
-              <th className="p-2 font-medium">Project</th>
-              <th className="p-2 font-medium">Revenue</th>
-              <th className="p-2 font-medium">Actual cost</th>
-              <th className="p-2 font-medium">Profit</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pagedProfitability.map((r) => (
-              <tr key={r.projectId} className="border-b last:border-0">
-                <td className="p-2">{r.projectName}</td>
-                <td className="p-2 tabular-nums">{formatINR(r.revenue)}</td>
-                <td className="p-2 tabular-nums">{formatINR(r.actualCost)}</td>
-                <td
-                  className={
-                    r.profit < 0
-                      ? "text-negative p-2 tabular-nums"
-                      : "text-positive p-2 tabular-nums"
-                  }
-                >
-                  {formatINR(r.profit)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="grid gap-4 @4xl:grid-cols-3">
+        <div className="min-w-0 @4xl:col-span-2">
+          {data.monthlyFlow.length > 0 ? (
+            <TotalRevenueChart data={data.monthlyFlow} />
+          ) : (
+            <ChartCard title="Income vs expenses" bodyClassName="h-72">
+              <ChartEmpty />
+            </ChartCard>
+          )}
+        </div>
+        <ChartCard title="Outstanding by type" subtitle="Still to be paid" bodyClassName="h-auto">
+          {outstandingByType.length > 0 ? (
+            <DonutChart rows={outstandingByType} centerLabel="outstanding" />
+          ) : (
+            <div className="h-64">
+              <ChartEmpty label="Nothing outstanding." />
+            </div>
+          )}
+        </ChartCard>
       </div>
+
+      <ProfitabilityTable data={data} rows={pagedProfitability} />
 
       <PaginationBar
         page={profitPage}
@@ -285,68 +230,42 @@ export function CompanyDashboardPage() {
         itemLabel="projects"
       />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {data.projectProfitability.length > 0 && (
-          <ChartCard title="Profit by project">
-            <ResponsiveContainer>
-              <BarChart
-                data={data.projectProfitability}
-                layout="vertical"
-                margin={{ left: 24 }}
-                barCategoryGap="30%"
-              >
-                <ChartGradients />
-                <XAxis type="number" tickFormatter={(v: number) => formatINR(v)} fontSize={11} />
-                <YAxis
-                  type="category"
-                  dataKey="projectName"
-                  width={100}
-                  fontSize={11}
-                  tick={{ fill: "var(--muted-foreground)" }}
-                />
-                <Tooltip
-                  formatter={(v) => formatINR(Number(v))}
-                  contentStyle={TOOLTIP_STYLE}
-                  labelStyle={TOOLTIP_LABEL_STYLE}
-                  cursor={{ fill: "var(--muted)" }}
-                />
-                <Bar dataKey="profit" name="Profit" radius={[0, 4, 4, 0]} maxBarSize={36}>
-                  {data.projectProfitability.map((r) => (
-                    <Cell
-                      key={r.projectId}
-                      fill={r.profit < 0 ? "url(#grad-negative)" : "url(#grad-positive)"}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        )}
+      <div className="grid gap-4 @3xl:grid-cols-2">
+        <ChartCard
+          title="Income vs cost by project"
+          subtitle="For the selected period"
+          className="@3xl:col-span-2"
+          bodyClassName="h-72"
+        >
+          {incomeVsCost.length > 0 ? (
+            <GroupedBars
+              data={incomeVsCost}
+              categoryKey="projectName"
+              series={[
+                { key: "revenue", name: "Income", color: POSITIVE },
+                { key: "actualCost", name: "Cost", color: NEGATIVE },
+              ]}
+            />
+          ) : (
+            <ChartEmpty />
+          )}
+        </ChartCard>
 
-        {outstandingByType.length > 0 && (
-          <ChartCard title="Outstanding by type">
-            <ResponsiveContainer>
-              <BarChart data={outstandingByType} barCategoryGap="30%">
-                <ChartGradients />
-                <XAxis dataKey="name" fontSize={12} tick={{ fill: "var(--muted-foreground)" }} />
-                <YAxis tickFormatter={(v: number) => formatINR(v)} fontSize={11} width={70} />
-                <Tooltip
-                  formatter={(v) => formatINR(Number(v))}
-                  contentStyle={TOOLTIP_STYLE}
-                  labelStyle={TOOLTIP_LABEL_STYLE}
-                  cursor={{ fill: "var(--muted)" }}
-                />
-                <Bar
-                  dataKey="value"
-                  name="Outstanding"
-                  fill="url(#grad-series0)"
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={64}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-        )}
+        <ChartCard
+          title="Profit by project"
+          subtitle="Income minus cost, selected period"
+          bodyClassName={barHeight(profitByProject.length)}
+        >
+          {profitByProject.length > 0 ? (
+            <RankedBars
+              rows={profitByProject}
+              name="Profit"
+              colorFor={(r) => (r.value < 0 ? NEGATIVE : POSITIVE)}
+            />
+          ) : (
+            <ChartEmpty />
+          )}
+        </ChartCard>
 
         {hasPermission(user.permissions, "users.view") && <UsersByRoleChart />}
         {hasPermission(user.permissions, "loans.view") && <LoansOutstandingChart />}
@@ -355,6 +274,85 @@ export function CompanyDashboardPage() {
           <ReconciliationStatusChart />
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Per-project income/cost/profit, with a footer that reconciles the rows to the
+ * tiles above: the project rows sum to what each project dashboard shows, and
+ * company-level spend not yet allocated to any project makes up the rest of
+ * "Overall Expenses" (client request, 2026-10-11 — the two used to look unequal
+ * with nothing on screen to say why).
+ */
+function ProfitabilityTable({
+  data,
+  rows,
+}: {
+  data: CompanyDashboard;
+  rows: CompanyDashboard["projectProfitability"];
+}) {
+  const all = data.projectProfitability;
+  const revenue = all.reduce((s, r) => s + r.revenue, 0);
+  const cost = all.reduce((s, r) => s + r.actualCost, 0);
+  const overallExpenses = tileValue(data, "expenses");
+  const unallocated = overallExpenses - cost;
+  const profitCell = (v: number) =>
+    v < 0 ? "text-negative p-2 tabular-nums" : "text-positive p-2 tabular-nums";
+
+  return (
+    <div
+      data-table-scroll
+      className="bg-card border-border overflow-x-auto rounded-xl border shadow-xs"
+    >
+      <table className="w-full text-sm">
+        <thead className="bg-secondary/60 text-muted-foreground">
+          <tr className="border-b text-left">
+            <th className="p-2 font-medium">Project</th>
+            <th className="p-2 font-medium">Revenue</th>
+            <th className="p-2 font-medium">Actual cost</th>
+            <th className="p-2 font-medium">Profit</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.projectId} className="border-b last:border-0">
+              <td className="p-2">{r.projectName}</td>
+              <td className="p-2 tabular-nums">{formatINR(r.revenue)}</td>
+              <td className="p-2 tabular-nums">{formatINR(r.actualCost)}</td>
+              <td className={profitCell(r.profit)}>{formatINR(r.profit)}</td>
+            </tr>
+          ))}
+        </tbody>
+        {all.length > 0 && (
+          <tfoot className="border-t">
+            <tr className="font-medium">
+              <td className="p-2">All projects</td>
+              <td className="p-2 tabular-nums">{formatINR(revenue)}</td>
+              <td className="p-2 tabular-nums">{formatINR(cost)}</td>
+              <td className={profitCell(revenue - cost)}>{formatINR(revenue - cost)}</td>
+            </tr>
+            {Math.abs(unallocated) >= 0.01 && (
+              <>
+                <tr className="text-muted-foreground">
+                  <td className="p-2">Company expenses not allocated to a project</td>
+                  <td className="p-2" />
+                  <td className="p-2 tabular-nums">{formatINR(unallocated)}</td>
+                  <td className="text-negative p-2 tabular-nums">{formatINR(-unallocated)}</td>
+                </tr>
+                <tr className="border-t font-semibold" data-testid="profitability-overall">
+                  <td className="p-2">Overall</td>
+                  <td className="p-2 tabular-nums">{formatINR(tileValue(data, "income"))}</td>
+                  <td className="p-2 tabular-nums">{formatINR(overallExpenses)}</td>
+                  <td className={profitCell(tileValue(data, "profitLoss"))}>
+                    {formatINR(tileValue(data, "profitLoss"))}
+                  </td>
+                </tr>
+              </>
+            )}
+          </tfoot>
+        )}
+      </table>
     </div>
   );
 }
@@ -376,19 +374,13 @@ function UsersByRoleChart() {
   const rows = [...byRole.entries()].map(([name, value]) => ({ name, value }));
 
   return (
-    <ChartCard title="Active users by role">
-      <ResponsiveContainer>
-        <PieChart>
-          <ChartGradients />
-          <Pie data={rows} dataKey="value" nameKey="name" outerRadius={80} label>
-            {rows.map((r, i) => (
-              <Cell key={r.name} fill={`url(#grad-series${i % SERIES.length})`} />
-            ))}
-          </Pie>
-          <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-        </PieChart>
-      </ResponsiveContainer>
+    <ChartCard title="Active users by role" bodyClassName="h-auto">
+      <DonutChart
+        rows={rows}
+        centerLabel="users"
+        format={(v) => String(v)}
+        tooltipFormat={(v) => String(v)}
+      />
     </ChartCard>
   );
 }
@@ -400,36 +392,19 @@ function LoansOutstandingChart() {
     queryFn: loanOutstandingSummary,
   });
 
-  const rows = (data?.byProject ?? []).filter((r) => r.principalOutstanding > 0);
+  const rows = (data?.byProject ?? [])
+    .filter((r) => r.principalOutstanding > 0)
+    .map((r) => ({ name: r.projectName, value: r.principalOutstanding }))
+    .sort((a, b) => b.value - a.value);
   if (rows.length === 0) return null;
 
   return (
-    <ChartCard title="Loan principal outstanding by project">
-      <ResponsiveContainer>
-        <BarChart data={rows} barCategoryGap="30%">
-          <ChartGradients />
-          <XAxis
-            dataKey="projectName"
-            fontSize={11}
-            tick={{ fill: "var(--muted-foreground)" }}
-            tickFormatter={(v: string) => (v.length > 10 ? `${v.slice(0, 10)}…` : v)}
-          />
-          <YAxis tickFormatter={(v: number) => formatINR(v)} fontSize={11} width={70} />
-          <Tooltip
-            formatter={(v) => formatINR(Number(v))}
-            contentStyle={TOOLTIP_STYLE}
-            labelStyle={TOOLTIP_LABEL_STYLE}
-            cursor={{ fill: "var(--muted)" }}
-          />
-          <Bar
-            dataKey="principalOutstanding"
-            name="Outstanding"
-            fill="url(#grad-series4)"
-            radius={[4, 4, 0, 0]}
-            maxBarSize={64}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+    <ChartCard
+      title="Loan principal outstanding"
+      subtitle="By project"
+      bodyClassName={rows.length > 6 ? "h-80" : "h-64"}
+    >
+      <RankedBars rows={rows} name="Outstanding" color={SERIES[6]} />
     </ChartCard>
   );
 }
@@ -448,23 +423,8 @@ function CommonExpenseChart() {
   if (rows.length === 0) return null;
 
   return (
-    <ChartCard title="Personal / office / savings">
-      <ResponsiveContainer>
-        <PieChart>
-          <ChartGradients />
-          <Pie data={rows} dataKey="value" nameKey="name" outerRadius={80} label>
-            {rows.map((r, i) => (
-              <Cell key={r.name} fill={`url(#grad-series${i % SERIES.length})`} />
-            ))}
-          </Pie>
-          <Tooltip
-            formatter={(v) => formatINR(Number(v))}
-            contentStyle={TOOLTIP_STYLE}
-            labelStyle={TOOLTIP_LABEL_STYLE}
-          />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-        </PieChart>
-      </ResponsiveContainer>
+    <ChartCard title="Personal / office / savings" bodyClassName="h-auto">
+      <DonutChart rows={rows} centerLabel="total" />
     </ChartCard>
   );
 }
@@ -479,30 +439,36 @@ function ReconciliationStatusChart() {
     queryFn: () => reconciliationQueue({ status: "Reconciled", page: 1 }),
   });
 
-  const rows = [
-    { name: "Pending", value: pending?.totalCount ?? 0 },
-    { name: "Reconciled", value: reconciled?.totalCount ?? 0 },
-  ].filter((r) => r.value > 0);
-  if (rows.length === 0) return null;
+  const pendingCount = pending?.totalCount ?? 0;
+  const reconciledCount = reconciled?.totalCount ?? 0;
+  const total = pendingCount + reconciledCount;
+  if (total === 0) return null;
+
+  const pct = (n: number) => `${Math.round((n / total) * 100)}%`;
 
   return (
-    <ChartCard title="Bank reconciliation status">
-      <ResponsiveContainer>
-        <BarChart data={rows} barCategoryGap="30%">
-          <ChartGradients />
-          <XAxis dataKey="name" fontSize={12} tick={{ fill: "var(--muted-foreground)" }} />
-          <YAxis allowDecimals={false} fontSize={11} width={40} />
-          <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
-          <Bar dataKey="value" name="Transactions" radius={[4, 4, 0, 0]} maxBarSize={64}>
-            {rows.map((r) => (
-              <Cell
-                key={r.name}
-                fill={r.name === "Pending" ? "url(#grad-series2)" : "url(#grad-positive)"}
-              />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <ChartCard title="Bank reconciliation" subtitle="Imported transactions" bodyClassName="h-auto">
+      <div className="space-y-4 py-2">
+        <div className="bg-muted flex h-3 w-full overflow-hidden rounded-full">
+          <div style={{ width: pct(reconciledCount), background: POSITIVE }} />
+          <div style={{ width: pct(pendingCount), background: ATTENTION }} />
+        </div>
+        <dl className="grid grid-cols-2 gap-3 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="size-2.5 rounded-[3px]" style={{ background: POSITIVE }} />
+            <dt className="text-muted-foreground">Reconciled</dt>
+            <dd className="ml-auto font-semibold tabular-nums">{reconciledCount}</dd>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="size-2.5 rounded-[3px]" style={{ background: ATTENTION }} />
+            <dt className="text-muted-foreground">Pending</dt>
+            <dd className="ml-auto font-semibold tabular-nums">{pendingCount}</dd>
+          </div>
+        </dl>
+        <p className="text-muted-foreground text-xs">
+          {pct(reconciledCount)} of imported bank lines are matched to a recorded entry.
+        </p>
+      </div>
     </ChartCard>
   );
 }

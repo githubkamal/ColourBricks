@@ -6,12 +6,17 @@ import { dataState } from "@/components/ui/data-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { StatTile, StatTileSkeleton } from "@/components/ui/stat-tile";
 import { formatINR } from "@/lib/format";
-import { projectDashboard } from "./api";
+import { projectDashboard, type ProjectDashboard } from "./api";
+import { ATTENTION, ChartCard, ChartEmpty, DonutChart, Gauge, NEGATIVE, POSITIVE } from "./charts";
 import { tileIcon } from "./tile-icon";
 import { tileTone } from "./tile-tone";
 import { TotalRevenueChart } from "./total-revenue-chart";
 
 const PERCENT_KEYS = new Set(["profitPercent", "budgetUtilisationPercent"]);
+
+function tileValue(data: ProjectDashboard, key: string): number {
+  return data.summary.find((t) => t.key === key)?.value ?? 0;
+}
 
 export function ProjectDashboardPage({ projectId }: { projectId: number }) {
   const { data, isLoading, isError } = useQuery({
@@ -66,7 +71,7 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
         ))}
       </div>
 
-      <TotalRevenueChart data={data.monthlyFlow} />
+      <ProjectCharts data={data} />
 
       <div
         data-table-scroll
@@ -96,6 +101,79 @@ export function ProjectDashboardPage({ projectId }: { projectId: number }) {
             </tr>
           </tfoot>
         </table>
+      </div>
+    </div>
+  );
+}
+
+/** The project dashboard's chart grid (client request, 2026-10-11 — Ledgerstone's charts). */
+function ProjectCharts({ data }: { data: ProjectDashboard }) {
+  const budgetUsed = tileValue(data, "budgetUtilisationPercent");
+  const profitPercent = tileValue(data, "profitPercent");
+  const expenseMix = data.expenseBreakdown
+    .filter((r) => r.amount > 0)
+    .map((r) => ({ name: r.bucket, value: r.amount }));
+  const paidVsDue = [
+    { name: "Paid", value: tileValue(data, "totalPaid") },
+    { name: "Outstanding", value: tileValue(data, "totalOutstanding") },
+  ].filter((r) => r.value > 0);
+  const budgetTone = budgetUsed > 100 ? NEGATIVE : budgetUsed >= 90 ? ATTENTION : POSITIVE;
+
+  return (
+    <div className="@container space-y-4">
+      <div className="grid gap-4 @4xl:grid-cols-3">
+        <div className="min-w-0 @4xl:col-span-2">
+          {data.monthlyFlow.length > 0 ? (
+            <TotalRevenueChart data={data.monthlyFlow} />
+          ) : (
+            <ChartCard title="Income vs expenses" bodyClassName="h-72">
+              <ChartEmpty label="No income or expenses recorded yet." />
+            </ChartCard>
+          )}
+        </div>
+        <div className="grid gap-4 @xl:grid-cols-2 @4xl:grid-cols-1">
+          <ChartCard
+            title="Budget used"
+            subtitle="Actual cost against the budget"
+            bodyClassName="h-40"
+          >
+            <Gauge
+              value={budgetUsed}
+              label="of budget"
+              color={budgetTone}
+              caption={budgetUsed > 100 ? "Over budget" : undefined}
+            />
+          </ChartCard>
+          <ChartCard title="Profit margin" subtitle="Actual profit on income" bodyClassName="h-40">
+            <Gauge
+              value={profitPercent}
+              label="margin"
+              color={profitPercent < 0 ? NEGATIVE : POSITIVE}
+              caption={profitPercent < 0 ? "Running at a loss" : undefined}
+            />
+          </ChartCard>
+        </div>
+      </div>
+
+      <div className="grid gap-4 @3xl:grid-cols-2">
+        <ChartCard title="Where the money went" subtitle="Expenses by type" bodyClassName="h-auto">
+          {expenseMix.length > 0 ? (
+            <DonutChart rows={expenseMix} centerLabel="spent" />
+          ) : (
+            <div className="h-48">
+              <ChartEmpty label="No expenses yet." />
+            </div>
+          )}
+        </ChartCard>
+        <ChartCard title="Paid vs outstanding" bodyClassName="h-auto">
+          {paidVsDue.length > 0 ? (
+            <DonutChart rows={paidVsDue} centerLabel="total" />
+          ) : (
+            <div className="h-48">
+              <ChartEmpty label="Nothing paid or owed yet." />
+            </div>
+          )}
+        </ChartCard>
       </div>
     </div>
   );

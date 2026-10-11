@@ -20,6 +20,20 @@ export function formatINR(value: number): string {
   return inrFormatter.format(value);
 }
 
+/**
+ * `24000000` → `"₹2.4 Cr"`, `650000` → `"₹6.5 L"` — for chart axes, where a full
+ * figure like ₹2,40,00,000.000 doesn't fit. Never use for amounts people read as exact.
+ */
+export function formatINRCompact(value: number): string {
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  const trim = (n: number) => String(Number(n.toFixed(n < 10 ? 1 : 0)));
+  if (abs >= 1e7) return `${sign}₹${trim(abs / 1e7)} Cr`;
+  if (abs >= 1e5) return `${sign}₹${trim(abs / 1e5)} L`;
+  if (abs >= 1e3) return `${sign}₹${trim(abs / 1e3)}K`;
+  return `${sign}₹${trim(abs)}`;
+}
+
 const quantityFormatter = new Intl.NumberFormat("en-IN", {
   minimumFractionDigits: MONEY_DECIMALS,
   maximumFractionDigits: MONEY_DECIMALS,

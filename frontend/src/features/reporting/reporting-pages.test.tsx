@@ -82,6 +82,36 @@ describe("reporting pages", () => {
     expect(screen.getByText("Ongoing Projects").parentElement?.nextSibling).toHaveTextContent("3");
   });
 
+  it("CompanyDashboard_DefaultsToAllTime_AndReconcilesUnallocatedSpend", async () => {
+    let requestedPeriod: string | null = null;
+    server.use(
+      http.get(`${apiBaseUrl}/dashboard`, ({ request }) => {
+        requestedPeriod = new URL(request.url).searchParams.get("period");
+        return HttpResponse.json({
+          tiles: [
+            { key: "income", label: "Overall Income", value: 300000, drillUrl: null },
+            { key: "expenses", label: "Overall Expenses", value: 150000, drillUrl: null },
+            { key: "profitLoss", label: "Profit / Loss", value: 150000, drillUrl: null },
+          ],
+          projectProfitability: [
+            { projectId: 1, projectName: "A", revenue: 300000, actualCost: 100000, profit: 200000 },
+          ],
+          monthlyFlow: [],
+        });
+      }),
+    );
+    rc(<CompanyDashboardPage />);
+    expect(
+      await screen.findByText("Company expenses not allocated to a project"),
+    ).toBeInTheDocument();
+    expect(requestedPeriod).toBe("Entire");
+    expect(screen.getByRole("button", { name: "All time" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByTestId("profitability-overall")).toHaveTextContent("1,50,000");
+  });
+
   it("BudgetVsActual_MarksOverAndOverrun", async () => {
     server.use(
       http.get(`${apiBaseUrl}/projects/4/budget-vs-actual`, () =>

@@ -269,7 +269,14 @@ public sealed class ReportingService(
         };
 
         IReadOnlyDictionary<string, decimal> byBucket = await ledger.GetProjectCostByBucketAsync(projectId, ct);
+        // The fixed buckets always show, in their usual order; any other cost bucket with
+        // spend (Labour, Custom Expenses, …) follows, so the breakdown always sums to the
+        // Actual Cost / Total Expenses tiles — subcontractor labour used to count in the
+        // tiles but vanish from the breakdown.
         var breakdown = DashboardBuckets
+            .Concat(byBucket.Keys
+                .Where(b => !DashboardBuckets.Contains(b) && byBucket[b] != 0m)
+                .OrderBy(b => b, StringComparer.Ordinal))
             .Select(b => new ExpenseBreakdownRowDto(b, Money.Round(byBucket.GetValueOrDefault(b, 0m))))
             .ToList();
 
@@ -337,6 +344,12 @@ public sealed class ReportingService(
 
         decimal vendorOut = await PayableAcrossProjectsAsync("vendor_payable", projectIds, ct);
         decimal subOut = await PayableAcrossProjectsAsync("subcontractor_payable", projectIds, ct);
+        // The same four payables each project dashboard's "Total Outstanding" sums
+        // (OutstandingService.ProjectSummaryAsync), so this tile always equals the sum
+        // of those tiles — vendor + subcontractor alone left custom-work and donation
+        // payables out, and the company figure read lower than its own projects.
+        decimal customOut = await PayableAcrossProjectsAsync("custom_work_payable", projectIds, ct);
+        decimal donationOut = await PayableAcrossProjectsAsync("temple_donation_payable", projectIds, ct);
 
         int pendingRecon = await db.BankTransactions.CountAsync(
             t => t.Status == Domain.Banking.BankTransactionStatus.Pending, ct);
@@ -360,6 +373,8 @@ public sealed class ReportingService(
             Tile("cashBankPosition", "Cash & Bank Position", Money.Round(cashBank), "/api/v1/accounts"),
             Tile("vendorOutstanding", "Vendor Outstanding", Money.Round(vendorOut), null),
             Tile("subcontractorOutstanding", "Subcontractor Outstanding", Money.Round(subOut), null),
+            Tile("totalOutstanding", "Total Outstanding",
+                Money.Round(vendorOut + subOut + customOut + donationOut), null),
             Tile("pendingReconciliation", "Pending Reconciliation", pendingRecon, "/api/v1/reconciliation?status=Pending"),
         };
 

@@ -82,6 +82,36 @@ public sealed class DashboardReportTests(IntegrationFixture fixture) : Integrati
     }
 
     [Fact]
+    public async Task Dashboard_ExpenseBreakdown_IncludesLabour_AndSumsToActualCost()
+    {
+        // Labour (subcontractor work) is a cost bucket outside the fixed breakdown list;
+        // it used to count in the Actual Cost tile but vanish from the breakdown.
+        HttpClient c = Admin;
+        var cat = await Cats(c);
+        long project = await Project(c);
+        await Expense(c, project, cat["materials"], 150_000m);
+        long dept = (await Json(await c.GetAsync("/api/v1/departments"))).EnumerateArray().First()
+            .GetProperty("id").GetInt64();
+        long team = (await Json(await c.PostAsJsonAsync("/api/v1/teams?confirm=true",
+            new { name = $"Dash Team {++_seq}", departmentId = dept }))).GetProperty("id").GetInt64();
+        (await c.PostAsJsonAsync("/api/v1/labour/work", new
+        {
+            projectId = project, teamId = team, date = "2026-05-01", agreedValue = 50_000m, workType = "Wiring",
+        })).EnsureSuccessStatusCode();
+
+        JsonElement d = await Json(await c.GetAsync($"/api/v1/projects/{project}/dashboard"));
+        decimal actualCost = d.GetProperty("summary").EnumerateArray()
+            .First(x => x.GetProperty("key").GetString() == "actualCost").GetProperty("value").GetDecimal();
+        var breakdown = d.GetProperty("expenseBreakdown").EnumerateArray().ToList();
+
+        actualCost.Should().Be(200_000m);
+        breakdown.Should().Contain(x => x.GetProperty("bucket").GetString() == "Labour"
+            && x.GetProperty("amount").GetDecimal() == 50_000m);
+        breakdown.Sum(x => x.GetProperty("amount").GetDecimal()).Should().Be(actualCost);
+        d.GetProperty("totalExpenses").GetDecimal().Should().Be(actualCost);
+    }
+
+    [Fact]
     public async Task Dashboard_EveryTile_MatchesItsDrilldownTotal()
     {
         HttpClient c = Admin;
@@ -178,6 +208,42 @@ public sealed class DashboardReportTests(IntegrationFixture fixture) : Integrati
             .And.Be(1_000_000m);
         rows.Sum(x => x.GetProperty("revenue").GetDecimal())
             .Should().Be(Tile(d1, "totalIncome") + Tile(d2, "totalIncome"));
+    }
+
+    [Fact]
+    public async Task CompanyDashboard_TotalOutstanding_EqualsSumOfProjectTotalOutstanding()
+    {
+        // The company tiles used to cover only vendor + subcontractor payables, while a
+        // project's "Total Outstanding" also counts custom-work and donation payables —
+        // so a project with a donation owed made the company figure read low.
+        HttpClient c = Admin;
+        var cat = await Cats(c);
+        long project = await Project(c, contract: 10_000_000m);
+        await Expense(c, project, cat["materials"], 400_000m);
+        long temple = (await Json(await c.PostAsJsonAsync("/api/v1/temples?confirm=true",
+            new { name = $"Dash Temple {++_seq}" }))).GetProperty("id").GetInt64();
+        (await c.PutAsJsonAsync($"/api/v1/projects/{project}/donation", new
+        {
+            basis = "Percentage",
+            percentage = 1m,
+            temples = new[] { new { templeId = temple, amount = 100_000m } },
+        })).EnsureSuccessStatusCode();
+
+        JsonElement company = await Json(await c.GetAsync("/api/v1/dashboard?period=Entire"));
+        decimal companyTile = company.GetProperty("tiles").EnumerateArray()
+            .First(x => x.GetProperty("key").GetString() == "totalOutstanding").GetProperty("value").GetDecimal();
+
+        decimal sumOfProjects = 0m;
+        foreach (JsonElement row in company.GetProperty("projectProfitability").EnumerateArray())
+        {
+            sumOfProjects += (await Json(await c.GetAsync(
+                    $"/api/v1/projects/{row.GetProperty("projectId").GetInt64()}/outstanding-summary")))
+                .GetProperty("totalPayable").GetDecimal();
+        }
+
+        JsonElement mine = await Json(await c.GetAsync($"/api/v1/projects/{project}/outstanding-summary"));
+        mine.GetProperty("donationPayable").GetDecimal().Should().Be(100_000m);
+        companyTile.Should().Be(sumOfProjects);
     }
 
     [Fact]

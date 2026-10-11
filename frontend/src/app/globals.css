@@ -96,6 +96,20 @@
   --negative: #ff5b5b; /* debit / money out */
   --attention: #b8790f; /* unreconciled / needs attention */
 
+  /* Chart series — a fixed categorical order, validated for colour-vision
+     deficiency against the white card surface (client request, 2026-10-11 — the
+     Ledgerstone chart kit). Assign in order; never cycle past 8 — fold the rest
+     into "Other" (--chart-other). */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --chart-5: #e87ba4;
+  --chart-6: #008300;
+  --chart-7: #4a3aa7;
+  --chart-8: #e34948;
+  --chart-other: #b4b2a9;
+
   --sidebar: #ffffff;
   --sidebar-foreground: #30394a;
   --sidebar-primary: #188ae2;
@@ -135,6 +149,16 @@
   --positive: #22d485;
   --negative: #ff6b6b;
   --attention: #f0b429;
+
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
+  --chart-6: #008300;
+  --chart-7: #9085e9;
+  --chart-8: #e66767;
+  --chart-other: #5c5f62;
 
   --sidebar: #23242f;
   --sidebar-foreground: #eef1f4;
