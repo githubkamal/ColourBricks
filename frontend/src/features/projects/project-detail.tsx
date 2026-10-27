@@ -160,9 +160,7 @@ export function ProjectDetail({ id }: { id: number }) {
               </Row>
               <Row label="Phone number">{project.phoneNumber ?? "—"}</Row>
               <Row label="Site engineer name">{project.siteEngineerName ?? "—"}</Row>
-              <Row label="Site engineer contact number">
-                {project.siteEngineerContact ?? "—"}
-              </Row>
+              <Row label="Site engineer contact number">{project.siteEngineerContact ?? "—"}</Row>
               <Row label="Notes" className="sm:col-span-2">
                 {project.notes ?? "—"}
               </Row>
@@ -317,10 +315,7 @@ function ProjectOverviewForm({
           <Input autoComplete="off" {...register("siteEngineerName")} />
         </Field>
 
-        <Field
-          label="Site engineer contact number"
-          error={errors.siteEngineerContact?.message}
-        >
+        <Field label="Site engineer contact number" error={errors.siteEngineerContact?.message}>
           <Input autoComplete="off" {...register("siteEngineerContact")} />
         </Field>
 

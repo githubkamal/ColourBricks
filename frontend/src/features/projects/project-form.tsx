@@ -261,10 +261,7 @@ export function ProjectForm() {
           <Input autoComplete="off" {...register("siteEngineerName")} />
         </Field>
 
-        <Field
-          label="Site engineer contact number"
-          error={errors.siteEngineerContact?.message}
-        >
+        <Field label="Site engineer contact number" error={errors.siteEngineerContact?.message}>
           <Input autoComplete="off" {...register("siteEngineerContact")} />
         </Field>
 
