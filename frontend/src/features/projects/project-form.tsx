@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -13,6 +13,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { uploadAttachment } from "@/features/attachments/api";
 import { ApiError } from "@/lib/api";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,9 @@ const schema = z
       .refine((v) => !Number.isNaN(v), "Estimated cost is required")
       .refine((v) => v >= 0, "Cannot be negative"),
     siteAddress: z.string().max(500).optional().or(z.literal("")),
+    phoneNumber: z.string().max(30).optional().or(z.literal("")),
+    siteEngineerName: z.string().max(200).optional().or(z.literal("")),
+    siteEngineerContact: z.string().max(30).optional().or(z.literal("")),
     notes: z.string().optional().or(z.literal("")),
   })
   .refine((v) => !v.expectedEndDate || v.expectedEndDate >= v.startDate, {
@@ -63,6 +67,7 @@ export function ProjectForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { confirm, dialog } = useConfirmDialog();
+  const [agreementFile, setAgreementFile] = useState<File | null>(null);
 
   const {
     register,
@@ -118,6 +123,17 @@ export function ProjectForm() {
     onSuccess: async (project) => {
       await queryClient.invalidateQueries({ queryKey: ["projects"] });
       toast.success(`Project ${project.code} created`);
+      if (agreementFile) {
+        try {
+          await uploadAttachment("Project", project.id, agreementFile);
+        } catch (e) {
+          toast.error(
+            `Project created, but the agreement copy could not be uploaded${
+              e instanceof ApiError ? `: ${e.message}` : ""
+            }. Upload it from the project page.`,
+          );
+        }
+      }
       router.push(`/projects/${project.id}`);
     },
     onError: (error) => {
@@ -161,6 +177,9 @@ export function ProjectForm() {
       contractValue: Number(values.contractValue),
       estimatedCost: Number(values.estimatedCost),
       siteAddress: values.siteAddress ? values.siteAddress : null,
+      phoneNumber: values.phoneNumber ? values.phoneNumber : null,
+      siteEngineerName: values.siteEngineerName ? values.siteEngineerName : null,
+      siteEngineerContact: values.siteEngineerContact ? values.siteEngineerContact : null,
       notes: values.notes ? values.notes : null,
     });
   }
@@ -234,11 +253,35 @@ export function ProjectForm() {
           <Input autoComplete="off" {...register("siteAddress")} />
         </Field>
 
+        <Field label="Phone number" error={errors.phoneNumber?.message}>
+          <Input autoComplete="off" {...register("phoneNumber")} />
+        </Field>
+
+        <Field label="Site engineer name" error={errors.siteEngineerName?.message}>
+          <Input autoComplete="off" {...register("siteEngineerName")} />
+        </Field>
+
+        <Field
+          label="Site engineer contact number"
+          error={errors.siteEngineerContact?.message}
+        >
+          <Input autoComplete="off" {...register("siteEngineerContact")} />
+        </Field>
+
         <Field label="Notes" error={errors.notes?.message} className="sm:col-span-2">
           <textarea
             {...register("notes")}
             rows={3}
             className="border-input bg-card w-full rounded border px-3 py-2 text-sm"
+          />
+        </Field>
+
+        <Field label="Agreement copy (attachment)" className="sm:col-span-2">
+          <input
+            type="file"
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.csv"
+            className="block text-sm"
+            onChange={(e) => setAgreementFile(e.target.files?.[0] ?? null)}
           />
         </Field>
       </div>

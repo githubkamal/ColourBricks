@@ -21,6 +21,12 @@ public sealed class Project : BaseEntity
 
     public string? ContactDetails { get; set; }
 
+    public string? PhoneNumber { get; set; }
+
+    public string? SiteEngineerName { get; set; }
+
+    public string? SiteEngineerContact { get; set; }
+
     public DateOnly StartDate { get; set; }
 
     public DateOnly? ExpectedEndDate { get; set; }

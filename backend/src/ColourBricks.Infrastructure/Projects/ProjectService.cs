@@ -147,6 +147,9 @@ public sealed class ProjectService(
             ClientId = request.ClientId,
             SiteAddress = request.SiteAddress,
             ContactDetails = request.ContactDetails,
+            PhoneNumber = request.PhoneNumber,
+            SiteEngineerName = request.SiteEngineerName,
+            SiteEngineerContact = request.SiteEngineerContact,
             StartDate = request.StartDate,
             ExpectedEndDate = request.ExpectedEndDate,
             ActualEndDate = request.ActualEndDate,
@@ -196,6 +199,9 @@ public sealed class ProjectService(
         project.ClientId = request.ClientId;
         project.SiteAddress = request.SiteAddress;
         project.ContactDetails = request.ContactDetails;
+        project.PhoneNumber = request.PhoneNumber;
+        project.SiteEngineerName = request.SiteEngineerName;
+        project.SiteEngineerContact = request.SiteEngineerContact;
         project.StartDate = request.StartDate;
         project.ExpectedEndDate = request.ExpectedEndDate;
         project.ActualEndDate = request.ActualEndDate;
@@ -265,6 +271,7 @@ public sealed class ProjectService(
 
     private static ProjectDto ToDto(Project p) => new(
         p.Id, p.Code, p.Name, p.ClientId, p.SiteAddress, p.ContactDetails,
+        p.PhoneNumber, p.SiteEngineerName, p.SiteEngineerContact,
         p.StartDate, p.ExpectedEndDate, p.ActualEndDate, p.ContractValue, p.EstimatedCost,
         p.ExpectedProfit, p.Status, p.ManagerId, p.Notes, p.IsActive, p.ConcurrencyStamp);
 }

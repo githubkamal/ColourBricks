@@ -24,6 +24,7 @@ public sealed class AttachmentsController(IAttachmentService attachments) : Cont
             ["TempleDonation"] = ("temple_donations.view", "temple_donations.edit"),
             ["CustomWork"] = ("customized_work.view", "customized_work.add"),
             ["Loan"] = ("loans.view", "loans.add"),
+            ["Project"] = ("projects.view", "projects.edit"),
             // The company logo (the only SystemSettings attachment today) is meant to
             // show up wherever the company profile does — report headers, print views
             // — for any signed-in user, not just admins; "dashboard.view" is this

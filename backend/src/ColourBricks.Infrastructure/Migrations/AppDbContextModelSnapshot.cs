@@ -2467,9 +2467,21 @@ namespace ColourBricks.Infrastructure.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
                     b.Property<string>("SiteAddress")
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
+
+                    b.Property<string>("SiteEngineerContact")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
+                    b.Property<string>("SiteEngineerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<DateOnly>("StartDate")
                         .HasColumnType("date");

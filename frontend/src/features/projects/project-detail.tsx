@@ -13,6 +13,7 @@ import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { AttachmentPanel } from "@/features/attachments/attachment-panel";
 import { useCurrentUser } from "@/features/shell/user-context";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
@@ -43,6 +44,9 @@ const schema = z
       .refine((v) => v >= 0, "Cannot be negative"),
     siteAddress: z.string().max(500).optional().or(z.literal("")),
     contactDetails: z.string().optional().or(z.literal("")),
+    phoneNumber: z.string().max(30).optional().or(z.literal("")),
+    siteEngineerName: z.string().max(200).optional().or(z.literal("")),
+    siteEngineerContact: z.string().max(30).optional().or(z.literal("")),
     notes: z.string().optional().or(z.literal("")),
   })
   .refine((v) => !v.expectedEndDate || v.expectedEndDate >= v.startDate, {
@@ -154,12 +158,22 @@ export function ProjectDetail({ id }: { id: number }) {
               <Row label="Contact details" className="sm:col-span-2">
                 {project.contactDetails ?? "—"}
               </Row>
+              <Row label="Phone number">{project.phoneNumber ?? "—"}</Row>
+              <Row label="Site engineer name">{project.siteEngineerName ?? "—"}</Row>
+              <Row label="Site engineer contact number">
+                {project.siteEngineerContact ?? "—"}
+              </Row>
               <Row label="Notes" className="sm:col-span-2">
                 {project.notes ?? "—"}
               </Row>
             </dl>
           </>
         )}
+      </div>
+
+      <div className="bg-card border-border rounded-xl border p-5 shadow-xs">
+        <h2 className="mb-3 text-sm font-semibold">Agreement copy</h2>
+        <AttachmentPanel ownerType="Project" ownerId={project.id} />
       </div>
 
       {confirmDialog}
@@ -193,6 +207,9 @@ function ProjectOverviewForm({
       estimatedCost: project.estimatedCost,
       siteAddress: project.siteAddress ?? "",
       contactDetails: project.contactDetails ?? "",
+      phoneNumber: project.phoneNumber ?? "",
+      siteEngineerName: project.siteEngineerName ?? "",
+      siteEngineerContact: project.siteEngineerContact ?? "",
       notes: project.notes ?? "",
     },
   });
@@ -216,6 +233,9 @@ function ProjectOverviewForm({
         estimatedCost: Number(values.estimatedCost),
         siteAddress: values.siteAddress ? values.siteAddress : null,
         contactDetails: values.contactDetails ? values.contactDetails : null,
+        phoneNumber: values.phoneNumber ? values.phoneNumber : null,
+        siteEngineerName: values.siteEngineerName ? values.siteEngineerName : null,
+        siteEngineerContact: values.siteEngineerContact ? values.siteEngineerContact : null,
         notes: values.notes ? values.notes : null,
         concurrencyStamp: project.concurrencyStamp,
       }),
@@ -287,6 +307,21 @@ function ProjectOverviewForm({
           className="sm:col-span-2"
         >
           <Input autoComplete="off" {...register("contactDetails")} />
+        </Field>
+
+        <Field label="Phone number" error={errors.phoneNumber?.message}>
+          <Input autoComplete="off" {...register("phoneNumber")} />
+        </Field>
+
+        <Field label="Site engineer name" error={errors.siteEngineerName?.message}>
+          <Input autoComplete="off" {...register("siteEngineerName")} />
+        </Field>
+
+        <Field
+          label="Site engineer contact number"
+          error={errors.siteEngineerContact?.message}
+        >
+          <Input autoComplete="off" {...register("siteEngineerContact")} />
         </Field>
 
         <Field label="Notes" error={errors.notes?.message} className="sm:col-span-2">

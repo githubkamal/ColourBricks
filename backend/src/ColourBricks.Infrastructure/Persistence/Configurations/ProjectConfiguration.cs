@@ -18,6 +18,9 @@ internal sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
         builder.Property(x => x.SiteAddress).HasMaxLength(500);
         builder.Property(x => x.ContactDetails).HasMaxLength(200);
+        builder.Property(x => x.PhoneNumber).HasMaxLength(30);
+        builder.Property(x => x.SiteEngineerName).HasMaxLength(200);
+        builder.Property(x => x.SiteEngineerContact).HasMaxLength(30);
         // Notes is unbounded -> LONGTEXT (no explicit HasColumnType — Pomelo 9.0.0 trap).
 
         builder.HasIndex(x => x.Status);

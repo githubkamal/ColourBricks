@@ -31,6 +31,10 @@ public sealed class CreateProjectRequestValidator : AbstractValidator<CreateProj
             .When(x => x.ActualEndDate is not null);
 
         RuleFor(x => x.Status).IsInEnum().When(x => x.Status is not null);
+
+        RuleFor(x => x.PhoneNumber).MaximumLength(30);
+        RuleFor(x => x.SiteEngineerName).MaximumLength(200);
+        RuleFor(x => x.SiteEngineerContact).MaximumLength(30);
     }
 }
 
@@ -53,5 +57,9 @@ public sealed class UpdateProjectRequestValidator : AbstractValidator<UpdateProj
             .GreaterThanOrEqualTo(x => x.StartDate)
             .WithMessage("Actual completion date cannot be before the start date.")
             .When(x => x.ActualEndDate is not null);
+
+        RuleFor(x => x.PhoneNumber).MaximumLength(30);
+        RuleFor(x => x.SiteEngineerName).MaximumLength(200);
+        RuleFor(x => x.SiteEngineerContact).MaximumLength(30);
     }
 }

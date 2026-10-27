@@ -24,6 +24,9 @@ export interface ProjectDetail extends ProjectListItem {
   clientId: number | null;
   siteAddress: string | null;
   contactDetails: string | null;
+  phoneNumber: string | null;
+  siteEngineerName: string | null;
+  siteEngineerContact: string | null;
   actualEndDate: string | null;
   expectedProfit: number | null;
   notes: string | null;
@@ -41,6 +44,9 @@ export interface CreateProjectInput {
   status?: ProjectStatus;
   siteAddress?: string | null;
   contactDetails?: string | null;
+  phoneNumber?: string | null;
+  siteEngineerName?: string | null;
+  siteEngineerContact?: string | null;
   notes?: string | null;
   /** Set once the user has acknowledged the "site already exists" warning. */
   confirmDuplicate?: boolean;
@@ -67,6 +73,9 @@ export interface UpdateProjectInput {
   status: ProjectStatus;
   siteAddress?: string | null;
   contactDetails?: string | null;
+  phoneNumber?: string | null;
+  siteEngineerName?: string | null;
+  siteEngineerContact?: string | null;
   notes?: string | null;
   concurrencyStamp: string;
 }
