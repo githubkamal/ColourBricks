@@ -38,7 +38,7 @@ export function ItemsPage() {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ["items"] });
 
   const add = useMutation({
-    mutationFn: () =>
+    mutationFn: (confirmed: boolean) =>
       createItem(
         {
           name: name.trim(),
@@ -47,16 +47,24 @@ export function ItemsPage() {
           taxRate: 0,
           categoryId: categoryId ? Number(categoryId) : null,
         },
-        false,
+        confirmed,
       ),
-    onSuccess: (outcome) => {
+    onSuccess: async (outcome) => {
       if (outcome.kind === "created") {
         toast.success(`${outcome.item.name} added`);
         setName("");
         setCategoryId("");
         void invalidate();
       } else if (outcome.kind === "needs-confirmation") {
-        toast.message("A similar item already exists — check the list before adding.");
+        // Nothing was saved yet: name the look-alikes and let the user add it anyway
+        // (e.g. "… 20MM" next to "… 10MM" is a different size, not a duplicate).
+        const similar = outcome.nearDuplicates.map((d) => d.name).join(", ");
+        const result = await confirm({
+          title: `Add "${name.trim()}"?`,
+          description: `Similar item(s) already exist: ${similar}. Add it anyway only if it is a different item.`,
+          confirmLabel: "Add anyway",
+        });
+        if (result.confirmed) add.mutate(true);
       } else {
         toast.message("That item already exists");
       }
@@ -139,7 +147,7 @@ export function ItemsPage() {
         className="bg-card border-border flex flex-wrap items-end gap-2 rounded-xl border p-4 shadow-xs"
         onSubmit={(e) => {
           e.preventDefault();
-          if (name.trim()) add.mutate();
+          if (name.trim()) add.mutate(false);
         }}
       >
         <div className="min-w-48 flex-1 space-y-1">
