@@ -237,7 +237,10 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
 
   return (
     <div className="space-y-4">
-      <div data-table-scroll className="bg-card overflow-x-auto rounded border p-4 md:overflow-visible">
+      <div
+        data-table-scroll
+        className="bg-card overflow-x-auto rounded border p-4 md:overflow-visible"
+      >
         <table className="w-full text-sm">
           <thead className="text-muted-foreground">
             <tr className="text-left">

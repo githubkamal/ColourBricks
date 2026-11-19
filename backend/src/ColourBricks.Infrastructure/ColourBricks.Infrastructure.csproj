@@ -20,6 +20,9 @@
     <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.11" />
     <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.16.0" />
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
+    <!-- Lifts Pomelo's transitive MySqlConnector 2.4.0 past GHSA-473q-m89c-ghf8, which
+         fails restore under NU1902-as-error. Drop once Pomelo ships with a patched one. -->
+    <PackageReference Include="MySqlConnector" Version="2.6.2" />
     <PackageReference Include="QuestPDF" Version="2024.12.3" />
   </ItemGroup>
 
