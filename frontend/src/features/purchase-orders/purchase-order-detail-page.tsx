@@ -32,6 +32,9 @@ import {
 interface DraftRow {
   id?: number;
   project: ProjectPickerSelection | null;
+  /** The catalog item this line was saved with, and the name it had then. */
+  itemId?: number | null;
+  savedItemName?: string;
   itemName: string;
   quantity: string;
   unit: string;
@@ -197,6 +200,8 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
     po.lines.map((l) => ({
       id: l.id,
       project: { id: l.projectId, name: l.projectName },
+      itemId: l.itemId,
+      savedItemName: l.itemName,
       itemName: l.itemName,
       quantity: String(l.quantity),
       unit: l.unit,
@@ -212,6 +217,8 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
         concurrencyStamp: po.concurrencyStamp,
         lines: rows.map<PurchaseOrderLineInput>((r) => ({
           projectId: r.project!.id,
+          // Keep the catalog link unless the item name was retyped.
+          itemId: r.itemName.trim() === r.savedItemName?.trim() ? (r.itemId ?? null) : null,
           itemName: r.itemName.trim(),
           quantity: Number(r.quantity),
           unit: r.unit.trim(),
@@ -230,7 +237,7 @@ function DraftEditor({ po, onSaved }: { po: PurchaseOrder; onSaved: () => void }
 
   return (
     <div className="space-y-4">
-      <div data-table-scroll className="bg-card overflow-x-auto rounded border p-4">
+      <div data-table-scroll className="bg-card overflow-x-auto rounded border p-4 md:overflow-visible">
         <table className="w-full text-sm">
           <thead className="text-muted-foreground">
             <tr className="text-left">
