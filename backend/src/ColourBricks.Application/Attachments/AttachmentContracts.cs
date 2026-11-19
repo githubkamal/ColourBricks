@@ -37,6 +37,12 @@ public interface IAttachmentService
         string ownerType, long ownerId, CancellationToken cancellationToken);
 
     Task<(AttachmentDto Meta, Stream Content)?> DownloadAsync(long id, CancellationToken cancellationToken);
+
+    /// <summary>Returns the attachment's metadata without opening the file, or null if missing.</summary>
+    Task<AttachmentDto?> GetAsync(long id, CancellationToken cancellationToken);
+
+    /// <summary>Deletes the row and its stored file. Returns false if it does not exist.</summary>
+    Task<bool> DeleteAsync(long id, CancellationToken cancellationToken);
 }
 
 /// <summary>Extension not allowed, or the bytes don't match the claimed type. Maps to 400.</summary>

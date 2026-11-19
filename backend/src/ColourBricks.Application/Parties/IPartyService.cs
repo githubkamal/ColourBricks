@@ -18,4 +18,10 @@ public interface IPartyService
         CreatePartyRequest request, bool confirmed, CancellationToken cancellationToken);
 
     Task<PartyDto?> UpdateAsync(long id, UpdatePartyRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Permanently deletes a party that has no history. Returns false if it does not exist;
+    /// throws <see cref="PartyInUseException"/> if anything references it.
+    /// </summary>
+    Task<bool> DeleteAsync(long id, CancellationToken cancellationToken);
 }

@@ -71,3 +71,7 @@ public sealed class PartyExactDuplicateException(long existingId, string name)
 {
     public long ExistingId { get; } = existingId;
 }
+
+/// <summary>The party has transactions or other history and can only be deactivated. Maps to 409.</summary>
+public sealed class PartyInUseException()
+    : Exception("This entry has transactions or other history and cannot be deleted. Deactivate it instead.");

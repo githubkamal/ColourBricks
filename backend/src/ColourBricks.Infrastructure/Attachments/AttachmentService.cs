@@ -87,6 +87,29 @@ public sealed class AttachmentService(
         return (ToDto(attachment), content);
     }
 
+    public async Task<AttachmentDto?> GetAsync(long id, CancellationToken cancellationToken)
+    {
+        Attachment? attachment = await db.Attachments.AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+        return attachment is null ? null : ToDto(attachment);
+    }
+
+    public async Task<bool> DeleteAsync(long id, CancellationToken cancellationToken)
+    {
+        Attachment? attachment = await db.Attachments.FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
+        if (attachment is null)
+        {
+            return false;
+        }
+
+        db.Attachments.Remove(attachment);
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Remove the bytes only after the row is gone, so a failed save never orphans a row.
+        await storage.DeleteAsync(attachment.StoredPath, cancellationToken);
+        return true;
+    }
+
     private static AttachmentDto ToDto(Attachment a) => new(
         a.Id, a.OwnerType, a.OwnerId, a.OriginalFileName, a.ContentType, a.SizeBytes,
         a.CreatedAtUtc, a.CreatedByUserId);

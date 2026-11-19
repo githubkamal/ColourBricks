@@ -48,6 +48,10 @@ export async function uploadAttachment(
   return (await response.json()) as Attachment;
 }
 
+export function deleteAttachment(id: number): Promise<void> {
+  return apiClient.del<void>(`/attachments/${id}`);
+}
+
 /** The download URL for an attachment (the API enforces the owner's view permission). */
 export function attachmentUrl(id: number): string {
   return `${apiBaseUrl}/attachments/${id}`;

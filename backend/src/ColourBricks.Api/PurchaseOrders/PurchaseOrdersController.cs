@@ -58,4 +58,9 @@ public sealed class PurchaseOrdersController(IPurchaseOrderService purchaseOrder
         bool done = await purchaseOrders.CancelAsync(id, cancellationToken);
         return done ? NoContent() : NotFound();
     }
+
+    [HttpDelete("{id:long}")]
+    [HasPermission("materials.edit")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken) =>
+        await purchaseOrders.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound();
 }

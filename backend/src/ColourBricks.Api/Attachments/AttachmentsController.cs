@@ -109,6 +109,25 @@ public sealed class AttachmentsController(IAttachmentService attachments) : Cont
         return File(content, meta.ContentType, meta.OriginalFileName);
     }
 
+    [HttpDelete("{id:long}")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    {
+        AttachmentDto? meta = await attachments.GetAsync(id, cancellationToken);
+        if (meta is null)
+        {
+            return NotFound();
+        }
+
+        if (!OwnerPermissions.TryGetValue(meta.OwnerType, out (string View, string Write) perms)
+            || !HasPermission(perms.Write))
+        {
+            return Forbid();
+        }
+
+        await attachments.DeleteAsync(id, cancellationToken);
+        return NoContent();
+    }
+
     private bool HasPermission(string permission)
     {
         string? claim = User.FindFirstValue("permissions");

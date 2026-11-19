@@ -26,6 +26,10 @@ export function updateParty(id: number, input: UpdatePartyInput): Promise<PartyD
   return apiClient.put<PartyDto>(`/parties/${id}`, input);
 }
 
+export function deleteParty(id: number): Promise<void> {
+  return apiClient.del<void>(`/parties/${id}`);
+}
+
 export function listParties(
   type?: PartyType,
   search?: string,

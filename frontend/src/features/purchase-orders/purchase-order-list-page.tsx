@@ -1,24 +1,50 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
 import { PartyPicker } from "@/features/parties/party-picker";
 import type { PartySearchItem } from "@/features/parties/types";
+import { Button } from "@/components/ui/button";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { dataState } from "@/components/ui/data-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Select } from "@/components/ui/select";
+import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
-import { listPurchaseOrders } from "./api";
+import { deletePurchaseOrder, listPurchaseOrders, type PurchaseOrder } from "./api";
 
 const STATUSES = ["Draft", "Submitted", "Cancelled"] as const;
 
 export function PurchaseOrderListPage() {
   const [vendor, setVendor] = useState<PartySearchItem | null>(null);
   const [status, setStatus] = useState<string>("");
+  const queryClient = useQueryClient();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+
+  const remove = useMutation({
+    mutationFn: (po: PurchaseOrder) => deletePurchaseOrder(po.id),
+    onSuccess: () => {
+      toast.success("Purchase order deleted");
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not delete the order"),
+  });
+
+  async function handleDelete(po: PurchaseOrder) {
+    const { confirmed } = await confirm({
+      title: `Delete ${po.poNumber}?`,
+      description: "The order is permanently removed. This cannot be undone.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (confirmed) remove.mutate(po);
+  }
 
   const { data: orders = [] } = useQuery({
     queryKey: ["purchase-orders", vendor?.id, status],
@@ -66,6 +92,7 @@ export function PurchaseOrderListPage() {
                 <th className="p-2 font-medium">Status</th>
                 <th className="p-2 font-medium">Projects</th>
                 <th className="p-2 font-medium">Total</th>
+                <th className="p-2 font-medium" />
               </tr>
             </thead>
             <tbody>
@@ -88,6 +115,20 @@ export function PurchaseOrderListPage() {
                   </td>
                   <td className="p-2">{new Set(po.lines.map((l) => l.projectId)).size}</td>
                   <td className="p-2">{po.status === "Draft" ? "—" : formatINR(po.total)}</td>
+                  <td className="p-2 text-right">
+                    {po.status !== "Submitted" && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        className="text-destructive"
+                        disabled={remove.isPending}
+                        onClick={() => void handleDelete(po)}
+                      >
+                        Delete
+                      </Button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -102,6 +143,7 @@ export function PurchaseOrderListPage() {
         onPageChange={setPage}
         itemLabel="purchase orders"
       />
+      {confirmDialog}
     </div>
   );
 }

@@ -261,6 +261,24 @@ public sealed class PurchaseOrderService(
         return true;
     }
 
+    public async Task<bool> DeleteAsync(long id, CancellationToken ct)
+    {
+        PurchaseOrder? po = await db.Set<PurchaseOrder>().FirstOrDefaultAsync(p => p.Id == id, ct);
+        if (po is null)
+        {
+            return false;
+        }
+
+        if (po.Status == PurchaseOrderStatus.Submitted)
+        {
+            throw Fail("id", "A submitted order has posted to the vendor's ledger and cannot be deleted.");
+        }
+
+        db.Set<PurchaseOrder>().Remove(po);
+        await db.SaveChangesAsync(ct);
+        return true;
+    }
+
     private async Task<List<PurchaseOrderLine>> BuildLinesAsync(
         IReadOnlyList<PurchaseOrderLineInput> inputs, CancellationToken ct)
     {

@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AttachmentPanel } from "@/features/attachments/attachment-panel";
@@ -17,6 +18,7 @@ import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import {
   cancelPurchaseOrder,
+  deletePurchaseOrder,
   getPurchaseOrder,
   submitPurchaseOrder,
   updatePurchaseOrder,
@@ -85,6 +87,7 @@ const newChargeRow = (): ChargeRow => ({
 
 export function PurchaseOrderDetailPage({ id }: { id: number }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
   const { confirm, dialog } = useConfirmDialog();
 
   const { data: po } = useQuery({
@@ -117,6 +120,26 @@ export function PurchaseOrderDetailPage({ id }: { id: number }) {
     cancel.mutate();
   }
 
+  const remove = useMutation({
+    mutationFn: () => deletePurchaseOrder(id),
+    onSuccess: () => {
+      toast.success("Purchase order deleted");
+      void queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      router.push("/vendors/purchase-orders");
+    },
+    onError: (error) => toast.error(error instanceof ApiError ? error.message : "Could not delete"),
+  });
+
+  async function handleDelete() {
+    const { confirmed } = await confirm({
+      title: `Delete ${po?.poNumber ?? "this purchase order"}?`,
+      description: "The order is permanently removed. This cannot be undone.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (confirmed) remove.mutate();
+  }
+
   if (!po) {
     return <p className="text-muted-foreground text-sm">Loading…</p>;
   }
@@ -132,11 +155,24 @@ export function PurchaseOrderDetailPage({ id }: { id: number }) {
             <span data-testid="po-status">{po.status}</span>
           </p>
         </div>
-        {po.status === "Draft" && (
-          <Button type="button" variant="destructive" size="sm" onClick={handleCancel}>
-            Cancel order
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {po.status === "Draft" && (
+            <Button type="button" variant="outline" size="sm" onClick={handleCancel}>
+              Cancel order
+            </Button>
+          )}
+          {po.status !== "Submitted" && (
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              disabled={remove.isPending}
+              onClick={handleDelete}
+            >
+              Delete
+            </Button>
+          )}
+        </div>
       </div>
 
       {po.status === "Draft" && <DraftEditor po={po} onSaved={invalidate} />}

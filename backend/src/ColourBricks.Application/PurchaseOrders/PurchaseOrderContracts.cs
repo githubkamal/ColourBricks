@@ -137,4 +137,10 @@ public interface IPurchaseOrderService
 
     /// <summary>Cancels a Draft order. Nothing has posted yet, so this is a status flip, not a reversal.</summary>
     Task<bool> CancelAsync(long id, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Permanently deletes a Draft or Cancelled order (nothing was posted). A Submitted order has
+    /// posted obligations to the vendor ledger and is rejected. Returns false if it does not exist.
+    /// </summary>
+    Task<bool> DeleteAsync(long id, CancellationToken cancellationToken);
 }

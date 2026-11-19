@@ -14,7 +14,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ApiError } from "@/lib/api";
-import { createParty, getParty, listParties, updateParty } from "./api";
+import { createParty, deleteParty, getParty, listParties, updateParty } from "./api";
 import type { PartyDto, PartySearchItem, PartyType } from "./types";
 
 export function VendorsPage({
@@ -151,6 +151,27 @@ export function VendorsPage({
     onError: (error) =>
       toast.error(error instanceof ApiError ? error.message : "Could not update this entry"),
   });
+
+  const remove = useMutation({
+    mutationFn: (party: PartySearchItem) => deleteParty(party.id),
+    onSuccess: () => {
+      toast.success("Deleted");
+      void invalidate();
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not delete this entry"),
+  });
+
+  async function handleDelete(party: PartySearchItem) {
+    const result = await confirm({
+      title: `Delete "${party.name}"?`,
+      description:
+        "This permanently removes the entry. It only works if it has no transactions; otherwise deactivate it instead.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (result.confirmed) remove.mutate(party);
+  }
 
   async function handleToggle(party: PartySearchItem) {
     const options: ConfirmOptions = party.isActive
@@ -320,6 +341,16 @@ export function VendorsPage({
                       onClick={() => void handleToggle(vendor)}
                     >
                       {vendor.isActive ? "Deactivate" : "Reactivate"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="xs"
+                      className="text-destructive"
+                      disabled={remove.isPending}
+                      onClick={() => void handleDelete(vendor)}
+                    >
+                      Delete
                     </Button>
                   </td>
                 </tr>

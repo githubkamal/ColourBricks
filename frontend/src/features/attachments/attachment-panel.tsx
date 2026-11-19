@@ -4,7 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef } from "react";
 import { toast } from "sonner";
 import { ApiError } from "@/lib/api";
-import { attachmentUrl, listAttachments, uploadAttachment } from "./api";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
+import { attachmentUrl, deleteAttachment, listAttachments, uploadAttachment } from "./api";
 
 /**
  * Reusable attachment list + uploader (BRD §67). Drop it onto any record —
@@ -29,6 +30,28 @@ export function AttachmentPanel({ ownerType, ownerId }: { ownerType: string; own
     onError: (error) =>
       toast.error(error instanceof ApiError ? error.message : "Could not upload the file"),
   });
+
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
+
+  const remove = useMutation({
+    mutationFn: (id: number) => deleteAttachment(id),
+    onSuccess: () => {
+      toast.success("Attachment deleted");
+      void queryClient.invalidateQueries({ queryKey: ["attachments", ownerType, ownerId] });
+    },
+    onError: (error) =>
+      toast.error(error instanceof ApiError ? error.message : "Could not delete the file"),
+  });
+
+  async function handleDelete(id: number, name: string) {
+    const result = await confirm({
+      title: `Delete "${name}"?`,
+      description: "The file is permanently removed from this record.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (result.confirmed) remove.mutate(id);
+  }
 
   return (
     <div className="space-y-2">
@@ -61,10 +84,19 @@ export function AttachmentPanel({ ownerType, ownerId }: { ownerType: string; own
                 {f.originalFileName}
               </a>
               <span className="text-muted-foreground"> · {(f.sizeBytes / 1024).toFixed(1)} KB</span>
+              <button
+                type="button"
+                className="text-destructive ml-3 text-xs hover:underline disabled:opacity-50"
+                disabled={remove.isPending}
+                onClick={() => void handleDelete(f.id, f.originalFileName)}
+              >
+                Delete
+              </button>
             </li>
           ))}
         </ul>
       )}
+      {confirmDialog}
     </div>
   );
 }

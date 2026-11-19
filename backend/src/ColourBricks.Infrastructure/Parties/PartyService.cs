@@ -174,6 +174,38 @@ public sealed class PartyService(AppDbContext db) : IPartyService
         return ToDto(party);
     }
 
+    public async Task<bool> DeleteAsync(long id, CancellationToken cancellationToken)
+    {
+        Party? party = await db.Parties.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (party is null)
+        {
+            return false;
+        }
+
+        bool hasHistory =
+            await db.LedgerEntries.AnyAsync(e => e.PartyId == id, cancellationToken)
+            || await db.Obligations.AnyAsync(o => o.PartyId == id, cancellationToken)
+            || await db.Allocations.AnyAsync(a => a.PartyId == id, cancellationToken)
+            || await db.Settlements.AnyAsync(s => s.PartyId == id, cancellationToken);
+        if (hasHistory)
+        {
+            throw new PartyInUseException();
+        }
+
+        db.Parties.Remove(party);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // A foreign key (purchase order, reconciliation link, ...) still points here.
+            throw new PartyInUseException();
+        }
+
+        return true;
+    }
+
     private static IReadOnlyList<string> TypeNames(PartyType types) =>
         Enum.GetValues<PartyType>()
             .Where(t => t != PartyType.None && types.HasFlag(t))

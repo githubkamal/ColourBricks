@@ -100,7 +100,7 @@ export function PurchaseOrderFormPage() {
           when the vendor&apos;s invoice arrives.
         </p>
 
-        <div data-table-scroll className="overflow-x-auto">
+        <div data-table-scroll className="overflow-x-auto md:overflow-visible">
           <table className="w-full text-sm">
             <thead className="text-muted-foreground">
               <tr className="text-left">

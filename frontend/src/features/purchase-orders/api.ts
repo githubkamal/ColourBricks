@@ -136,6 +136,10 @@ export function submitPurchaseOrder(
   return apiClient.post(`/purchase-orders/${id}/submit`, input);
 }
 
+export function deletePurchaseOrder(id: number): Promise<void> {
+  return apiClient.del<void>(`/purchase-orders/${id}`);
+}
+
 export function cancelPurchaseOrder(id: number): Promise<void> {
   return apiClient.post(`/purchase-orders/${id}/cancel`, {});
 }

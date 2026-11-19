@@ -109,4 +109,18 @@ public sealed class PartiesController(IPartyService parties) : ControllerBase
             };
         }
     }
+
+    [HttpDelete("{id:long}")]
+    [HasPermission("vendors.edit")]
+    public async Task<IActionResult> Delete(long id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await parties.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound();
+        }
+        catch (PartyInUseException ex)
+        {
+            return Problem(statusCode: StatusCodes.Status409Conflict, detail: ex.Message);
+        }
+    }
 }
