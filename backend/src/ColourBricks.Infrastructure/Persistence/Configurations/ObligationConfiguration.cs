@@ -14,12 +14,15 @@ internal sealed class ObligationConfiguration : IEntityTypeConfiguration<Obligat
         builder.ToTable("Obligation");
 
         builder.Property(x => x.Reference).HasMaxLength(80);
+        builder.Property(x => x.EntryNumber).HasMaxLength(30);
         // Description is unbounded -> LONGTEXT.
 
         builder.HasIndex(x => new { x.ProjectId, x.Date });
         builder.HasIndex(x => new { x.PartyId, x.Date });
         builder.HasIndex(x => x.Type);
         builder.HasIndex(x => x.PurchaseOrderId);
+        // Not unique: a corrected (reverse + re-record) entry keeps its number.
+        builder.HasIndex(x => x.EntryNumber);
 
         builder.HasOne<Project>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Party>().WithMany().HasForeignKey(x => x.PartyId).OnDelete(DeleteBehavior.Restrict);

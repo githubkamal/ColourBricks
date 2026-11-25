@@ -21,6 +21,8 @@ export interface AmountInputProps extends Omit<
   onChange: (value: string) => void;
   /** Inline error shown below the field (e.g. "Required" or "Must be greater than zero"). */
   error?: string;
+  /** Shows a ₹ sign inside the field, for rupee amounts (client request, 2026-11-21). */
+  currency?: boolean;
 }
 
 /**
@@ -31,22 +33,44 @@ export interface AmountInputProps extends Omit<
  * limit, so a value too large to save is rejected here, not as a backend error. Pair
  * with `error` for an inline message instead of a silently-disabled submit button.
  */
-export function AmountInput({ value, onChange, error, className, ...props }: AmountInputProps) {
+export function AmountInput({
+  value,
+  onChange,
+  error,
+  currency,
+  className,
+  ...props
+}: AmountInputProps) {
+  const input = (
+    <Input
+      {...props}
+      inputMode="decimal"
+      value={value}
+      aria-invalid={!!error}
+      className={cn(error && "border-destructive", currency && "pl-7", className)}
+      onChange={(e) => {
+        const next = e.target.value;
+        if (DECIMAL_PATTERN.test(next)) {
+          onChange(next);
+        }
+      }}
+    />
+  );
   return (
     <div className="space-y-1">
-      <Input
-        {...props}
-        inputMode="decimal"
-        value={value}
-        aria-invalid={!!error}
-        className={cn(error && "border-destructive", className)}
-        onChange={(e) => {
-          const next = e.target.value;
-          if (DECIMAL_PATTERN.test(next)) {
-            onChange(next);
-          }
-        }}
-      />
+      {currency ? (
+        <div className="relative">
+          <span
+            aria-hidden
+            className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm"
+          >
+            ₹
+          </span>
+          {input}
+        </div>
+      ) : (
+        input
+      )}
       {error && <p className="text-destructive text-xs">{error}</p>}
     </div>
   );

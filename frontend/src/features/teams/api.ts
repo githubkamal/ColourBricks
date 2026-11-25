@@ -1,5 +1,5 @@
 import { ApiError, apiClient } from "@/lib/api";
-import type { CreateTeamInput, TeamDto, TeamGroup } from "./types";
+import type { CreateTeamInput, TeamDto, TeamGroup, UpdateTeamInput } from "./types";
 
 export function listTeams(departmentId?: number, includeInactive = false): Promise<TeamDto[]> {
   const params = new URLSearchParams();
@@ -36,4 +36,12 @@ export async function createTeam(
     }
     throw error;
   }
+}
+
+export function getTeam(id: number): Promise<TeamDto> {
+  return apiClient.get<TeamDto>(`/teams/${id}`);
+}
+
+export function updateTeam(id: number, input: UpdateTeamInput): Promise<TeamDto> {
+  return apiClient.put<TeamDto>(`/teams/${id}`, input);
 }

@@ -2148,6 +2148,10 @@ namespace ColourBricks.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("longtext");
 
+                    b.Property<string>("EntryNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)");
+
                     b.Property<decimal?>("EstimatedAmount")
                         .HasPrecision(18, 3)
                         .HasColumnType("decimal(18,3)");
@@ -2184,6 +2188,8 @@ namespace ColourBricks.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
+
+                    b.HasIndex("EntryNumber");
 
                     b.HasIndex("PurchaseOrderId");
 
@@ -2273,8 +2279,28 @@ namespace ColourBricks.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("varchar(500)");
 
+                    b.Property<string>("AlternatePhone")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("BankAccountHolderName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("BankAccountNumber")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
                     b.Property<string>("BankDetails")
                         .HasColumnType("longtext");
+
+                    b.Property<string>("BankIfsc")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("BankName")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("Category")
                         .HasMaxLength(100)
@@ -2337,6 +2363,10 @@ namespace ColourBricks.Infrastructure.Migrations
                     b.Property<long?>("UpdatedByUserId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("WorkingArea")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DepartmentId");
@@ -2345,6 +2375,55 @@ namespace ColourBricks.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Party", (string)null);
+                });
+
+            modelBuilder.Entity("ColourBricks.Domain.Parties.TeamSite", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("ConcurrencyStamp")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("varchar(36)");
+
+                    b.Property<decimal>("ContractValue")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long?>("CreatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("PartyId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("SiteLocation")
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<DateTimeOffset?>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<long?>("UpdatedByUserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartyId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("TeamSite", (string)null);
                 });
 
             modelBuilder.Entity("ColourBricks.Domain.Payments.PaymentMode", b =>
@@ -3692,6 +3771,20 @@ namespace ColourBricks.Infrastructure.Migrations
                     b.HasOne("ColourBricks.Domain.Departments.Department", null)
                         .WithMany()
                         .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("ColourBricks.Domain.Parties.TeamSite", b =>
+                {
+                    b.HasOne("ColourBricks.Domain.Parties.Party", null)
+                        .WithMany()
+                        .HasForeignKey("PartyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ColourBricks.Domain.Projects.Project", null)
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

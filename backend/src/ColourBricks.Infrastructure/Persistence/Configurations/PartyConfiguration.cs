@@ -1,5 +1,6 @@
 using ColourBricks.Domain.Departments;
 using ColourBricks.Domain.Parties;
+using ColourBricks.Domain.Projects;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,6 +17,12 @@ internal sealed class PartyConfiguration : IEntityTypeConfiguration<Party>
         builder.Property(x => x.Category).HasMaxLength(100);
         builder.Property(x => x.ContactPerson).HasMaxLength(120);
         builder.Property(x => x.Phone).HasMaxLength(40);
+        builder.Property(x => x.AlternatePhone).HasMaxLength(40);
+        builder.Property(x => x.WorkingArea).HasMaxLength(500);
+        builder.Property(x => x.BankAccountHolderName).HasMaxLength(200);
+        builder.Property(x => x.BankName).HasMaxLength(200);
+        builder.Property(x => x.BankAccountNumber).HasMaxLength(40);
+        builder.Property(x => x.BankIfsc).HasMaxLength(20);
         builder.Property(x => x.Email).HasMaxLength(200);
         builder.Property(x => x.Address).HasMaxLength(500);
         builder.Property(x => x.GstNumber).HasMaxLength(20);
@@ -35,5 +42,21 @@ internal sealed class PartyConfiguration : IEntityTypeConfiguration<Party>
             .WithMany()
             .HasForeignKey(x => x.DepartmentId)
             .OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+internal sealed class TeamSiteConfiguration : IEntityTypeConfiguration<TeamSite>
+{
+    public void Configure(EntityTypeBuilder<TeamSite> builder)
+    {
+        builder.ToTable("TeamSite");
+
+        builder.Property(x => x.SiteLocation).HasMaxLength(200);
+
+        builder.HasIndex(x => x.PartyId);
+
+        // Sites are part of the team master — they go with the team.
+        builder.HasOne<Party>().WithMany().HasForeignKey(x => x.PartyId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne<Project>().WithMany().HasForeignKey(x => x.ProjectId).OnDelete(DeleteBehavior.Restrict);
     }
 }

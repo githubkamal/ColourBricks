@@ -28,6 +28,13 @@ public sealed class Obligation : BaseEntity
     /// <summary>Estimated cost when it differs from <see cref="Amount"/> (custom work, BRD §27).</summary>
     public decimal? EstimatedAmount { get; set; }
 
+    /// <summary>
+    /// System-generated reference number (e.g. <c>LW-2026-00001</c> for labour work —
+    /// client request, 2026-11-21). An edit that reverses and re-records the entry
+    /// carries the same number forward, so it identifies the entry across corrections.
+    /// </summary>
+    public string? EntryNumber { get; set; }
+
     /// <summary>Invoice number, work reference, etc.</summary>
     public string? Reference { get; set; }
 

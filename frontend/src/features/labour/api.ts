@@ -16,6 +16,10 @@ export interface WorkEntry {
   totalPaid: number;
   outstanding: number;
   status: string;
+  /** System reference number, e.g. LW-2026-00001 — kept across edits. */
+  referenceNumber: string | null;
+  projectName: string | null;
+  projectCode: string | null;
 }
 
 export interface TeamStatementRow {
@@ -25,6 +29,12 @@ export interface TeamStatementRow {
   workValue: number;
   paid: number;
   runningOutstanding: number;
+  /** The work entry (for a payment row: the entry it pays). */
+  workEntryId: number | null;
+  /** Set on payment rows only. */
+  paymentId: number | null;
+  referenceNumber: string | null;
+  projectName: string | null;
 }
 
 export interface RecordWorkInput {
@@ -79,4 +89,24 @@ export function reverseWork(id: number, reason: string): Promise<void> {
 
 export function teamStatement(teamId: number): Promise<TeamStatementRow[]> {
   return apiClient.get<TeamStatementRow[]>(`/labour/teams/${teamId}/statement`);
+}
+
+export type UpdateWorkInput = RecordWorkInput;
+
+export function updateWork(id: number, input: UpdateWorkInput): Promise<WorkEntry> {
+  return apiClient.put<WorkEntry>(`/labour/work/${id}`, input);
+}
+
+export function getWork(id: number): Promise<WorkEntry> {
+  return apiClient.get<WorkEntry>(`/labour/work/${id}`);
+}
+
+export function deleteWork(id: number, reason?: string): Promise<void> {
+  const q = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+  return apiClient.del<void>(`/labour/work/${id}${q}`);
+}
+
+export function deleteWorkPayment(paymentId: number, reason?: string): Promise<void> {
+  const q = reason ? `?reason=${encodeURIComponent(reason)}` : "";
+  return apiClient.del<void>(`/labour/payments/${paymentId}${q}`);
 }

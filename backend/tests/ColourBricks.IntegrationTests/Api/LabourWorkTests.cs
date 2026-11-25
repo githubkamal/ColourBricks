@@ -205,4 +205,107 @@ public sealed class LabourWorkTests(IntegrationFixture fixture) : IntegrationTes
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+
+    private static object WorkBody(long projectId, long teamId, decimal agreed, string date = "2026-05-01") =>
+        new { projectId, teamId, date, agreedValue = agreed, workType = "Wiring" };
+
+    [Fact]
+    public async Task RecordWork_AssignsSequentialReferenceNumbers()
+    {
+        HttpClient client = Client;
+        long projectId = await CreateProject(client, "CB-2026-677");
+        long teamId = await CreateTeam(client, "Electrical Team F");
+
+        JsonElement first = await Json(await client.PostAsJsonAsync("/api/v1/labour/work", WorkBody(projectId, teamId, 10_000m)));
+        JsonElement second = await Json(await client.PostAsJsonAsync("/api/v1/labour/work", WorkBody(projectId, teamId, 20_000m)));
+
+        string a = first.GetProperty("referenceNumber").GetString()!;
+        string b = second.GetProperty("referenceNumber").GetString()!;
+        a.Should().MatchRegex(@"^LW-2026-\d{5}$");
+        int.Parse(b[^5..]).Should().Be(int.Parse(a[^5..]) + 1);
+        first.GetProperty("projectName").GetString().Should().Be("Labour Project CB-2026-677");
+    }
+
+    [Fact]
+    public async Task UpdateWork_KeepsReferenceNumber_AndMovesPayments()
+    {
+        HttpClient client = Client;
+        long projectId = await CreateProject(client, "CB-2026-678");
+        long teamId = await CreateTeam(client, "Electrical Team G");
+        long mode = await ModeId(client, "Cash");
+        long cash = await AccountId(client, "Office Cash");
+        JsonElement created = await Json(await client.PostAsJsonAsync("/api/v1/labour/work", WorkBody(projectId, teamId, 100_000m)));
+        long workId = created.GetProperty("id").GetInt64();
+        (await Pay(client, workId, 30_000m, mode, cash)).EnsureSuccessStatusCode();
+
+        JsonElement updated = await Json(await client.PutAsJsonAsync(
+            $"/api/v1/labour/work/{workId}", WorkBody(projectId, teamId, 120_000m)));
+
+        updated.GetProperty("referenceNumber").GetString()
+            .Should().Be(created.GetProperty("referenceNumber").GetString());
+        updated.GetProperty("agreedValue").GetDecimal().Should().Be(120_000m);
+        updated.GetProperty("totalPaid").GetDecimal().Should().Be(30_000m);
+        updated.GetProperty("outstanding").GetDecimal().Should().Be(90_000m);
+
+        JsonElement statement = await Json(await client.GetAsync($"/api/v1/labour/teams/{teamId}/statement"));
+        JsonElement[] rows = statement.EnumerateArray().ToArray();
+        rows.Should().HaveCount(2, "the old version of an edited entry is not shown");
+        rows[^1].GetProperty("runningOutstanding").GetDecimal().Should().Be(90_000m);
+    }
+
+    [Fact]
+    public async Task UpdateWork_BelowPaid_Returns400()
+    {
+        HttpClient client = Client;
+        long projectId = await CreateProject(client, "CB-2026-679");
+        long teamId = await CreateTeam(client, "Electrical Team H");
+        long mode = await ModeId(client, "Cash");
+        long cash = await AccountId(client, "Office Cash");
+        long workId = await RecordWork(client, projectId, teamId, 100_000m);
+        (await Pay(client, workId, 60_000m, mode, cash)).EnsureSuccessStatusCode();
+
+        HttpResponseMessage response = await client.PutAsJsonAsync(
+            $"/api/v1/labour/work/{workId}", WorkBody(projectId, teamId, 50_000m));
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task DeleteWork_ReversesEntryAndPayments_AndRestoresCash()
+    {
+        HttpClient client = Client;
+        long projectId = await CreateProject(client, "CB-2026-680");
+        long teamId = await CreateTeam(client, "Electrical Team I");
+        long mode = await ModeId(client, "Cash");
+        long cash = await AccountId(client, "Office Cash");
+        decimal before = await Balance(client, cash);
+        long workId = await RecordWork(client, projectId, teamId, 100_000m);
+        (await Pay(client, workId, 40_000m, mode, cash)).EnsureSuccessStatusCode();
+
+        HttpResponseMessage response = await client.DeleteAsync($"/api/v1/labour/work/{workId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await Json(await client.GetAsync($"/api/v1/labour/work/{workId}")))
+            .GetProperty("status").GetString().Should().Be("Reversed");
+        (await Balance(client, cash)).Should().Be(before);
+        (await Json(await client.GetAsync($"/api/v1/labour/teams/{teamId}/statement")))
+            .GetArrayLength().Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DeletePayment_RaisesOutstandingAgain()
+    {
+        HttpClient client = Client;
+        long projectId = await CreateProject(client, "CB-2026-681");
+        long teamId = await CreateTeam(client, "Electrical Team J");
+        long mode = await ModeId(client, "Cash");
+        long cash = await AccountId(client, "Office Cash");
+        long workId = await RecordWork(client, projectId, teamId, 100_000m);
+        long paymentId = (await Json(await Pay(client, workId, 25_000m, mode, cash))).GetProperty("id").GetInt64();
+
+        HttpResponseMessage response = await client.DeleteAsync($"/api/v1/labour/payments/{paymentId}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await Outstanding(client, workId)).Should().Be(100_000m);
+    }
 }

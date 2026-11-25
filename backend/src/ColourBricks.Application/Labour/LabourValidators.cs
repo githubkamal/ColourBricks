@@ -15,6 +15,19 @@ public sealed class RecordWorkRequestValidator : AbstractValidator<RecordWorkReq
     }
 }
 
+public sealed class UpdateWorkRequestValidator : AbstractValidator<UpdateWorkRequest>
+{
+    public UpdateWorkRequestValidator()
+    {
+        RuleFor(x => x.ProjectId).GreaterThan(0);
+        RuleFor(x => x.TeamId).GreaterThan(0);
+        RuleFor(x => x.Date).NotEmpty();
+        RuleFor(x => x.AgreedValue).GreaterThan(0m);
+        RuleFor(x => x.WorkType).MaximumLength(80);
+        RuleFor(x => x.Description).MaximumLength(500);
+    }
+}
+
 public sealed class PayWorkRequestValidator : AbstractValidator<PayWorkRequest>
 {
     public PayWorkRequestValidator()

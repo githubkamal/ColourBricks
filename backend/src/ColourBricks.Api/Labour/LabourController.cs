@@ -51,6 +51,35 @@ public sealed class LabourController(ILabourService labour) : ControllerBase
         return found ? NoContent() : NotFound();
     }
 
+    [HttpPut("work/{id:long}")]
+    [HasPermission("labour.edit")]
+    public async Task<ActionResult<WorkEntryDto>> UpdateWork(
+        long id, [FromBody] UpdateWorkRequest request, CancellationToken cancellationToken)
+    {
+        WorkEntryDto? work = await labour.UpdateWorkAsync(id, request, cancellationToken);
+        return work is null ? NotFound() : Ok(work);
+    }
+
+    [HttpDelete("work/{id:long}")]
+    [HasPermission("labour.edit")]
+    public async Task<IActionResult> DeleteWork(
+        long id, [FromQuery] string? reason, CancellationToken cancellationToken)
+    {
+        bool found = await labour.DeleteWorkAsync(
+            id, string.IsNullOrWhiteSpace(reason) ? "Deleted by user" : reason, cancellationToken);
+        return found ? NoContent() : NotFound();
+    }
+
+    [HttpDelete("payments/{paymentId:long}")]
+    [HasPermission("labour.edit")]
+    public async Task<IActionResult> DeletePayment(
+        long paymentId, [FromQuery] string? reason, CancellationToken cancellationToken)
+    {
+        bool found = await labour.ReversePaymentAsync(
+            paymentId, string.IsNullOrWhiteSpace(reason) ? "Deleted by user" : reason, cancellationToken);
+        return found ? NoContent() : NotFound();
+    }
+
     [HttpGet("teams/{teamId:long}/statement")]
     [HasPermission("labour.view")]
     public Task<IReadOnlyList<TeamStatementRowDto>> Statement(

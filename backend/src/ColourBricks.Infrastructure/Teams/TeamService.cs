@@ -24,11 +24,12 @@ public sealed class TeamService(AppDbContext db, IPartyService parties) : ITeamS
     {
         List<Party> rows = await QueryTeams(departmentId, includeInactive).ToListAsync(cancellationToken);
         Dictionary<long, string> departments = await DepartmentNamesAsync(cancellationToken);
+        ILookup<long, TeamSiteDto> sites = await SitesAsync(rows.Select(r => r.Id).ToList(), cancellationToken);
 
         return rows
             .OrderBy(p => DepartmentName(p.DepartmentId, departments) ?? "~", StringComparer.OrdinalIgnoreCase)
             .ThenBy(p => p.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(p => ToDto(p, departments))
+            .Select(p => ToDto(p, departments, sites))
             .ToList();
     }
 
@@ -54,13 +55,15 @@ public sealed class TeamService(AppDbContext db, IPartyService parties) : ITeamS
         }
 
         Dictionary<long, string> departments = await DepartmentNamesAsync(cancellationToken);
-        return ToDto(team, departments);
+        ILookup<long, TeamSiteDto> sites = await SitesAsync([team.Id], cancellationToken);
+        return ToDto(team, departments, sites);
     }
 
     public async Task<CreateTeamResult> CreateAsync(
         CreateTeamRequest request, bool confirmed, CancellationToken cancellationToken)
     {
         await RequireAssignableDepartmentAsync(request.DepartmentId, cancellationToken);
+        await RequireProjectsExistAsync(request.Sites, cancellationToken);
 
         CreatePartyResult result = await parties.CreateAsync(
             new CreatePartyRequest(
@@ -81,7 +84,17 @@ public sealed class TeamService(AppDbContext db, IPartyService parties) : ITeamS
             return CreateTeamResult.NeedsConfirmation(result.NearDuplicates);
         }
 
-        TeamDto created = (await GetAsync(result.Party!.Id, cancellationToken))!;
+        Party party = await db.Parties.FirstAsync(p => p.Id == result.Party!.Id, cancellationToken);
+        ApplyMasterDetails(party, request.AlternatePhone, request.WorkingArea, request.BankAccountHolderName,
+            request.BankName, request.BankAccountNumber, request.BankIfsc);
+        if (request.Sites is { Count: > 0 })
+        {
+            await ReplaceSitesAsync(party.Id, request.Sites, cancellationToken);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        TeamDto created = (await GetAsync(party.Id, cancellationToken))!;
         return CreateTeamResult.Created(created);
     }
 
@@ -104,6 +117,8 @@ public sealed class TeamService(AppDbContext db, IPartyService parties) : ITeamS
             await RequireDepartmentExistsAsync(request.DepartmentId, cancellationToken);
         }
 
+        await RequireProjectsExistAsync(request.Sites, cancellationToken);
+
         db.Entry(team).Property(p => p.ConcurrencyStamp).OriginalValue = request.ConcurrencyStamp;
 
         team.Name = request.Name.Trim();
@@ -117,6 +132,14 @@ public sealed class TeamService(AppDbContext db, IPartyService parties) : ITeamS
         team.PaymentTerms = request.PaymentTerms;
         team.BankDetails = request.BankDetails;
         team.IsActive = request.IsActive;
+        ApplyMasterDetails(team, request.AlternatePhone, request.WorkingArea, request.BankAccountHolderName,
+            request.BankName, request.BankAccountNumber, request.BankIfsc);
+
+        // Null = the caller didn't send sites (older clients) - leave them as they are.
+        if (request.Sites is not null)
+        {
+            await ReplaceSitesAsync(team.Id, request.Sites, cancellationToken);
+        }
 
         try
         {
@@ -129,8 +152,79 @@ public sealed class TeamService(AppDbContext db, IPartyService parties) : ITeamS
             throw new PartyExactDuplicateException(clash?.Id ?? 0, request.Name);
         }
 
-        Dictionary<long, string> departments = await DepartmentNamesAsync(cancellationToken);
-        return ToDto(team, departments);
+        return (await GetAsync(team.Id, cancellationToken))!;
+    }
+
+    private static void ApplyMasterDetails(
+        Party party, string? alternatePhone, string? workingArea, string? holder,
+        string? bankName, string? accountNumber, string? ifsc)
+    {
+        party.AlternatePhone = Clean(alternatePhone);
+        party.WorkingArea = Clean(workingArea);
+        party.BankAccountHolderName = Clean(holder);
+        party.BankName = Clean(bankName);
+        party.BankAccountNumber = Clean(accountNumber);
+        party.BankIfsc = Clean(ifsc)?.ToUpperInvariant();
+    }
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task ReplaceSitesAsync(
+        long partyId, IReadOnlyList<TeamSiteInput> sites, CancellationToken cancellationToken)
+    {
+        List<TeamSite> existing = await db.TeamSites.Where(s => s.PartyId == partyId).ToListAsync(cancellationToken);
+        db.TeamSites.RemoveRange(existing);
+        foreach (TeamSiteInput site in sites)
+        {
+            db.TeamSites.Add(new TeamSite
+            {
+                PartyId = partyId,
+                ProjectId = site.ProjectId is > 0 ? site.ProjectId : null,
+                SiteLocation = Clean(site.SiteLocation),
+                ContractValue = site.ContractValue,
+            });
+        }
+    }
+
+    private async Task RequireProjectsExistAsync(
+        IReadOnlyList<TeamSiteInput>? sites, CancellationToken cancellationToken)
+    {
+        List<long> ids = (sites ?? [])
+            .Where(s => s.ProjectId is > 0).Select(s => s.ProjectId!.Value).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        int found = await db.Projects.AsNoTracking().CountAsync(p => ids.Contains(p.Id), cancellationToken);
+        if (found != ids.Count)
+        {
+            throw new ValidationException(
+                [new ValidationFailure("sites", "A selected site project does not exist.")]);
+        }
+    }
+
+    private async Task<ILookup<long, TeamSiteDto>> SitesAsync(
+        IReadOnlyList<long> partyIds, CancellationToken cancellationToken)
+    {
+        List<TeamSite> rows = await db.TeamSites.AsNoTracking()
+            .Where(s => partyIds.Contains(s.PartyId))
+            .OrderBy(s => s.Id)
+            .ToListAsync(cancellationToken);
+
+        List<long> projectIds = rows.Where(r => r.ProjectId != null).Select(r => r.ProjectId!.Value).Distinct().ToList();
+        Dictionary<long, string> projectNames = projectIds.Count == 0
+            ? []
+            : await db.Projects.AsNoTracking()
+                .Where(p => projectIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p.Name, cancellationToken);
+
+        return rows.ToLookup(
+            r => r.PartyId,
+            r => new TeamSiteDto(
+                r.Id, r.ProjectId,
+                r.ProjectId is { } pid ? projectNames.GetValueOrDefault(pid) : null,
+                r.SiteLocation, r.ContractValue));
     }
 
     private IQueryable<Party> QueryTeams(long? departmentId, bool includeInactive)
@@ -178,8 +272,11 @@ public sealed class TeamService(AppDbContext db, IPartyService parties) : ITeamS
     private static string? DepartmentName(long? departmentId, IReadOnlyDictionary<long, string> names) =>
         departmentId is { } d && names.TryGetValue(d, out string? name) ? name : null;
 
-    private static TeamDto ToDto(Party p, IReadOnlyDictionary<long, string> departments) => new(
+    private static TeamDto ToDto(
+        Party p, IReadOnlyDictionary<long, string> departments, ILookup<long, TeamSiteDto> sites) => new(
         p.Id, p.Name, p.DepartmentId, DepartmentName(p.DepartmentId, departments),
         p.ContactPerson, p.Phone, p.Email, p.Address, p.PaymentTerms, p.BankDetails,
-        p.IsActive, p.ConcurrencyStamp);
+        p.IsActive, p.ConcurrencyStamp,
+        p.AlternatePhone, p.WorkingArea, p.BankAccountHolderName, p.BankName, p.BankAccountNumber, p.BankIfsc,
+        sites[p.Id].ToList());
 }

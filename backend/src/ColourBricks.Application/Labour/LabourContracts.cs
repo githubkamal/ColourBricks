@@ -14,7 +14,10 @@ public sealed record WorkEntryDto(
     decimal AgreedValue,
     decimal TotalPaid,
     decimal Outstanding,
-    string Status);
+    string Status,
+    string? ReferenceNumber = null,
+    string? ProjectName = null,
+    string? ProjectCode = null);
 
 public sealed record WorkPaymentDto(
     long Id,
@@ -27,6 +30,19 @@ public sealed record WorkPaymentDto(
     string? ReferenceNo);
 
 public sealed record RecordWorkRequest(
+    long ProjectId,
+    long TeamId,
+    DateOnly Date,
+    decimal AgreedValue,
+    long? DepartmentId = null,
+    string? WorkType = null,
+    string? Description = null);
+
+/// <summary>
+/// Corrects a saved work entry (client request, 2026-11-21). Once a payment is recorded
+/// the project and team are fixed and the agreed value can't drop below what's paid.
+/// </summary>
+public sealed record UpdateWorkRequest(
     long ProjectId,
     long TeamId,
     DateOnly Date,
@@ -50,4 +66,8 @@ public sealed record TeamStatementRowDto(
     string Reference,
     decimal WorkValue,
     decimal Paid,
-    decimal RunningOutstanding);
+    decimal RunningOutstanding,
+    long? WorkEntryId = null,     // the work entry (for a payment: the entry it pays)
+    long? PaymentId = null,       // set on "Payment" rows only
+    string? ReferenceNumber = null,
+    string? ProjectName = null);

@@ -145,6 +145,76 @@ public sealed class TeamTests(IntegrationFixture fixture) : IntegrationTestBase(
         byDept["Plumbing"].Should().Be(1);
     }
 
+    [Fact]
+    public async Task UpdateTeam_SavesMasterDetails_AndMultipleSites()
+    {
+        HttpClient client = Client;
+        long masonry = await EnsureDepartment(client, "Masonry");
+        long teamId = await CreateTeam(client, "Ravi Masthiri Crew", masonry);
+        long siteA = await CreateProject(client, "Master Site A", "CB-2026-675");
+        long siteB = await CreateProject(client, "Master Site B", "CB-2026-676");
+
+        using JsonDocument before = JsonDocument.Parse(
+            await (await client.GetAsync($"/api/v1/teams/{teamId}")).Content.ReadAsStringAsync());
+        string stamp = before.RootElement.GetProperty("concurrencyStamp").GetString()!;
+
+        HttpResponseMessage response = await client.PutAsJsonAsync($"/api/v1/teams/{teamId}", new
+        {
+            name = "Ravi Masthiri Crew",
+            departmentId = masonry,
+            isActive = true,
+            concurrencyStamp = stamp,
+            phone = "9876543210",
+            alternatePhone = "9123456780",
+            workingArea = "Coimbatore North",
+            address = "12, Main Road, Coimbatore",
+            bankAccountHolderName = "Ravi K",
+            bankName = "State Bank of India",
+            bankAccountNumber = "12345678901",
+            bankIfsc = "sbin0001234",
+            sites = new object[]
+            {
+                new { projectId = siteA, siteLocation = "Block A", contractValue = 250_000m },
+                new { projectId = siteB, siteLocation = (string?)null, contractValue = 175_000m },
+                new { projectId = (long?)null, siteLocation = "Saravanampatti plot", contractValue = 90_000m },
+            },
+        });
+        string body = await response.Content.ReadAsStringAsync();
+        response.StatusCode.Should().Be(HttpStatusCode.OK, body);
+
+        using JsonDocument doc = JsonDocument.Parse(body);
+        JsonElement team = doc.RootElement;
+        team.GetProperty("alternatePhone").GetString().Should().Be("9123456780");
+        team.GetProperty("workingArea").GetString().Should().Be("Coimbatore North");
+        team.GetProperty("bankIfsc").GetString().Should().Be("SBIN0001234");
+        team.GetProperty("bankAccountNumber").GetString().Should().Be("12345678901");
+        JsonElement[] sites = team.GetProperty("sites").EnumerateArray().ToArray();
+        sites.Should().HaveCount(3);
+        sites[0].GetProperty("projectName").GetString().Should().Be("Master Site A");
+        sites.Sum(s => s.GetProperty("contractValue").GetDecimal()).Should().Be(515_000m);
+    }
+
+    [Fact]
+    public async Task UpdateTeam_InvalidIfsc_Returns400()
+    {
+        HttpClient client = Client;
+        long masonry = await EnsureDepartment(client, "Masonry");
+        long teamId = await CreateTeam(client, "Shankar Masthiri Crew", masonry);
+        using JsonDocument before = JsonDocument.Parse(
+            await (await client.GetAsync($"/api/v1/teams/{teamId}")).Content.ReadAsStringAsync());
+
+        HttpResponseMessage response = await client.PutAsJsonAsync($"/api/v1/teams/{teamId}", new
+        {
+            name = "Shankar Masthiri Crew",
+            departmentId = masonry,
+            isActive = true,
+            concurrencyStamp = before.RootElement.GetProperty("concurrencyStamp").GetString(),
+            bankIfsc = "NOTANIFSC",
+        });
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     private static LedgerEntry Work(long teamId, long projectId) => new()
     {
         EntryDate = new DateOnly(2026, 5, 1),

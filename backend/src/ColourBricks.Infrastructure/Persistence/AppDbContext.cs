@@ -69,6 +69,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 
     public DbSet<Party> Parties => Set<Party>();
 
+    public DbSet<TeamSite> TeamSites => Set<TeamSite>();
+
     public DbSet<Item> Items => Set<Item>();
 
     public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();

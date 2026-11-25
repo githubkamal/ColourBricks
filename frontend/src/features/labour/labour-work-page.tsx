@@ -1,17 +1,13 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { listAccounts } from "@/features/accounts/api";
 import { PaymentModeSelect } from "@/features/payment-modes/payment-mode-select";
 import { getProject } from "@/features/projects/api";
-import { ProjectPicker } from "@/features/projects/project-picker";
-import type { ProjectListItem } from "@/features/projects/types";
 import { reconcileDebit, type ReconciliationRow } from "@/features/reconciliation/api";
 import { BankTransactionPicker } from "@/features/reconciliation/bank-transaction-picker";
-import { TeamPicker } from "@/features/teams/team-picker";
-import type { TeamDto } from "@/features/teams/types";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,174 +17,137 @@ import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PaginationBar } from "@/components/ui/pagination-bar";
 import { Select } from "@/components/ui/select";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { useConfirmDialog } from "@/components/ui/confirm-dialog";
 import { ApiError } from "@/lib/api";
 import { formatDate, formatINR } from "@/lib/format";
 import { usePagination } from "@/lib/use-pagination";
+import { cn } from "@/lib/utils";
 import { useQueryParamNumber } from "@/lib/use-query-param";
 import {
+  deleteWork,
   listWork,
   payWork,
-  recordWork,
-  reverseWork,
   PAYMENT_FREQUENCIES,
   type PaymentFrequency,
   type WorkEntry,
 } from "./api";
+import { WorkEntryForm } from "./work-entry-form";
 
 export function LabourWorkPage() {
-  const [projectId, setProjectId] = useQueryParamNumber("projectId", 0);
-  const [manualProject, setManualProject] = useState<ProjectListItem | null | undefined>(undefined);
-  const { data: restoredProject } = useQuery({
+  const queryClient = useQueryClient();
+  const { confirm, dialog } = useConfirmDialog();
+  const [projectId] = useQueryParamNumber("projectId", 0);
+  const { data: deepLinkedProject } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProject(projectId),
-    enabled: projectId > 0 && manualProject === undefined,
+    enabled: projectId > 0,
   });
-  const project = manualProject !== undefined ? manualProject : (restoredProject ?? null);
 
-  function handleSelect(next: ProjectListItem | null) {
-    setManualProject(next);
-    setProjectId(next?.id ?? 0);
-  }
+  const [editing, setEditing] = useState<WorkEntry | null>(null);
+  // Bumped after each save so a fresh (empty) form mounts.
+  const [formKey, setFormKey] = useState(0);
+  const [search, setSearch] = useState("");
+  const formRef = useRef<HTMLDivElement>(null);
 
-  return (
-    <div className="max-w-3xl space-y-6">
-      <PageHeader title="Labour & Subcontractor Work" />
-
-      <div className="bg-card max-w-xs rounded border p-4">
-        <ProjectPicker selected={project} onSelect={handleSelect} label="Project" />
-      </div>
-
-      {project && <WorkList projectId={project.id} />}
-    </div>
-  );
-}
-
-function WorkList({ projectId }: { projectId: number }) {
-  const queryClient = useQueryClient();
-  const [team, setTeam] = useState<TeamDto | null>(null);
-  const [date, setDate] = useState("");
-  const [agreedValue, setAgreedValue] = useState("");
-  const [workType, setWorkType] = useState("");
-  const [description, setDescription] = useState("");
-  const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);
-
-  const { data: work = [] } = useQuery({
-    queryKey: ["labour-work", projectId],
-    queryFn: () => listWork(projectId),
+  const { data: work = [], isPending } = useQuery({
+    queryKey: ["labour-work", "all"],
+    queryFn: () => listWork(),
   });
-  const { pageRows: pagedWork, page, setPage, pageCount, total } = usePagination(work, 20);
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["labour-work", projectId] });
+  // Deleted entries (and the old versions of edited ones) are history, not work to show.
+  const term = search.trim().toLowerCase();
+  const active = work.filter((w) => w.status === "Active");
+  const shown = term
+    ? active.filter((w) =>
+        [w.referenceNumber, w.teamName, w.projectName, w.projectCode, w.workType, w.description]
+          .filter((v): v is string => !!v)
+          .some((v) => v.toLowerCase().includes(term)),
+      )
+    : active;
+  const { pageRows, page, setPage, pageCount, total } = usePagination(shown, 20);
 
-  const save = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        projectId,
-        teamId: team!.id,
-        date,
-        agreedValue: Number(agreedValue),
-        workType: workType.trim() || null,
-        description: description.trim() || null,
-      };
-      if (editingEntry) {
-        await reverseWork(editingEntry.id, "Corrected by user");
-      }
-      return recordWork(payload);
-    },
-    onSuccess: () => {
-      toast.success(editingEntry ? "Work entry updated" : "Work entry recorded");
-      setAgreedValue("");
-      setWorkType("");
-      setDescription("");
-      setEditingEntry(null);
-      void invalidate();
-    },
-    onError: (error) =>
-      toast.error(error instanceof ApiError ? error.message : "Could not save the work entry"),
-  });
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ["labour-work"] });
+    void queryClient.invalidateQueries({ queryKey: ["team-statement"] });
+  };
 
   function startEdit(entry: WorkEntry) {
-    setEditingEntry(entry);
-    setTeam({ id: entry.teamId, name: entry.teamName } as TeamDto);
-    setDate(entry.date);
-    setAgreedValue(String(entry.agreedValue));
-    setWorkType(entry.workType ?? "");
-    setDescription(entry.description ?? "");
+    setEditing(entry);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  function cancelEdit() {
-    setEditingEntry(null);
-    setTeam(null);
-    setDate("");
-    setAgreedValue("");
-    setWorkType("");
-    setDescription("");
+  async function remove(entry: WorkEntry) {
+    const { confirmed } = await confirm({
+      title: `Delete ${entry.referenceNumber ?? "this work entry"}?`,
+      description:
+        entry.totalPaid > 0
+          ? `This also deletes the ${formatINR(entry.totalPaid)} paid against it. The books keep a reversal record.`
+          : "The books keep a reversal record.",
+      confirmLabel: "Delete",
+      destructive: true,
+    });
+    if (!confirmed) return;
+    try {
+      await deleteWork(entry.id);
+      toast.success(`${entry.referenceNumber ?? "Work entry"} deleted`);
+      if (editing?.id === entry.id) setEditing(null);
+      invalidate();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : "Could not delete the work entry");
+    }
   }
 
-  const ready = team !== null && date !== "" && Number(agreedValue) > 0;
+  const defaultProject = deepLinkedProject
+    ? { id: deepLinkedProject.id, name: deepLinkedProject.name, code: deepLinkedProject.code }
+    : null;
 
   return (
-    <div className="space-y-6">
-      <form
-        className="bg-card space-y-3 rounded border p-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (ready) save.mutate();
-        }}
-      >
-        <TeamPicker selected={team} onSelect={setTeam} label="Team" />
-        <div className="flex gap-3">
-          <label className="space-y-1">
-            <span className="text-sm font-medium">Work date</span>
-            <Input
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              aria-label="Work date"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-sm font-medium">Agreed work value</span>
-            <AmountInput
-              value={agreedValue}
-              onChange={setAgreedValue}
-              aria-label="Agreed work value"
-            />
-          </label>
-          <label className="space-y-1">
-            <span className="text-sm font-medium">Work type</span>
-            <Input
-              value={workType}
-              onChange={(e) => setWorkType(e.target.value)}
-              aria-label="Work type"
-            />
-          </label>
-        </div>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium">Description</span>
-          <Input
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            aria-label="Description"
-          />
-        </label>
-        <div className="flex gap-2">
-          <SubmitButton type="submit" disabled={!ready} mutation={save}>
-            {editingEntry ? "Save changes" : "Record work entry"}
-          </SubmitButton>
-          {editingEntry && (
-            <Button type="button" variant="outline" onClick={cancelEdit}>
-              Cancel edit
-            </Button>
-          )}
-        </div>
-      </form>
+    <div className="max-w-4xl space-y-6">
+      {dialog}
+      <PageHeader title="Labour & Subcontractor Work" />
+
+      <div ref={formRef} className="scroll-mt-4">
+        <WorkEntryForm
+          key={editing ? `edit-${editing.id}` : `new-${formKey}-${defaultProject?.id ?? 0}`}
+          entry={editing}
+          defaultProject={defaultProject}
+          onSaved={() => {
+            setEditing(null);
+            setFormKey((k) => k + 1);
+            invalidate();
+          }}
+          onCancel={editing ? () => setEditing(null) : undefined}
+        />
+      </div>
 
       <div className="space-y-3">
-        {dataState({ isEmpty: work.length === 0, emptyLabel: "No work entries yet." })}
-        {pagedWork.map((entry) => (
-          <WorkRow key={entry.id} entry={entry} onPaid={invalidate} onEdit={startEdit} />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold">Work entries</h2>
+          <Input
+            className="w-64"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setPage(1);
+            }}
+            placeholder="Search ref no, team, project…"
+            aria-label="Search work entries"
+          />
+        </div>
+        {dataState({
+          isPending,
+          isEmpty: shown.length === 0,
+          emptyLabel: term ? "No work entries match." : "No work entries yet.",
+        })}
+        {pageRows.map((entry) => (
+          <WorkRow
+            key={entry.id}
+            entry={entry}
+            isEditing={editing?.id === entry.id}
+            onPaid={invalidate}
+            onEdit={startEdit}
+            onDelete={remove}
+          />
         ))}
       </div>
 
@@ -205,12 +164,16 @@ function WorkList({ projectId }: { projectId: number }) {
 
 function WorkRow({
   entry,
+  isEditing,
   onPaid,
   onEdit,
+  onDelete,
 }: {
   entry: WorkEntry;
+  isEditing: boolean;
   onPaid: () => void;
   onEdit: (entry: WorkEntry) => void;
+  onDelete: (entry: WorkEntry) => void;
 }) {
   const queryClient = useQueryClient();
   const [paying, setPaying] = useState(false);
@@ -262,17 +225,29 @@ function WorkRow({
   });
 
   return (
-    <div className="bg-card border-border rounded-xl border p-3 text-sm shadow-xs">
-      <div className="flex items-center justify-between">
-        <span>
-          {formatDate(entry.date)} · {entry.teamName}
-          {entry.workType && <span className="text-muted-foreground"> · {entry.workType}</span>}
-          {entry.status !== "Active" && (
-            <>
-              {" "}
-              <StatusBadge status={entry.status} />
-            </>
+    <div
+      className={cn(
+        "bg-card border-border rounded-xl border p-3 text-sm shadow-xs",
+        isEditing && "ring-ring/40 ring-2",
+      )}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="space-x-1">
+          {entry.referenceNumber && (
+            <Badge variant="primary" data-testid={`ref-${entry.id}`}>
+              {entry.referenceNumber}
+            </Badge>
           )}
+          <span>
+            {formatDate(entry.date)} · {entry.teamName}
+          </span>
+          {entry.projectName && (
+            <span className="text-muted-foreground">
+              · {entry.projectCode ? `${entry.projectCode} — ` : ""}
+              {entry.projectName}
+            </span>
+          )}
+          {entry.workType && <span className="text-muted-foreground"> · {entry.workType}</span>}
         </span>
         <span className="flex items-center gap-2 tabular-nums">
           Agreed {formatINR(entry.agreedValue)} · Paid {formatINR(entry.totalPaid)}
@@ -284,9 +259,10 @@ function WorkRow({
           </Badge>
         </span>
       </div>
-      {entry.status === "Active" && entry.outstanding > 0 && (
+      {entry.description && <p className="text-muted-foreground mt-1">{entry.description}</p>}
+      {entry.status === "Active" && (
         <div className="mt-2">
-          {paying ? (
+          {paying && entry.outstanding > 0 ? (
             <form
               className="flex flex-wrap items-end gap-2"
               onSubmit={(e) => {
@@ -361,14 +337,23 @@ function WorkRow({
             </form>
           ) : (
             <div className="flex gap-1">
-              <Button type="button" size="xs" variant="ghost" onClick={() => setPaying(true)}>
-                Add payment
-              </Button>
-              {entry.totalPaid === 0 && (
-                <Button type="button" size="xs" variant="ghost" onClick={() => onEdit(entry)}>
-                  Edit
+              {entry.outstanding > 0 && (
+                <Button type="button" size="xs" variant="ghost" onClick={() => setPaying(true)}>
+                  Add payment
                 </Button>
               )}
+              <Button type="button" size="xs" variant="ghost" onClick={() => onEdit(entry)}>
+                Edit
+              </Button>
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                className="text-destructive"
+                onClick={() => onDelete(entry)}
+              >
+                Delete
+              </Button>
             </div>
           )}
         </div>

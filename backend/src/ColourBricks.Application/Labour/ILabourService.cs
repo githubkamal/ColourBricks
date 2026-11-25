@@ -24,6 +24,22 @@ public interface ILabourService
     /// </summary>
     Task<bool> ReverseAsync(long id, string reason, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Corrects a work entry in place from the user's point of view: the old record is
+    /// reversed and a new one recorded carrying the same reference number, and any
+    /// payments move across to it. Returns null if the id does not exist.
+    /// </summary>
+    Task<WorkEntryDto?> UpdateWorkAsync(long id, UpdateWorkRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Deletes (reverses) a work entry together with its payments. Returns false if
+    /// the id does not exist.
+    /// </summary>
+    Task<bool> DeleteWorkAsync(long id, string reason, CancellationToken cancellationToken);
+
+    /// <summary>Deletes (reverses) one payment made against a work entry. False if not found.</summary>
+    Task<bool> ReversePaymentAsync(long paymentId, string reason, CancellationToken cancellationToken);
+
     Task<IReadOnlyList<TeamStatementRowDto>> TeamStatementAsync(
         long teamId, CancellationToken cancellationToken);
 }

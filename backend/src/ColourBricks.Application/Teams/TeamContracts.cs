@@ -19,7 +19,20 @@ public sealed record TeamDto(
     string? PaymentTerms,
     string? BankDetails,
     bool IsActive,
-    string ConcurrencyStamp);
+    string ConcurrencyStamp,
+    string? AlternatePhone = null,
+    string? WorkingArea = null,
+    string? BankAccountHolderName = null,
+    string? BankName = null,
+    string? BankAccountNumber = null,
+    string? BankIfsc = null,
+    IReadOnlyList<TeamSiteDto>? Sites = null);
+
+/// <summary>A site the team is contracted for, with its contract value (client request, 2026-11-21).</summary>
+public sealed record TeamSiteDto(long Id, long? ProjectId, string? ProjectName, string? SiteLocation, decimal ContractValue);
+
+/// <summary>A site row as sent from the team master form. Rows replace the team's current sites.</summary>
+public sealed record TeamSiteInput(long? ProjectId, string? SiteLocation, decimal ContractValue);
 
 /// <summary>Teams grouped under their department, for the grouped picker (BRD §8).</summary>
 public sealed record TeamGroup(long? DepartmentId, string DepartmentName, IReadOnlyList<TeamDto> Teams);
@@ -32,7 +45,14 @@ public sealed record CreateTeamRequest(
     string? Email = null,
     string? Address = null,
     string? PaymentTerms = null,
-    string? BankDetails = null);
+    string? BankDetails = null,
+    string? AlternatePhone = null,
+    string? WorkingArea = null,
+    string? BankAccountHolderName = null,
+    string? BankName = null,
+    string? BankAccountNumber = null,
+    string? BankIfsc = null,
+    IReadOnlyList<TeamSiteInput>? Sites = null);
 
 public sealed record UpdateTeamRequest(
     string Name,
@@ -44,7 +64,14 @@ public sealed record UpdateTeamRequest(
     string? Email = null,
     string? Address = null,
     string? PaymentTerms = null,
-    string? BankDetails = null);
+    string? BankDetails = null,
+    string? AlternatePhone = null,
+    string? WorkingArea = null,
+    string? BankAccountHolderName = null,
+    string? BankName = null,
+    string? BankAccountNumber = null,
+    string? BankIfsc = null,
+    IReadOnlyList<TeamSiteInput>? Sites = null);
 
 /// <summary>
 /// Either the created team, or (near-duplicate name, not confirmed) the possible

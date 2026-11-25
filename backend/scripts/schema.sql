@@ -5167,5 +5167,208 @@ DELIMITER ;
 CALL MigrationsScript();
 DROP PROCEDURE MigrationsScript;
 
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    ALTER TABLE `Party` ADD `AlternatePhone` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    ALTER TABLE `Party` ADD `BankAccountHolderName` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    ALTER TABLE `Party` ADD `BankAccountNumber` varchar(40) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    ALTER TABLE `Party` ADD `BankIfsc` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    ALTER TABLE `Party` ADD `BankName` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    ALTER TABLE `Party` ADD `WorkingArea` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    ALTER TABLE `Obligation` ADD `EntryNumber` varchar(30) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    CREATE TABLE `TeamSite` (
+        `Id` bigint NOT NULL AUTO_INCREMENT,
+        `PartyId` bigint NOT NULL,
+        `ProjectId` bigint NULL,
+        `SiteLocation` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+        `ContractValue` decimal(18,3) NOT NULL,
+        `CreatedAtUtc` datetime(6) NOT NULL,
+        `CreatedByUserId` bigint NULL,
+        `UpdatedAtUtc` datetime(6) NULL,
+        `UpdatedByUserId` bigint NULL,
+        `ConcurrencyStamp` varchar(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+        CONSTRAINT `PK_TeamSite` PRIMARY KEY (`Id`),
+        CONSTRAINT `FK_TeamSite_Party_PartyId` FOREIGN KEY (`PartyId`) REFERENCES `Party` (`Id`) ON DELETE CASCADE,
+        CONSTRAINT `FK_TeamSite_Project_ProjectId` FOREIGN KEY (`ProjectId`) REFERENCES `Project` (`Id`) ON DELETE RESTRICT
+    ) CHARACTER SET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    CREATE INDEX `IX_Obligation_EntryNumber` ON `Obligation` (`EntryNumber`);
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    CREATE INDEX `IX_TeamSite_PartyId` ON `TeamSite` (`PartyId`);
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    CREATE INDEX `IX_TeamSite_ProjectId` ON `TeamSite` (`ProjectId`);
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    UPDATE `Obligation` o
+    JOIN (
+        SELECT `Id`, ROW_NUMBER() OVER (PARTITION BY YEAR(`Date`) ORDER BY `Date`, `Id`) AS rn
+        FROM `Obligation`
+        WHERE `Type` = 2 AND `Status` = 1
+    ) n ON n.`Id` = o.`Id`
+    SET o.`EntryNumber` = CONCAT('LW-', YEAR(o.`Date`), '-', LPAD(n.rn, 5, '0'));
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
+DROP PROCEDURE IF EXISTS MigrationsScript;
+DELIMITER //
+CREATE PROCEDURE MigrationsScript()
+BEGIN
+    IF NOT EXISTS(SELECT 1 FROM `__EFMigrationsHistory` WHERE `MigrationId` = '20261125063039_P15T01_TeamMasterAndWorkEntryNumber') THEN
+
+    INSERT INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+    VALUES ('20261125063039_P15T01_TeamMasterAndWorkEntryNumber', '9.0.0');
+
+    END IF;
+END //
+DELIMITER ;
+CALL MigrationsScript();
+DROP PROCEDURE MigrationsScript;
+
 COMMIT;
 
